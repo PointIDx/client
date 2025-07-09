@@ -159,9 +159,11 @@ const contactInfo = [
           <Button variant="ghost" class="text-gray-400 hover:text-white hover:bg-gray-800">
             Se connecter
           </Button>
-          <Button class="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-black font-semibold">
-            S'inscrire
-          </Button>
+		  <router-link to="/pro-registration" v-slot="{navigate}">
+			<Button class="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-black font-semibold" rou>
+				S'inscrire
+			</Button>
+		  </router-link>
         </div>
       </div>
     </header>

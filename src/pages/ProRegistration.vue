@@ -424,7 +424,15 @@ const handleAccountTypeSelected = (type: AccountType) => {
                   <Input
                     id="siret"
                     v-model="companyInfo.siret"
-                    @input="(e) => { companyInfo.siret = (e.target as HTMLInputElement).value.replace(/\D/g, '').slice(0, 14); siretValidated = false; }"
+                    @input="
+						(e: Event) => {
+							const target = e.target as HTMLInputElement;
+							if (target) {
+							companyInfo.siret = target.value.replace(/\D/g, '').slice(0, 14);
+							siretValidated = false;
+							}
+						}
+					"
                     placeholder="14 chiffres"
                     maxlength="14"
                   />
@@ -592,7 +600,10 @@ const handleAccountTypeSelected = (type: AccountType) => {
                     type="file"
                     class="hidden"
                     accept=".pdf"
-                    @change="(e) => e.target.files?.[0] && handleFileUpload('kbis', e.target.files[0])"
+                    @change="(e: Event) => {
+						const target = e.target as HTMLInputElement;
+						if (target?.files?.[0]) handleFileUpload('kbis', target.files[0]);
+					}"
                   />
                 </div>
               </div>
@@ -614,7 +625,10 @@ const handleAccountTypeSelected = (type: AccountType) => {
                     type="file"
                     class="hidden"
                     accept=".pdf"
-                    @change="(e) => e.target.files?.[0] && handleFileUpload('assurance', e.target.files[0])"
+                    @change="(e: Event) => {
+						const target = e.target as HTMLInputElement;
+						if (target?.files?.[0]) handleFileUpload('assurance', target.files[0]);
+					}"
                   />
                 </div>
               </div>
@@ -637,7 +651,12 @@ const handleAccountTypeSelected = (type: AccountType) => {
                     type="file"
                     class="hidden"
                     accept=".pdf"
-                    @change="(e) => e.target.files?.[0] && handleFileUpload('agrement', e.target.files[0])"
+                    @change="
+						(e: Event) => {
+							const target = e.target as HTMLInputElement;
+							if (target?.files?.[0]) handleFileUpload('agrement', target.files[0]);
+						}
+						"
                   />
                 </div>
               </div>
