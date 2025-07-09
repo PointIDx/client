@@ -370,7 +370,7 @@ const handleAccountTypeSelected = (type: AccountType) => {
       </div>
 
       <div class="mb-6">
-        <Progress :value="progressValue" class="h-2" />
+        <Progress v-model:="progressValue" class="h-2" />
         <div class="mt-2 flex justify-between text-sm text-gray-500">
           <span>
             Étape {{ currentStep }} sur {{ maxSteps }}
