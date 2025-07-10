@@ -1,6 +1,6 @@
 import './assets/main.css'
 
-import { createApp, h, provide } from 'vue'
+import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 
 import App from './App.vue'
@@ -8,7 +8,7 @@ import router from './router'
 import { setupWorker } from 'msw/browser'
 import { handlers } from './mocks/handlers'
 import apolloClient from './apollo-client'
-import { DefaultApolloClient } from '@vue/apollo-composable'
+import { provideApolloClient } from '@vue/apollo-composable'
 
 async function enableMocking() {
   if (!import.meta.env.DEV) {
@@ -22,12 +22,9 @@ async function enableMocking() {
   return worker.start()
 }
 
-  const app = createApp({
-  setup() {
-    provide(DefaultApolloClient, apolloClient)
-  },
-  render: () => h(App)
-})
+  const app = createApp(App)
+
+provideApolloClient(apolloClient)
 
 app.use(createPinia())
 app.use(router)

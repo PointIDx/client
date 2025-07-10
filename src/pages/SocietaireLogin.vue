@@ -1,13 +1,16 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue"
+import { useRouter } from 'vue-router'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Building2, Eye, EyeOff, Lock, Mail, AlertCircle, CheckCircle } from "lucide-vue-next"
+import { useSocietaireStore } from "@/stores/societaire"
 
-const emit = defineEmits(["login"])
+const router = useRouter()
+const societaireStore = useSocietaireStore()
 
 const email = ref("")
 const dossier = ref("")
@@ -34,11 +37,10 @@ const handleSubmit = async () => {
   error.value = ""
   isLoading.value = true
 
-  // Simulation d'authentification
-  await new Promise((resolve) => setTimeout(resolve, 1500))
+  const success = await societaireStore.login(email.value, dossier.value)
 
-  if (email.value === "jean.dupont@email.com" && dossier.value === "DOS2024001") {
-    emit("login", email.value, dossier.value)
+  if (success) {
+    router.push({ name: 'societaire-dashboard' })
   } else {
     error.value = "Identifiants incorrects. Vérifiez votre email et numéro de dossier."
   }

@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LandingPage from '../pages/LandingPage.vue'
+import { useSocietaireStore } from '@/stores/societaire'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -42,5 +43,14 @@ const router = createRouter({
     },
   ],
 })
+
+router.beforeEach((to, from, next) => {
+  const societaireStore = useSocietaireStore();
+  if (to.name === 'societaire-dashboard' && !societaireStore.token) {
+    next({ name: 'societaire-login' });
+  } else {
+    next();
+  }
+});
 
 export default router

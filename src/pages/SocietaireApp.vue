@@ -1,25 +1,23 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed } from 'vue'
 import SocietaireLogin from './SocietaireLogin.vue'
 import SocietaireDashboard from './SocietaireDashboard.vue'
-import type { User } from '@/interfaces/user'
+import { useSocietaireStore } from '@/stores/societaire'
 
-const user = ref<User | null>(null)
+const societaireStore = useSocietaireStore()
 
-const handleLogin = (email: string, dossier: string) => {
-  user.value = { id: 'mock-id', email, dossier }
-}
+const isLoggedIn = computed(() => !!societaireStore.token)
 
 const handleLogout = () => {
-  user.value = null
+  societaireStore.logout()
 }
 </script>
 
 <template>
-  <div v-if="!user">
-    <SocietaireLogin @login="handleLogin" />
+  <div v-if="!isLoggedIn">
+    <SocietaireLogin />
   </div>
   <div v-else>
-    <SocietaireDashboard :user-email="user.email" :dossier-number="user.dossier || ''" @logout="handleLogout" />
+    <SocietaireDashboard @logout="handleLogout" />
   </div>
 </template>
