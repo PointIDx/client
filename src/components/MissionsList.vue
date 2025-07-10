@@ -859,7 +859,7 @@ const getSortIcon = (field: SortField) => {
 
     <!-- Dialog détails mission -->
     <Dialog :open="!!selectedMission" @update:open="(open) => { if (!open) selectedMission = null }">
-      <DialogContent class="max-w-2xl max-h-[80vh] overflow-y-auto bg-white">
+      <DialogContent class="max-w-2xl max-h-[80vh] overflow-y-auto">
         <div v-if="selectedMission">
           <DialogHeader>
             <DialogTitle class="flex items-center space-x-2">
