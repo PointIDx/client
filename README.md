@@ -59,82 +59,246 @@ This project is built with a modern client-side stack to provide a responsive an
 This section outlines the key directories and files to help new contributors navigate the codebase:
 
 ```
-. 
-├───.git/                 # Git version control files
-├───.github/              # GitHub Actions workflows (e.g., CI/CD)
-│   └───workflows/
-│       └───page.yml      # Workflow for deploying pages
-├───.vscode/              # VSCode specific settings and recommendations
-├───e2e/                  # End-to-End tests using Playwright
+.
+├───apollo.config.js
+├───components.json
+├───CONTRIBUTING.md
+├───e2e/
+│   ├───societaire.spec.ts
 │   ├───tsconfig.json
-│   └───vue.spec.ts       # Example E2E test
-├───node_modules/         # Installed Node.js dependencies
-├───public/               # Static assets served directly (e.g., favicon, MSW setup)
+│   └───vue.spec.ts
+├───env.d.ts
+├───index.html
+├───LICENSE
+├───package.json
+├───package-lock.json
+├───playwright.config.ts
+├───postcss.config.cjs
+├───public/
 │   ├───favicon.ico
-│   └───mockServiceWorker.js # Service worker for API mocking
-├───src/                  # Main application source code
-│   ├───App.vue           # Main Vue application component
-│   ├───main.ts           # Application entry point (Vue app initialization)
-│   ├───assets/           # Static assets like CSS and images
+│   └───mockServiceWorker.js
+├───README.md
+├───SECURITY.md
+├───societaire_instruction.md
+├───src/
+│   ├───apollo-client.ts
+│   ├───App.vue
+│   ├───assets/
 │   │   ├───base.css
 │   │   ├───logo.svg
-│   │   └───main.css
-│   ├───components/       # Reusable Vue components
-│   │   ├───HelloWorld.vue
-│   │   ├───TheWelcome.vue
-│   │   ├───WelcomeItem.vue
-│   │   ├───__tests__/   # Unit tests for components (e.g., Vitest)
-│   │   │   └───HelloWorld.spec.ts
-│   │   ├───icons/        # SVG icons as Vue components
-│   │   └───ui/           # shadcn-vue UI components (re-exported/customized)
-│   │       ├───alert/
-│   │       ├───avatar/
-│   │       ├───badge/
-│   │       ├───button/
-│   │       ├───card/
-│   │       ├───dialog/
-│   │       ├───dropdown-menu/
-│   │       ├───form/
-│   │       ├───input/
-│   │       ├───label/
-│   │       ├───progress/
-│   │       ├───radio-group/
-│   │       ├───select/
-│   │       ├───tabs/
-│   │       └───textarea/
-│   ├───lib/              # Utility functions and libraries
-│   │   └───utils.ts      # General utility functions
-│   ├───mocks/            # Mock API handlers for development/testing
-│   │   └───handlers.ts   # MSW request handlers
-│   ├───pages/            # Top-level page components (views with specific routes)
+│   │   ├───main.css
+│   │   └───placeholder.svg
+│   ├───components/
+│   │   ├───AppFooter.vue
+│   │   ├───AppHeader.vue
+│   │   ├───CallToActionSection.vue
+│   │   ├───FeaturesSection.vue
+│   │   ├───HeroSection.vue
+│   │   ├───icons/
+│   │   │   ├───IconCommunity.vue
+│   │   │   ├───IconDocumentation.vue
+│   │   │   ├───IconEcosystem.vue
+│   │   │   ├───IconSupport.vue
+│   │   │   └───IconTooling.vue
+│   │   ├───MissionCreationDialog.vue
+│   │   ├───MissionsList.vue
+│   │   ├───MissionsTab.vue
+│   │   ├───PrestataireCard.vue
+│   │   ├───TestimonialsSection.vue
+│   │   ├───ui/
+│   │   │   ├───alert/
+│   │   │   │   ├───Alert.vue
+│   │   │   │   ├───AlertDescription.vue
+│   │   │   │   ├───AlertTitle.vue
+│   │   │   │   └───index.ts
+│   │   │   ├───avatar/
+│   │   │   │   ├───Avatar.vue
+│   │   │   │   ├───AvatarFallback.vue
+│   │   │   │   ├───AvatarImage.vue
+│   │   │   │   └───index.ts
+│   │   │   ├───badge/
+│   │   │   │   ├───Badge.vue
+│   │   │   │   └───index.ts
+│   │   │   ├───button/
+│   │   │   │   ├───Button.vue
+│   │   │   │   └───index.ts
+│   │   │   ├───card/
+│   │   │   │   ├───Card.vue
+│   │   │   │   ├───CardAction.vue
+│   │   │   │   ├───CardContent.vue
+│   │   │   │   ├───CardDescription.vue
+│   │   │   │   ├───CardFooter.vue
+│   │   │   │   ├───CardHeader.vue
+│   │   │   │   ├───CardTitle.vue
+│   │   │   │   └───index.ts
+│   │   │   ├───checkbox/
+│   │   │   │   ├───Checkbox.vue
+│   │   │   │   └───index.ts
+│   │   │   ├───dialog/
+│   │   │   │   ├───Dialog.vue
+│   │   │   │   ├───DialogClose.vue
+│   │   │   │   ├───DialogContent.vue
+│   │   │   │   ├───DialogDescription.vue
+│   │   │   │   ├───DialogFooter.vue
+│   │   │   │   ├───DialogHeader.vue
+│   │   │   │   ├───DialogOverlay.vue
+│   │   │   │   ├───DialogScrollContent.vue
+│   │   │   │   ├───DialogTitle.vue
+│   │   │   │   └───DialogTrigger.vue
+│   │   │   ├───dropdown-menu/
+│   │   │   │   ├───DropdownMenu.vue
+│   │   │   │   ├───DropdownMenuCheckboxItem.vue
+│   │   │   │   ├───DropdownMenuContent.vue
+│   │   │   │   ├───DropdownMenuGroup.vue
+│   │   │   │   ├───DropdownMenuItem.vue
+│   │   │   │   ├───DropdownMenuLabel.vue
+│   │   │   │   ├───DropdownMenuRadioGroup.vue
+│   │   │   │   ├───DropdownMenuRadioItem.vue
+│   │   │   │   ├───DropdownMenuSeparator.vue
+│   │   │   │   ├───DropdownMenuShortcut.vue
+│   │   │   │   ├───DropdownMenuSub.vue
+│   │   │   │   ├───DropdownMenuSubContent.vue
+│   │   │   │   ├───DropdownMenuSubTrigger.vue
+│   │   │   │   ├───DropdownMenuTrigger.vue
+│   │   │   │   └───index.ts
+│   │   │   ├───form/
+│   │   │   │   ├───FormControl.vue
+│   │   │   │   ├───FormDescription.vue
+│   │   │   │   ├───FormItem.vue
+│   │   │   │   ├───FormLabel.vue
+│   │   │   │   ├───FormMessage.vue
+│   │   │   │   ├───index.ts
+│   │   │   │   ├───injectionKeys.ts
+│   │   │   │   └───useFormField.ts
+│   │   │   ├───input/
+│   │   │   │   ├───Input.vue
+│   │   │   │   └───index.ts
+│   │   │   ├───label/
+│   │   │   │   ├───Label.vue
+│   │   │   │   └───index.ts
+│   │   │   ├───progress/
+│   │   │   │   ├───Progress.vue
+│   │   │   │   └───index.ts
+│   │   │   ├───radio-group/
+│   │   │   │   ├───RadioGroup.vue
+│   │   │   │   ├───RadioGroupItem.vue
+│   │   │   │   └───index.ts
+│   │   │   ├───select/
+│   │   │   │   ├───Select.vue
+│   │   │   │   ├───SelectContent.vue
+│   │   │   │   ├───SelectGroup.vue
+│   │   │   │   ├───SelectItem.vue
+│   │   │   │   ├───SelectItemText.vue
+│   │   │   │   ├───SelectLabel.vue
+│   │   │   │   ├───SelectScrollDownButton.vue
+│   │   │   │   ├───SelectScrollUpButton.vue
+│   │   │   │   ├───SelectSeparator.vue
+│   │   │   │   ├───SelectTrigger.vue
+│   │   │   │   ├───SelectValue.vue
+│   │   │   │   └───index.ts
+│   │   │   ├───table/
+│   │   │   │   ├───Table.vue
+│   │   │   │   ├───TableBody.vue
+│   │   │   │   ├───TableCaption.vue
+│   │   │   │   ├───TableCell.vue
+│   │   │   │   ├───TableEmpty.vue
+│   │   │   │   ├───TableFooter.vue
+│   │   │   │   ├───TableHeader.vue
+│   │   │   │   ├───TableHead.vue
+│   │   │   │   ├───TableRow.vue
+│   │   │   │   ├───index.ts
+│   │   │   │   └───utils.ts
+│   │   │   ├───tabs/
+│   │   │   │   ├───Tabs.vue
+│   │   │   │   ├───TabsContent.vue
+│   │   │   │   ├───TabsList.vue
+│   │   │   │   ├───TabsTrigger.vue
+│   │   │   │   └───index.ts
+│   │   │   └───textarea/
+│   │   │       ├───Textarea.vue
+│   │   │       └───index.ts
+│   │   └───UserTypeCard.vue
+│   │   └───UserTypesSection.vue
+│   ├───enums/
+│   │   ├───account-type.ts
+│   │   ├───demande-comm-statut.ts
+│   │   ├───document-type.ts
+│   │   ├───historique-type.ts
+│   │   ├───message-expediteur.ts
+│   │   ├───mission-statut-assureur.ts
+│   │   ├───mission-statut-prestataire.ts
+│   │   ├───mission-statut.ts
+│   │   ├───timeline-statut.ts
+│   │   ├───urgence-mission.ts
+│   │   ├───urgence-sinistre.ts
+│   │   └───urgence.ts
+│   ├───graphql/
+│   │   ├───mutations/
+│   │   │   ├───login.ts
+│   │   │   ├───send-comment.ts
+│   │   │   ├───send-file.ts
+│   │   │   ├───signup.ts
+│   │   │   └───societaire-login.ts
+│   │   ├───queries/
+│   │   │   └───get-societaire-dossier.ts
+│   │   └───subscriptions/
+│   ├───interfaces/
+│   │   ├───account.ts
+│   │   ├───company-info.ts
+│   │   ├───component-variants.ts
+│   │   ├───contact.ts
+│   │   ├───demande-comm-assureur.ts
+│   │   ├───demande-comm-prestataire.ts
+│   │   ├───demande-comm.ts
+│   │   ├───document-item.ts
+│   │   ├───documents.ts
+│   │   ├───dossier-data.ts
+│   │   ├───historique-item.ts
+│   │   ├───historique-statut.ts
+│   │   ├───IMission.ts
+│   │   ├───IMissionCreationDialog.ts
+│   │   ├───IMissionsList.ts
+│   │   ├───IMissionsTab.ts
+│   │   ├───insurer-info.ts
+│   │   ├───message.ts
+│   │   ├───mission-assureur.ts
+│   │   ├───mission-prestataire.ts
+│   │   ├───mission.ts
+│   │   ├───prestataire-assureur.ts
+│   │   ├───prestataire.ts
+│   │   ├───provider-info.ts
+│   │   ├───societaire-info.ts
+│   │   ├───timeline-item.ts
+│   │   ├───user-type.ts
+│   │   ├───user.ts
+│   │   └───utility-types.ts
+│   ├───lib/
+│   │   └───utils.ts
+│   ├───main.ts
+│   ├───mocks/
+│   │   └───handlers.ts
+│   ├───pages/
 │   │   ├───AccountTypeSelection.vue
 │   │   ├───AssureurDashboard.vue
-│   │   ├───LandingPage.vue       # The main landing page
+│   │   ├───LandingPage.vue
 │   │   ├───PrestataireDashboard.vue
 │   │   ├───ProRegistration.vue
 │   │   ├───SocietaireApp.vue
 │   │   ├───SocietaireDashboard.vue
 │   │   └───SocietaireLogin.vue
-│   ├───router/           # Vue Router configuration
-│   │   └───index.ts      # Defines application routes
-│   ├───stores/           # Pinia stores for state management
-│   │   └───counter.ts    # Example Pinia store
-│   └───views/            # (Potentially) More generic view components, or older structure
-├───components.json       # Configuration for shadcn-vue components
-├───env.d.ts              # Environment type definitions
-├───index.html            # Main HTML file
-├───package-lock.json     # npm dependency lock file
-├───package.json          # Project metadata and scripts
-├───playwright.config.ts  # Playwright configuration
-├───postcss.config.cjs    # PostCSS configuration (for Tailwind CSS)
-├───README.md             # This README file
-├───tailwind.config.ts    # Tailwind CSS configuration
-├───tsconfig.app.json     # TypeScript configuration for the application
-├───tsconfig.json         # Base TypeScript configuration
-├───tsconfig.node.json    # TypeScript configuration for Node.js environment
-├───tsconfig.vitest.json  # TypeScript configuration for Vitest
-├───vite.config.ts        # Vite build configuration
-└───vitest.config.ts      # Vitest unit testing configuration
+│   ├───router/
+│   │   └───index.ts
+│   └───stores/
+│       ├───auth.ts
+│       ├───counter.ts
+│       └───societaire.ts
+├───tailwind.config.ts
+├───tsconfig.app.json
+├───tsconfig.json
+├───tsconfig.node.json
+├───tsconfig.vitest.json
+├───vite.config.ts
+└───vitest.config.ts
 ```
 
 ## Development Guidelines
