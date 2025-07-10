@@ -11,7 +11,7 @@ const userTypes = [
     icon: Building2,
     title: 'PRESTATAIRES',
     subtitle: 'Artisans, entreprises de travaux, professionnels du bâtiment',
-    color: 'blue',
+    color: 'gray',
     features: [
       'Gestion centralisée des missions',
       'Suivi en temps réel des interventions',
@@ -24,7 +24,7 @@ const userTypes = [
     icon: Shield,
     title: 'ASSUREURS',
     subtitle: "Compagnies d'assurance, courtiers, agents généraux",
-    color: 'green',
+    color: 'gray',
     features: [
       'Création et suivi des missions',
       'Réseau de prestataires qualifiés',
@@ -37,7 +37,7 @@ const userTypes = [
     icon: User,
     title: 'SOCIÉTAIRES',
     subtitle: 'Particuliers, propriétaires, bénéficiaires',
-    color: 'purple',
+    color: 'gray',
     features: [
       'Suivi transparent du dossier',
       'Ajout de photos et commentaires',
@@ -79,7 +79,7 @@ const handleNavigation = (user: any) => {
           <CardHeader class="text-center pb-6">
             <div
               class="mx-auto w-20 h-20 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300"
-              :class="`bg-gradient-to-br from-${user.color}-500 to-${user.color}-400`"
+              :class="`bg-gray-200`"
             >
               <component :is="user.icon" class="h-10 w-10 text-black" />
             </div>
@@ -98,14 +98,13 @@ const handleNavigation = (user: any) => {
                 class="flex items-center space-x-3 group-hover:translate-x-2 transition-transform duration-300"
                 :style="{ transitionDelay: `${featureIndex * 100}ms` }"
               >
-                <CheckCircle class="h-5 w-5 flex-shrink-0" :class="`text-${user.color}-400`" />
+                <CheckCircle class="h-5 w-5 flex-shrink-0 text-gray-600" />
                 <span class="text-gray-700">{{ feature }}</span>
               </div>
             </div>
             <Button
               @click="handleNavigation(user)"
-              class="w-full mt-8 text-black font-semibold transform hover:scale-105 transition-all duration-300"
-              :class="`bg-gradient-to-r from-${user.color}-600 to-${user.color}-500 hover:from-${user.color}-700 hover:to-${user.color}-600`"
+              class="w-full mt-8 bg-black text-white font-semibold transform hover:scale-105 transition-all duration-300"
               size="lg"
             >
               {{ user.cta }}

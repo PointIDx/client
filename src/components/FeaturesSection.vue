@@ -11,12 +11,12 @@ onMounted(() => {
 })
 
 const features = [
-  { icon: Clock, title: 'Suivi en temps réel', color: 'blue' },
-  { icon: MessageSquare, title: 'Communication intégrée', color: 'green' },
-  { icon: Camera, title: 'Gestion documentaire', color: 'purple' },
-  { icon: MapPin, title: 'Géolocalisation', color: 'orange' },
-  { icon: FileText, title: 'Rapports automatisés', color: 'red' },
-  { icon: TrendingUp, title: 'Analytics avancés', color: 'indigo' },
+  { icon: Clock, title: 'Suivi en temps réel', color: 'gray' },
+  { icon: MessageSquare, title: 'Communication intégrée', color: 'gray' },
+  { icon: Camera, title: 'Gestion documentaire', color: 'gray' },
+  { icon: MapPin, title: 'Géolocalisation', color: 'gray' },
+  { icon: FileText, title: 'Rapports automatisés', color: 'gray' },
+  { icon: TrendingUp, title: 'Analytics avancés', color: 'gray' },
 ]
 </script>
 
@@ -41,7 +41,7 @@ const features = [
           class="text-center p-8 rounded-2xl border transition-all duration-500 transform hover:scale-105"
           :class="
             activeFeature === index
-              ? `border-${feature.color}-500/50 bg-${feature.color}-100/20 shadow-lg shadow-${feature.color}-500/20`
+              ? `border-gray-500/50 bg-gray-100/20 shadow-lg shadow-gray-500/20`
               : 'border-gray-200 bg-gray-50 hover:border-gray-300'
           "
         >
@@ -49,19 +49,19 @@ const features = [
             class="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 transition-all duration-500"
             :class="
               activeFeature === index
-                ? `bg-gradient-to-br from-${feature.color}-500 to-${feature.color}-400 scale-110`
-                : `bg-gray-100 group-hover:bg-${feature.color}-100/50`
+                ? `bg-gray-500 scale-110`
+                : `bg-gray-100 group-hover:bg-gray-100/50`
             "
           >
             <component
               :is="feature.icon"
               class="h-10 w-10 transition-colors duration-500"
-              :class="activeFeature === index ? 'text-black' : `text-${feature.color}-600`"
+              :class="activeFeature === index ? 'text-white' : 'text-gray-600'"
             />
           </div>
           <h3
             class="text-xl font-bold mb-3 transition-colors duration-500"
-            :class="activeFeature === index ? `text-${feature.color}-700` : 'text-gray-900'"
+            :class="activeFeature === index ? `text-gray-700` : 'text-gray-900'"
           >
             {{ feature.title.toUpperCase() }}
           </h3>

@@ -23,8 +23,8 @@ const navigateTo = (path: string) => {
         class="flex items-center space-x-3 transition-all duration-1000"
         :class="isVisible ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'"
       >
-        <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-lg flex items-center justify-center">
-          <Building2 class="h-5 w-5 text-black" />
+        <div class="w-8 h-8 bg-gray-800 rounded-lg flex items-center justify-center">
+          <Building2 class="h-5 w-5 text-white" />
         </div>
         <span class="text-xl font-bold text-gray-900">
           PointID
@@ -53,7 +53,7 @@ const navigateTo = (path: string) => {
         </Button>
         <Button
           @click="navigateTo('/pro-registration')"
-          class="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-black font-semibold"
+          class="bg-black text-white font-semibold"
         >
           S'inscrire
         </Button>

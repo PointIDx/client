@@ -4,13 +4,13 @@ import { Button } from "@/components/ui/button"
 </script>
 
 <template>
-  <section class="py-32 relative overflow-hidden bg-gray-50">
-    <div class="absolute inset-0 bg-gradient-to-r from-blue-100/50 via-cyan-100/50 to-blue-100/50"></div>
+  <section class="py-32 relative overflow-hidden bg-white">
+    <div class="absolute inset-0 bg-gray-100"></div>
     <div class="absolute inset-0">
       <div
         v-for="i in 30"
         :key="i"
-        class="absolute w-2 h-2 bg-blue-200/50 rounded-full animate-ping"
+        class="absolute w-2 h-2 bg-gray-300 rounded-full animate-ping"
         :style="{
           left: `${Math.random() * 100}%`,
           top: `${Math.random() * 100}%`,
@@ -32,7 +32,7 @@ import { Button } from "@/components/ui/button"
       <div class="flex flex-col sm:flex-row gap-6 justify-center">
         <Button
           size="lg"
-          class="text-lg px-12 py-6 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-black font-bold transform hover:scale-110 transition-all duration-300 shadow-2xl shadow-cyan-500/25"
+          class="text-lg px-12 py-6 bg-black text-white font-bold transform hover:scale-110 transition-all duration-300 shadow-2xl shadow-gray-500/25"
         >
           COMMENCER GRATUITEMENT
           <ArrowRight class="ml-3 h-6 w-6" />
@@ -40,7 +40,7 @@ import { Button } from "@/components/ui/button"
         <Button
           size="lg"
           variant="outline"
-          class="text-lg px-12 py-6 border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black transform hover:scale-110 transition-all duration-300 bg-transparent"
+          class="text-lg px-12 py-6 border-gray-400 text-gray-700 hover:bg-gray-100 hover:text-gray-900 transform hover:scale-110 transition-all duration-300 bg-transparent"
         >
           PLANIFIER UNE DÉMO
         </Button>

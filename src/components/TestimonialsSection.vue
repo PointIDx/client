@@ -8,21 +8,21 @@ const testimonials = [
     author: 'Marc Dubois',
     role: 'Artisan plombier',
     icon: Building2,
-    color: 'blue',
+    color: 'gray',
   },
   {
     text: 'La plateforme nous permet de suivre tous nos dossiers en temps réel. Nos clients sont plus satisfaits et nos coûts ont diminué.',
     author: 'Sophie Martin',
     role: 'Directrice Assurance Plus',
     icon: Shield,
-    color: 'green',
+    color: 'gray',
   },
   {
     text: "Enfin une solution où je peux suivre l'avancement de mon dossier ! Je peux même ajouter des photos et communiquer directement.",
     author: 'Jean Dupont',
     role: 'Propriétaire',
     icon: User,
-    color: 'purple',
+    color: 'gray',
   },
 ]
 </script>
