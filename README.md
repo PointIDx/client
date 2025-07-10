@@ -1,6 +1,213 @@
-# point_id_client
+# PointID Client Application
 
-This template should help get you started developing with Vue 3 in Vite.
+## Project Overview
+
+PointID is a cutting-edge platform designed to revolutionize the management of claims and professional interventions. It seamlessly connects **insurers**, **service providers** (artisans, construction companies, building professionals), and **policyholders** (individuals, property owners, beneficiaries) to ensure transparent and efficient handling of claims files.
+
+Our goal is to simplify the entire claims process, from initial reporting to final resolution, by providing a centralized hub for communication, documentation, and real-time tracking.
+
+## Key Features
+
+PointID offers a robust set of features tailored to meet the diverse needs of its users:
+
+*   **Real-time Tracking (`Suivi en temps réel`):** Detailed timeline of each case step with automatic notifications.
+*   **Integrated Communication (`Communication intégrée`):** Real-time chat between all stakeholders involved in a case.
+*   **Document Management (`Gestion documentaire`):** Upload photos, documents, and comments to enrich the case file.
+*   **Geolocation (`Géolocalisation`):** Precise location of interventions and optimization of travel.
+*   **Automated Reports (`Rapports automatisés`):** Automatic generation of reports and invoices with electronic signatures.
+*   **Advanced Analytics (`Analytics avancés`):** Dashboards with statistics and performance indicators.
+
+## Target Users
+
+PointID is built for three primary user types, each with tailored functionalities:
+
+*   **PRESTATAIRES (Service Providers):** Artisans, construction companies, building professionals.
+    *   Centralized mission management.
+    *   Real-time intervention tracking.
+    *   Direct communication with clients.
+    *   Simplified document management.
+
+*   **ASSUREURS (Insurers):** Insurance companies, brokers, general agents.
+    *   Creation and tracking of missions.
+    *   Network of qualified service providers.
+    *   Analytical dashboards.
+    *   Optimized cost management.
+
+*   **SOCIÉTAIRES (Policyholders):** Individuals, property owners, beneficiaries.
+    *   Transparent case tracking.
+    *   Ability to add photos and comments.
+    *   Communication with interveners.
+    *   Intervention timeline.
+
+## Technology Stack
+
+This project is built with a modern client-side stack to provide a responsive and efficient user experience:
+
+*   **Framework:** Vue.js 3
+*   **UI Components:** shadcn-vue
+*   **Styling:** Tailwind CSS
+*   **State Management:** Pinia
+*   **API Mocking:** Mock Service Worker (MSW)
+*   **Routing:** Vue Router
+*   **GraphQL:** For API interactions (implied by `handlers.ts` in `mocks`)
+*   **Build Tool:** Vite
+*   **Unit Testing:** Vitest
+*   **End-to-End Testing:** Playwright
+
+## File Structure for Developers
+
+This section outlines the key directories and files to help new contributors navigate the codebase:
+
+```
+. 
+├───.git/                 # Git version control files
+├───.github/              # GitHub Actions workflows (e.g., CI/CD)
+│   └───workflows/
+│       └───page.yml      # Workflow for deploying pages
+├───.vscode/              # VSCode specific settings and recommendations
+├───e2e/                  # End-to-End tests using Playwright
+│   ├───tsconfig.json
+│   └───vue.spec.ts       # Example E2E test
+├───node_modules/         # Installed Node.js dependencies
+├───public/               # Static assets served directly (e.g., favicon, MSW setup)
+│   ├───favicon.ico
+│   └───mockServiceWorker.js # Service worker for API mocking
+├───src/                  # Main application source code
+│   ├───App.vue           # Main Vue application component
+│   ├───main.ts           # Application entry point (Vue app initialization)
+│   ├───assets/           # Static assets like CSS and images
+│   │   ├───base.css
+│   │   ├───logo.svg
+│   │   └───main.css
+│   ├───components/       # Reusable Vue components
+│   │   ├───HelloWorld.vue
+│   │   ├───TheWelcome.vue
+│   │   ├───WelcomeItem.vue
+│   │   ├───__tests__/   # Unit tests for components (e.g., Vitest)
+│   │   │   └───HelloWorld.spec.ts
+│   │   ├───icons/        # SVG icons as Vue components
+│   │   └───ui/           # shadcn-vue UI components (re-exported/customized)
+│   │       ├───alert/
+│   │       ├───avatar/
+│   │       ├───badge/
+│   │       ├───button/
+│   │       ├───card/
+│   │       ├───dialog/
+│   │       ├───dropdown-menu/
+│   │       ├───form/
+│   │       ├───input/
+│   │       ├───label/
+│   │       ├───progress/
+│   │       ├───radio-group/
+│   │       ├───select/
+│   │       ├───tabs/
+│   │       └───textarea/
+│   ├───lib/              # Utility functions and libraries
+│   │   └───utils.ts      # General utility functions
+│   ├───mocks/            # Mock API handlers for development/testing
+│   │   └───handlers.ts   # MSW request handlers
+│   ├───pages/            # Top-level page components (views with specific routes)
+│   │   ├───AccountTypeSelection.vue
+│   │   ├───AssureurDashboard.vue
+│   │   ├───LandingPage.vue       # The main landing page
+│   │   ├───PrestataireDashboard.vue
+│   │   ├───ProRegistration.vue
+│   │   ├───SocietaireApp.vue
+│   │   ├───SocietaireDashboard.vue
+│   │   └───SocietaireLogin.vue
+│   ├───router/           # Vue Router configuration
+│   │   └───index.ts      # Defines application routes
+│   ├───stores/           # Pinia stores for state management
+│   │   └───counter.ts    # Example Pinia store
+│   └───views/            # (Potentially) More generic view components, or older structure
+├───components.json       # Configuration for shadcn-vue components
+├───env.d.ts              # Environment type definitions
+├───index.html            # Main HTML file
+├───package-lock.json     # npm dependency lock file
+├───package.json          # Project metadata and scripts
+├───playwright.config.ts  # Playwright configuration
+├───postcss.config.cjs    # PostCSS configuration (for Tailwind CSS)
+├───README.md             # This README file
+├───tailwind.config.ts    # Tailwind CSS configuration
+├───tsconfig.app.json     # TypeScript configuration for the application
+├───tsconfig.json         # Base TypeScript configuration
+├───tsconfig.node.json    # TypeScript configuration for Node.js environment
+├───tsconfig.vitest.json  # TypeScript configuration for Vitest
+├───vite.config.ts        # Vite build configuration
+└───vitest.config.ts      # Vitest unit testing configuration
+```
+
+## Development Guidelines
+
+This section provides guidelines for contributing to the PointID client application, ensuring consistency and maintainability across the codebase.
+
+### GraphQL
+
+All GraphQL operations should be defined in the `src/graphql` directory, organized by operation type.
+
+*   **Queries:** Place all GraphQL queries in the `src/graphql/queries` directory.
+*   **Mutations:** Place all GraphQL mutations in the `src/graphql/mutations` directory.
+*   **Subscriptions:** Place all GraphQL subscriptions in the `src/graphql/subscriptions` directory.
+
+Each file should export a `gql`-tagged template literal.
+
+**Example: Mutation (`src/graphql/mutations/login.ts`)**
+
+```typescript
+import { gql } from 'graphql-tag';
+
+export const LOGIN_MUTATION = gql`
+  mutation Login($email: String!, $password: String!) {
+    login(email: $email, password: $password) {
+      token
+      user {
+        id
+        email
+      }
+    }
+  }
+`;
+```
+
+### State Management (Pinia)
+
+We use [Pinia](https://pinia.vuejs.org/) for state management. Stores are defined in the `src/stores` directory and should follow the Composition API style.
+
+When creating a new store, follow the pattern established in `src/stores/auth.ts`:
+
+1.  **Define the store:** Use `defineStore` with a unique ID.
+2.  **State:** Use `ref()` for reactive state properties.
+3.  **Actions:** Create asynchronous functions that call GraphQL mutations or queries to interact with the API. These actions are responsible for updating the state.
+4.  **Return:** Expose the state properties and actions by returning them from the setup function.
+
+**Example: Store Structure (based on `src/stores/auth.ts`)**
+
+```typescript
+import { defineStore } from 'pinia';
+import { ref } from 'vue';
+import { LOGIN_MUTATION } from '@/graphql/mutations/login';
+// Import other necessary types and mutations/queries
+
+export const useMyStore = defineStore('myStore', () => {
+  // State
+  const myState = ref(null);
+
+  // Actions
+  async function performAction(payload) {
+    // Use a GraphQL client to execute the mutation/query
+    // const result = await apolloClient.mutate({
+    //   mutation: LOGIN_MUTATION,
+    //   variables: { ...payload },
+    // });
+
+    // Update state based on the result
+    // myState.value = result.data.someData;
+  }
+
+  // Return state and actions
+  return { myState, performAction };
+});
+```
 
 ## Recommended IDE Setup
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, type Component } from 'vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -38,82 +38,14 @@ import {
 } from 'lucide-vue-next'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 
-interface Prestataire {
-  id: string
-  nom: string
-  raisonSociale: string
-  secteurs: string[]
-  specialites: string[]
-  ville: string
-  departement: string
-  region: string
-  notemoyenne: number
-  nombreAvis: number
-  siret: string
-  formeJuridique: string
-  dateCreation: string
-  telephone: string
-  email: string
-  adresse: string
-  description: string
-  certifications: string[]
-  documentsPublics: string[]
-  avatar?: string
-}
+import type { PrestataireAssureur } from '@/interfaces/prestataire-assureur'
+import type { DemandeCommAssureur } from '@/interfaces/demande-comm-assureur'
+import type { MissionAssureur } from '@/interfaces/mission-assureur'
+import { DemandeCommStatut } from '@/enums/demande-comm-statut'
+import { UrgenceSinistre } from '@/enums/urgence-sinistre'
+import { MissionStatutAssureur } from '@/enums/mission-statut-assureur'
 
-interface DemandeComm {
-  id: string
-  prestataire: Prestataire
-  message: string
-  statut: "en_attente" | "acceptee" | "refusee"
-  dateEnvoi: string
-  dateReponse?: string
-}
-
-interface Mission {
-  id: string
-  prestataire: Prestataire
-  client: {
-    civilite: string
-    nom: string
-    prenom: string
-    telephone: string
-    email: string
-    adresse: string
-    codePostal: string
-    ville: string
-  }
-  chantier: {
-    adresse: string
-    codePostal: string
-    ville: string
-    typeAcces: string
-    etage: string
-    contraintes: string
-  }
-  sinistre: {
-    type: string
-    description: string
-    urgence: "faible" | "moyenne" | "elevee"
-    dateSinistre: string
-    dateIntervention: string
-  }
-  mission: {
-    titre: string
-    description: string
-    budgetEstime: string
-    delaiSouhaite: string
-    horaires: string
-    materiaux: string
-    normes: string
-  }
-  documents: File[]
-  statut: "brouillon" | "envoyee" | "acceptee" | "en_cours" | "terminee"
-  dateCreation: string
-  numeroMission: string
-}
-
-const mockPrestataires: Prestataire[] = [
+const mockPrestataires: PrestataireAssureur[] = [
   {
     id: "1",
     nom: "Martin Dubois",
@@ -184,16 +116,16 @@ const searchTerm = ref("")
 const selectedSecteur = ref("all")
 const selectedRegion = ref("all")
 const selectedDepartement = ref("all")
-const filteredPrestataires = ref<Prestataire[]>(mockPrestataires)
-const selectedPrestataire = ref<Prestataire | null>(null)
+const filteredPrestataires = ref<PrestataireAssureur[]>(mockPrestataires)
+const selectedPrestataire = ref<PrestataireAssureur | null>(null)
 const showCommDialog = ref(false)
 const messageComm = ref("")
-const demandes = ref<DemandeComm[]>([])
+const demandes = ref<DemandeCommAssureur[]>([])
 const showSuccess = ref(false)
 
 const showMissionDialog = ref(false)
-const selectedPrestataireForMission = ref<Prestataire | null>(null)
-const missions = ref<Mission[]>([])
+const selectedPrestataireForMission = ref<PrestataireAssureur | null>(null)
+const missions = ref<MissionAssureur[]>([])
 const showMissionSuccess = ref(false)
 
 const missionForm = reactive({
@@ -218,7 +150,7 @@ const missionForm = reactive({
   sinistre: {
     type: "",
     description: "",
-    urgence: "moyenne" as const,
+    urgence: UrgenceSinistre.Moyenne,
     dateSinistre: "",
     dateIntervention: "",
   },
@@ -312,11 +244,11 @@ const resetFilters = () => {
 const envoyerDemandeComm = () => {
   if (!selectedPrestataire.value || !messageComm.value.trim()) return
 
-  const nouvelleDemande: DemandeComm = {
+  const nouvelleDemande: DemandeCommAssureur = {
     id: Date.now().toString(),
     prestataire: selectedPrestataire.value,
     message: messageComm.value,
-    statut: "en_attente",
+    statut: DemandeCommStatut.EnAttente,
     dateEnvoi: new Date().toISOString(),
   }
 
@@ -327,33 +259,44 @@ const envoyerDemandeComm = () => {
   setTimeout(() => (showSuccess.value = false), 3000)
 }
 
-const getStatutBadge = (statut: DemandeComm["statut"]) => {
+type StatutBadge = {
+  text: string;
+  variant: "default" | "destructive" | "outline" | "secondary";
+  icon: Component;
+}
+
+
+const getStatutBadge = (statut: DemandeCommStatut): StatutBadge => {
   switch (statut) {
-    case "en_attente":
+    case DemandeCommStatut.EnAttente:
       return {
         text: "En attente",
-        class: "secondary",
+        variant: "secondary" as const,
         icon: Clock,
-      }
-    case "acceptee":
+      };
+    case DemandeCommStatut.Acceptee:
       return {
         text: "Acceptée",
-        class: "default",
+        variant: "default" as const,
         icon: CheckCircle,
-      }
-    case "refusee":
+      };
+    case DemandeCommStatut.Refusee:
       return {
         text: "Refusée",
-        class: "destructive",
+        variant: "destructive" as const,
         icon: XCircle,
-      }
+      };
+    default:
+      // Exhaustive check - this should never happen if DemandeCommStatut is properly typed
+      throw new Error(`Unknown statut: ${statut}`);
   }
 }
+
 
 const creerMission = () => {
   if (!selectedPrestataireForMission.value) return
 
-  const nouvelleMission: Mission = {
+  const nouvelleMission: MissionAssureur = {
     id: Date.now().toString(),
     prestataire: selectedPrestataireForMission.value,
     client: missionForm.client,
@@ -361,7 +304,7 @@ const creerMission = () => {
     sinistre: missionForm.sinistre,
     mission: missionForm.mission,
     documents: missionForm.documents,
-    statut: "envoyee",
+    statut: MissionStatutAssureur.Envoyee,
     dateCreation: new Date().toISOString(),
     numeroMission: `M${Date.now().toString().slice(-6)}`,
   }
@@ -372,7 +315,7 @@ const creerMission = () => {
   Object.assign(missionForm, {
     client: { civilite: "", nom: "", prenom: "", telephone: "", email: "", adresse: "", codePostal: "", ville: "" },
     chantier: { adresse: "", codePostal: "", ville: "", typeAcces: "", etage: "", contraintes: "" },
-    sinistre: { type: "", description: "", urgence: "moyenne", dateSinistre: "", dateIntervention: "" },
+    sinistre: { type: "", description: "", urgence: UrgenceSinistre.Moyenne, dateSinistre: "", dateIntervention: "" },
     mission: {
       titre: "",
       description: "",
@@ -591,7 +534,7 @@ const validateMissionForm = computed(() => {
                           Voir fiche
                         </Button>
                       </DialogTrigger>
-                      <DialogContent class="max-w-2xl max-h-[80vh] overflow-y-auto">
+                      <DialogContent class="bg-white max-w-2xl max-h-[80vh] overflow-y-auto">
                         <DialogHeader>
                           <DialogTitle class="flex items-center space-x-3">
                             <Avatar class="w-12 h-12">
@@ -795,7 +738,7 @@ const validateMissionForm = computed(() => {
                       </div>
                     </div>
                     <div class="text-right">
-                      <Badge :variant="getStatutBadge(demande.statut)?.class">
+                      <Badge :variant="getStatutBadge(demande.statut)?.variant">
                         <component :is="getStatutBadge(demande.statut)?.icon" class="w-3 h-3 mr-1" />
                         {{ getStatutBadge(demande.statut)?.text }}
                       </Badge>
@@ -865,8 +808,8 @@ const validateMissionForm = computed(() => {
     </div>
 
     <!-- Dialog Demande de communication -->
-    <Dialog :open="showCommDialog" @update:open="setShowCommDialog">
-      <DialogContent>
+    <Dialog :open="showCommDialog" @update:open="showCommDialog = $event">
+      <DialogContent class="bg-white">
         <DialogHeader>
           <DialogTitle>Demande de communication</DialogTitle>
           <DialogDescription>Envoyez une demande de contact à {{ selectedPrestataire?.nom }}</DialogDescription>
@@ -924,8 +867,8 @@ const validateMissionForm = computed(() => {
     </Dialog>
 
     <!-- Dialog Création de mission -->
-    <Dialog :open="showMissionDialog" @update:open="setShowMissionDialog">
-      <DialogContent class="max-w-4xl max-h-[90vh] overflow-y-auto">
+    <Dialog :open="showMissionDialog" @update:open="showMissionDialog = $event">
+      <DialogContent class="bg-white max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Création de mission</DialogTitle>
           <DialogDescription>

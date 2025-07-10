@@ -1,81 +1,25 @@
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Progress } from '@/components/ui/progress'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { CheckCircle, Upload, Loader2, AlertCircle, ArrowLeft } from 'lucide-vue-next'
-import AccountTypeSelection from './AccountTypeSelection.vue'
+import { ref, reactive, computed } from "vue"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Progress } from "@/components/ui/progress"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { CheckCircle, Upload, Loader2, AlertCircle, ArrowLeft } from "lucide-vue-next"
+import AccountTypeSelection from "./AccountTypeSelection.vue"
 
-type AccountType = "prestataire" | "assureur" | "societaire" | null
+import { AccountType } from "@/enums/account-type"
+import type { CompanyInfo } from "@/interfaces/company-info"
+import type { Documents } from "@/interfaces/documents"
+import type { Contact } from "@/interfaces/contact"
+import type { Account } from "@/interfaces/account"
+import  type { ProviderInfo } from "@/interfaces/provider-info"
+import type { InsurerInfo } from "@/interfaces/insurer-info"
+import type { SocietaireInfo } from "@/interfaces/societaire-info"
 
-interface CompanyInfo {
-  raisonSociale: string
-  siret: string
-  formeJuridique: string
-  adresse: string
-  codePostal: string
-  ville: string
-  pays: string
-  dateCreation: string
-}
-
-interface Documents {
-  kbis: File | null
-  assurance: File | null
-  agrement?: File | null // Spécifique aux assureurs
-}
-
-interface Contact {
-  prenom: string
-  nom: string
-  email: string
-  telephone: string
-}
-
-interface Account {
-  email: string
-  password: string
-  confirmPassword: string
-}
-
-interface ProviderInfo {
-  secteursActivite: string
-  zonesGeographiques: {
-    departements: string[]
-    regions: string[]
-    codesPostaux: string[]
-  }
-}
-
-interface InsurerInfo {
-  numeroAgrement: string
-  typesAssurance: string[]
-  zonesCouverture: {
-    departements: string[]
-    regions: string[]
-    codesPostaux: string[]
-  }
-  garantiesProposees: string
-}
-
-interface SocietaireInfo {
-  civilite: string
-  prenom: string
-  nom: string
-  dateNaissance: string
-  adresseBien: string
-  codePostalBien: string
-  villeBien: string
-  typeProjet: string
-  numeroDossier: string
-  descriptionProjet: string
-}
-
-const accountType = ref<AccountType>(null)
+const accountType = ref<AccountType | null>(null)
 const currentStep = ref(1)
 const isLoading = ref(false)
 const siretValidated = ref(false)

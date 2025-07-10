@@ -2,16 +2,12 @@
 import { ref } from 'vue'
 import SocietaireLogin from './SocietaireLogin.vue'
 import SocietaireDashboard from './SocietaireDashboard.vue'
-
-interface User {
-  email: string
-  dossier: string
-}
+import type { User } from '@/interfaces/user'
 
 const user = ref<User | null>(null)
 
 const handleLogin = (email: string, dossier: string) => {
-  user.value = { email, dossier }
+  user.value = { id: 'mock-id', email, dossier }
 }
 
 const handleLogout = () => {
@@ -24,6 +20,6 @@ const handleLogout = () => {
     <SocietaireLogin @login="handleLogin" />
   </div>
   <div v-else>
-    <SocietaireDashboard :user-email="user.email" :dossier-number="user.dossier" @logout="handleLogout" />
+    <SocietaireDashboard :user-email="user.email" :dossier-number="user.dossier || ''" @logout="handleLogout" />
   </div>
 </template>
