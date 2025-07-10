@@ -137,6 +137,78 @@ This section outlines the key directories and files to help new contributors nav
 └───vitest.config.ts      # Vitest unit testing configuration
 ```
 
+## Development Guidelines
+
+This section provides guidelines for contributing to the PointID client application, ensuring consistency and maintainability across the codebase.
+
+### GraphQL
+
+All GraphQL operations should be defined in the `src/graphql` directory, organized by operation type.
+
+*   **Queries:** Place all GraphQL queries in the `src/graphql/queries` directory.
+*   **Mutations:** Place all GraphQL mutations in the `src/graphql/mutations` directory.
+*   **Subscriptions:** Place all GraphQL subscriptions in the `src/graphql/subscriptions` directory.
+
+Each file should export a `gql`-tagged template literal.
+
+**Example: Mutation (`src/graphql/mutations/login.ts`)**
+
+```typescript
+import { gql } from 'graphql-tag';
+
+export const LOGIN_MUTATION = gql`
+  mutation Login($email: String!, $password: String!) {
+    login(email: $email, password: $password) {
+      token
+      user {
+        id
+        email
+      }
+    }
+  }
+`;
+```
+
+### State Management (Pinia)
+
+We use [Pinia](https://pinia.vuejs.org/) for state management. Stores are defined in the `src/stores` directory and should follow the Composition API style.
+
+When creating a new store, follow the pattern established in `src/stores/auth.ts`:
+
+1.  **Define the store:** Use `defineStore` with a unique ID.
+2.  **State:** Use `ref()` for reactive state properties.
+3.  **Actions:** Create asynchronous functions that call GraphQL mutations or queries to interact with the API. These actions are responsible for updating the state.
+4.  **Return:** Expose the state properties and actions by returning them from the setup function.
+
+**Example: Store Structure (based on `src/stores/auth.ts`)**
+
+```typescript
+import { defineStore } from 'pinia';
+import { ref } from 'vue';
+import { LOGIN_MUTATION } from '@/graphql/mutations/login';
+// Import other necessary types and mutations/queries
+
+export const useMyStore = defineStore('myStore', () => {
+  // State
+  const myState = ref(null);
+
+  // Actions
+  async function performAction(payload) {
+    // Use a GraphQL client to execute the mutation/query
+    // const result = await apolloClient.mutate({
+    //   mutation: LOGIN_MUTATION,
+    //   variables: { ...payload },
+    // });
+
+    // Update state based on the result
+    // myState.value = result.data.someData;
+  }
+
+  // Return state and actions
+  return { myState, performAction };
+});
+```
+
 ## Recommended IDE Setup
 
 [VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
