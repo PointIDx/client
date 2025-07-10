@@ -2,12 +2,18 @@
 import { ref, onMounted } from "vue"
 import { Button } from "@/components/ui/button"
 import { Building2 } from "lucide-vue-next"
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
 const isVisible = ref(false)
 
 onMounted(() => {
   isVisible.value = true
 })
+
+const navigateTo = (path: string) => {
+  router.push(path)
+}
 </script>
 
 <template>
@@ -45,7 +51,10 @@ onMounted(() => {
         <Button variant="ghost" class="text-gray-600 hover:text-gray-900 hover:bg-gray-100">
           Se connecter
         </Button>
-        <Button class="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-black font-semibold">
+        <Button
+          @click="navigateTo('/pro-registration')"
+          class="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-black font-semibold"
+        >
           S'inscrire
         </Button>
       </div>

@@ -9,12 +9,6 @@ const router = createRouter({
       name: 'home',
       component: LandingPage,
     },
-    
-    {
-      path: '/select-account-type',
-      name: 'select-account-type',
-      component: () => import('../pages/AccountTypeSelection.vue'),
-    },
     {
       path: '/pro-registration',
       name: 'pro-registration',

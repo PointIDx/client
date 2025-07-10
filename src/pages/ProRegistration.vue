@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { CheckCircle, Upload, Loader2, AlertCircle, ArrowLeft } from "lucide-vue-next"
 import AccountTypeSelection from "./AccountTypeSelection.vue"
+import { useRouter } from "vue-router"
 
 import { AccountType } from "@/enums/account-type"
 import type { CompanyInfo } from "@/interfaces/company-info"
@@ -19,6 +20,7 @@ import  type { ProviderInfo } from "@/interfaces/provider-info"
 import type { InsurerInfo } from "@/interfaces/insurer-info"
 import type { SocietaireInfo } from "@/interfaces/societaire-info"
 
+const router = useRouter()
 const accountType = ref<AccountType | null>(null)
 const currentStep = ref(1)
 const isLoading = ref(false)
@@ -270,9 +272,11 @@ const submitRegistration = async () => {
   try {
     await new Promise((resolve) => setTimeout(resolve, 2000))
     if (accountType.value === "societaire") {
-      currentStep.value = 4 // Confirmation pour sociétaire à l'étape 4
-    } else {
-      currentStep.value = 6 // Confirmation pour pro à l'étape 6
+      router.push("/societaire-dashboard")
+    } else if (accountType.value === "prestataire") {
+      router.push("/prestataire-dashboard")
+    } else if (accountType.value === "assureur") {
+      router.push("/assureur-dashboard")
     }
   } catch (err) {
     error.value = "Erreur lors de l'inscription. Veuillez réessayer."

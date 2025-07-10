@@ -2,6 +2,9 @@
 import { Building2, Shield, User, CheckCircle } from "lucide-vue-next"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 const userTypes = [
   {
@@ -44,6 +47,12 @@ const userTypes = [
     cta: 'ACCÉDER À MON DOSSIER',
   },
 ]
+
+const handleNavigation = (user: any) => {
+  if (user.cta === 'ACCÉDER À MON DOSSIER') {
+    router.push('/societaire-login')
+  }
+}
 </script>
 
 <template>
@@ -94,6 +103,7 @@ const userTypes = [
               </div>
             </div>
             <Button
+              @click="handleNavigation(user)"
               class="w-full mt-8 text-black font-semibold transform hover:scale-105 transition-all duration-300"
               :class="`bg-gradient-to-r from-${user.color}-600 to-${user.color}-500 hover:from-${user.color}-700 hover:to-${user.color}-600`"
               size="lg"
