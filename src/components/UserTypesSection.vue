@@ -47,15 +47,15 @@ const userTypes = [
 </script>
 
 <template>
-  <section id="utilisateurs" class="py-32 bg-gradient-to-b from-black to-gray-900">
+  <section id="utilisateurs" class="py-32 bg-white">
     <div class="container mx-auto px-4">
       <div class="text-center mb-20">
-        <h2 class="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+        <h2 class="text-4xl md:text-6xl font-bold mb-6 text-gray-900">
           UNE SOLUTION POUR
           <br />
           CHAQUE PROFESSIONNEL
         </h2>
-        <p class="text-xl text-gray-400 max-w-3xl mx-auto">
+        <p class="text-xl text-gray-700 max-w-3xl mx-auto">
           Que vous soyez prestataire, assureur ou sociétaire, notre plateforme s'adapte à vos besoins spécifiques.
         </p>
       </div>
@@ -64,7 +64,7 @@ const userTypes = [
         <Card
           v-for="(user, index) in userTypes"
           :key="index"
-          class="relative bg-gray-900/50 border-gray-700 transition-all duration-500 transform hover:scale-105 hover:shadow-2xl group"
+          class="relative bg-white border-gray-200 transition-all duration-500 transform hover:scale-105 hover:shadow-lg group"
           :class="`hover:border-${user.color}-500/50 hover:shadow-${user.color}-500/20`"
         >
           <CardHeader class="text-center pb-6">
@@ -75,12 +75,11 @@ const userTypes = [
               <component :is="user.icon" class="h-10 w-10 text-black" />
             </div>
             <CardTitle
-              class="text-2xl font-bold bg-clip-text text-transparent"
-              :class="`bg-gradient-to-r from-${user.color}-400 to-${user.color}-300`"
+              class="text-2xl font-bold text-gray-900"
             >
               {{ user.title }}
             </CardTitle>
-            <CardDescription class="text-gray-400 text-base">{{ user.subtitle }}</CardDescription>
+            <CardDescription class="text-gray-600 text-base">{{ user.subtitle }}</CardDescription>
           </CardHeader>
           <CardContent class="space-y-6">
             <div class="space-y-4">
@@ -91,7 +90,7 @@ const userTypes = [
                 :style="{ transitionDelay: `${featureIndex * 100}ms` }"
               >
                 <CheckCircle class="h-5 w-5 flex-shrink-0" :class="`text-${user.color}-400`" />
-                <span class="text-gray-300">{{ feature }}</span>
+                <span class="text-gray-700">{{ feature }}</span>
               </div>
             </div>
             <Button

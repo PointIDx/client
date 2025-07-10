@@ -15,7 +15,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
@@ -41,78 +40,17 @@ import {
   MessageSquare,
 } from "lucide-vue-next"
 
-// Types
-interface Mission {
-  id: string
-  numeroMission: string
-  assureur: {
-    nom: string
-    email: string
-    telephone: string
-  }
-  client: {
-    civilite: string
-    nom: string
-    prenom: string
-    telephone: string
-    email: string
-  }
-  chantier: {
-    adresse: string
-    ville: string
-    codePostal: string
-  }
-  mission: {
-    titre: string
-    description: string
-    budgetEstime: string
-  }
-  sinistre: {
-    type: string
-    urgence: "faible" | "moyenne" | "elevee"
-    numeroSinistre: string
-  }
-  statut: "nouvelle" | "acceptee" | "refusee" | "en_cours" | "terminee" | "annulee"
-  dateCreation: string
-  dateReponse?: string
-  dateFinPrevue?: string
-  nouveauxMessages: number
-}
-
-interface DemandeComm {
-  id: string
-  assureur: {
-    nom: string
-    entreprise: string
-    email: string
-    telephone: string
-  }
-  message: string
-  statut: "en_attente" | "acceptee" | "refusee"
-  dateEnvoi: string
-  dateReponse?: string
-}
-
-interface Message {
-  id: string
-  missionId: string
-  expediteur: "prestataire" | "assureur"
-  contenu: string
-  dateEnvoi: string
-  lu: boolean
-}
-
-interface HistoriqueStatut {
-  id: string
-  missionId: string
-  ancienStatut: string
-  nouveauStatut: string
-  commentaire?: string
-  dateChangement: string
-}
+import type { Mission as MissionInterface } from "@/interfaces/mission-prestataire"
+import type { DemandeCommPrestataire } from "@/interfaces/demande-comm-prestataire"
+import  type { Message } from "@/interfaces/message"
+import type { HistoriqueStatut } from "@/interfaces/historique-statut"
+import { MissionStatutPrestataire } from "@/enums/mission-statut-prestataire"
+import { DemandeCommStatut } from "@/enums/demande-comm-statut"
+import { UrgenceMission } from "@/enums/urgence-mission"
+import { MessageExpediteur } from "@/enums/message-expediteur"
 
 // Données mockées
-const mockMissions: Mission[] = [
+const mockMissions: MissionInterface[] = [
   {
     id: "1",
     numeroMission: "M240001",
@@ -140,10 +78,10 @@ const mockMissions: Mission[] = [
     },
     sinistre: {
       type: "Fissures",
-      urgence: "elevee",
+      urgence: UrgenceMission.Elevee,
       numeroSinistre: "SIN2024001",
     },
-    statut: "nouvelle",
+    statut: MissionStatutPrestataire.Nouvelle,
     dateCreation: "2024-01-15T10:30:00Z",
     nouveauxMessages: 2,
   },
@@ -174,10 +112,10 @@ const mockMissions: Mission[] = [
     },
     sinistre: {
       type: "Dégât des eaux",
-      urgence: "moyenne",
+      urgence: UrgenceMission.Moyenne,
       numeroSinistre: "SIN2024002",
     },
-    statut: "en_cours",
+    statut: MissionStatutPrestataire.EnCours,
     dateCreation: "2024-01-10T14:20:00Z",
     dateReponse: "2024-01-11T09:15:00Z",
     dateFinPrevue: "2024-02-10T17:00:00Z",
@@ -210,10 +148,10 @@ const mockMissions: Mission[] = [
     },
     sinistre: {
       type: "Tempête",
-      urgence: "moyenne",
+      urgence: UrgenceMission.Moyenne,
       numeroSinistre: "SIN2024003",
     },
-    statut: "terminee",
+    statut: MissionStatutPrestataire.Terminee,
     dateCreation: "2024-01-05T08:30:00Z",
     dateReponse: "2024-01-05T14:20:00Z",
     dateFinPrevue: "2024-01-25T17:00:00Z",
@@ -221,7 +159,7 @@ const mockMissions: Mission[] = [
   },
 ]
 
-const mockDemandesComm: DemandeComm[] = [
+const mockDemandesComm: DemandeCommPrestataire[] = [
   {
     id: "1",
     assureur: {
@@ -232,7 +170,7 @@ const mockDemandesComm: DemandeComm[] = [
     },
     message:
       "Bonjour, nous avons un sinistre urgent à traiter dans votre secteur. Pourriez-vous nous confirmer votre disponibilité pour une intervention cette semaine ?",
-    statut: "en_attente",
+    statut: DemandeCommStatut.EnAttente,
     dateEnvoi: "2024-01-20T10:30:00Z",
   },
   {
@@ -245,7 +183,7 @@ const mockDemandesComm: DemandeComm[] = [
     },
     message:
       "Nous recherchons un prestataire qualifié pour des travaux de maçonnerie. Votre profil correspond à nos critères. Êtes-vous intéressé par un partenariat ?",
-    statut: "en_attente",
+    statut: DemandeCommStatut.EnAttente,
     dateEnvoi: "2024-01-18T14:15:00Z",
   },
 ]
@@ -254,7 +192,7 @@ const mockMessages: Message[] = [
   {
     id: "1",
     missionId: "1",
-    expediteur: "assureur",
+    expediteur: MessageExpediteur.Assureur,
     contenu: "Bonjour, pouvez-vous confirmer votre disponibilité pour cette mission urgente ?",
     dateEnvoi: "2024-01-15T11:00:00Z",
     lu: false,
@@ -262,7 +200,7 @@ const mockMessages: Message[] = [
   {
     id: "2",
     missionId: "1",
-    expediteur: "assureur",
+    expediteur: MessageExpediteur.Assureur,
     contenu: "Le client sera disponible demain matin pour vous rencontrer.",
     dateEnvoi: "2024-01-15T15:30:00Z",
     lu: false,
@@ -270,7 +208,7 @@ const mockMessages: Message[] = [
   {
     id: "3",
     missionId: "2",
-    expediteur: "prestataire",
+    expediteur: MessageExpediteur.Prestataire,
     contenu: "Travaux en cours, avancement à 60%. Photos envoyées par email.",
     dateEnvoi: "2024-01-25T14:20:00Z",
     lu: true,
@@ -278,18 +216,18 @@ const mockMessages: Message[] = [
   {
     id: "4",
     missionId: "3",
-    expediteur: "assureur",
+    expediteur: MessageExpediteur.Assureur,
     contenu: "Merci pour la mission terminée. Le client est très satisfait.",
     dateEnvoi: "2024-01-26T09:15:00Z",
     lu: false,
   },
 ]
 
-const missions = ref<Mission[]>(mockMissions)
-const demandesComm = ref<DemandeComm[]>(mockDemandesComm)
+const missions = ref<MissionInterface[]>(mockMissions)
+const demandesComm = ref<DemandeCommPrestataire[]>(mockDemandesComm)
 const messages = ref<Message[]>(mockMessages)
 const historiqueStatuts = ref<HistoriqueStatut[]>([])
-const selectedMission = ref<Mission | null>(null)
+const selectedMission = ref<MissionInterface | null>(null)
 const showChat = ref(false)
 const newMessage = ref("")
 const showSuccess = ref(false)
@@ -301,39 +239,39 @@ const notifications = ref([
   { id: "3", type: "demande", message: "Nouvelle demande de communication", date: "2024-01-20T10:30:00Z" },
 ])
 
-const getStatutBadge = (statut: Mission["statut"]) => {
+const getStatutBadge = (statut: MissionStatutPrestataire) => {
   switch (statut) {
-    case "nouvelle":
+    case MissionStatutPrestataire.Nouvelle:
       return {
         text: "Nouvelle",
         class: "bg-blue-100 text-blue-800",
         icon: Bell,
       }
-    case "acceptee":
+    case MissionStatutPrestataire.Acceptee:
       return {
         text: "Acceptée",
         class: "default",
         icon: CheckCircle,
       }
-    case "refusee":
+    case MissionStatutPrestataire.Refusee:
       return {
         text: "Refusée",
         class: "destructive",
         icon: XCircle,
       }
-    case "en_cours":
+    case MissionStatutPrestataire.EnCours:
       return {
         text: "En cours",
         class: "bg-yellow-100 text-yellow-800",
         icon: Clock,
       }
-    case "terminee":
+    case MissionStatutPrestataire.Terminee:
       return {
         text: "Terminée",
         class: "bg-green-100 text-green-800",
         icon: CheckCircle,
       }
-    case "annulee":
+    case MissionStatutPrestataire.Annulee:
       return {
         text: "Annulée",
         class: "destructive",
@@ -342,18 +280,18 @@ const getStatutBadge = (statut: Mission["statut"]) => {
   }
 }
 
-const getUrgenceBadge = (urgence: Mission["sinistre"]["urgence"]) => {
+const getUrgenceBadge = (urgence: UrgenceMission) => {
   switch (urgence) {
-    case "faible":
+    case UrgenceMission.Faible:
       return { text: "Faible", class: "bg-green-100 text-green-800" }
-    case "moyenne":
+    case UrgenceMission.Moyenne:
       return { text: "Moyenne", class: "bg-yellow-100 text-yellow-800" }
-    case "elevee":
+    case UrgenceMission.Elevee:
       return { text: "Élevée", class: "bg-red-100 text-red-800" }
   }
 }
 
-const changerStatutMission = (missionId: string, nouveauStatut: Mission["statut"], commentaire?: string) => {
+const changerStatutMission = (missionId: string, nouveauStatut: MissionStatutPrestataire, commentaire?: string) => {
   missions.value = missions.value.map((mission) => {
     if (mission.id === missionId) {
       const nouvelHistorique: HistoriqueStatut = {
@@ -376,7 +314,7 @@ const changerStatutMission = (missionId: string, nouveauStatut: Mission["statut"
   setTimeout(() => (showSuccess.value = false), 3000)
 }
 
-const repondreDemande = (demandeId: string, reponse: "acceptee" | "refusee", message?: string) => {
+const repondreDemande = (demandeId: string, reponse: DemandeCommStatut, message?: string) => {
   demandesComm.value = demandesComm.value.map((demande) =>
     demande.id === demandeId
       ? {
@@ -387,7 +325,7 @@ const repondreDemande = (demandeId: string, reponse: "acceptee" | "refusee", mes
       : demande,
   )
 
-  successMessage.value = `Demande ${reponse === "acceptee" ? "acceptée" : "refusée"} avec succès`
+  successMessage.value = `Demande ${reponse === DemandeCommStatut.Acceptee ? "acceptée" : "refusée"} avec succès`
   showSuccess.value = true
   setTimeout(() => (showSuccess.value = false), 3000)
 }
@@ -398,7 +336,7 @@ const envoyerMessage = (missionId: string) => {
   const nouveauMessage: Message = {
     id: Date.now().toString(),
     missionId,
-    expediteur: "prestataire",
+    expediteur: MessageExpediteur.Prestataire,
     contenu: newMessage.value,
     dateEnvoi: new Date().toISOString(),
     lu: true,
@@ -416,7 +354,7 @@ const getMessagesForMission = (missionId: string) => {
 
 const marquerMessagesLus = (missionId: string) => {
   messages.value = messages.value.map((msg) =>
-    msg.missionId === missionId && msg.expediteur === "assureur" ? { ...msg, lu: true } : msg,
+    msg.missionId === missionId && msg.expediteur === MessageExpediteur.Assureur ? { ...msg, lu: true } : msg,
   )
 
   missions.value = missions.value.map((mission) =>
@@ -620,23 +558,23 @@ const marquerMessagesLus = (missionId: string) => {
                           </Badge>
                           <div class="flex space-x-2">
                             <template v-if="mission.statut === 'nouvelle'">
-                              <Button size="sm" @click="changerStatutMission(mission.id, 'acceptee')">
+                              <Button size="sm" @click="changerStatutMission(mission.id, MissionStatutPrestataire.Acceptee)">
                                 <Check class="w-4 h-4 mr-1" />
                                 Accepter
                               </Button>
                               <Button
                                 size="sm"
                                 variant="destructive"
-                                @click="changerStatutMission(mission.id, 'refusee')"
+                                @click="changerStatutMission(mission.id, MissionStatutPrestataire.Refusee)"
                               >
                                 <X class="w-4 h-4 mr-1" />
                                 Refuser
                               </Button>
                             </template>
-                            <Button v-else-if="mission.statut === 'acceptee'" size="sm" @click="changerStatutMission(mission.id, 'en_cours')">
+                            <Button v-else-if="mission.statut === 'acceptee'" size="sm" @click="changerStatutMission(mission.id, MissionStatutPrestataire.EnCours)">
                               Démarrer
                             </Button>
-                            <Button v-else-if="mission.statut === 'en_cours'" size="sm" @click="changerStatutMission(mission.id, 'terminee')">
+                            <Button v-else-if="mission.statut === 'en_cours'" size="sm" @click="changerStatutMission(mission.id, MissionStatutPrestataire.Terminee)">
                               Terminer
                             </Button>
                           </div>
@@ -751,20 +689,20 @@ const marquerMessagesLus = (missionId: string) => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <template v-if="mission.statut === 'nouvelle'">
-                        <DropdownMenuItem @click="changerStatutMission(mission.id, 'acceptee')">
+                        <DropdownMenuItem @click="changerStatutMission(mission.id, MissionStatutPrestataire.Acceptee)">
                           <Check class="w-4 h-4 mr-2" />
                           Accepter
                         </DropdownMenuItem>
-                        <DropdownMenuItem @click="changerStatutMission(mission.id, 'refusee')">
+                        <DropdownMenuItem @click="changerStatutMission(mission.id, MissionStatutPrestataire.Refusee)">
                           <X class="w-4 h-4 mr-2" />
                           Refuser
                         </DropdownMenuItem>
                       </template>
-                      <DropdownMenuItem v-else-if="mission.statut === 'acceptee'" @click="changerStatutMission(mission.id, 'en_cours')">
+                      <DropdownMenuItem v-else-if="mission.statut === 'acceptee'" @click="changerStatutMission(mission.id, MissionStatutPrestataire.EnCours)">
                         <Clock class="w-4 h-4 mr-2" />
                         Démarrer
                       </DropdownMenuItem>
-                      <DropdownMenuItem v-else-if="mission.statut === 'en_cours'" @click="changerStatutMission(mission.id, 'terminee')">
+                      <DropdownMenuItem v-else-if="mission.statut === 'en_cours'" @click="changerStatutMission(mission.id, MissionStatutPrestataire.Terminee)">
                         <CheckCircle class="w-4 h-4 mr-2" />
                         Terminer
                       </DropdownMenuItem>
@@ -858,7 +796,7 @@ const marquerMessagesLus = (missionId: string) => {
                                 </div>
                                 <div class="flex justify-end space-x-2">
                                   <Button variant="outline">Annuler</Button>
-                                  <Button @click="repondreDemande(demande.id, 'acceptee')">
+                                  <Button @click="repondreDemande(demande.id, DemandeCommStatut.Acceptee)">
                                     <Send class="w-4 h-4 mr-2" />
                                     Accepter
                                   </Button>
@@ -894,7 +832,7 @@ const marquerMessagesLus = (missionId: string) => {
                                   <Button variant="outline">Annuler</Button>
                                   <Button
                                     variant="destructive"
-                                    @click="repondreDemande(demande.id, 'refusee')"
+                                    @click="repondreDemande(demande.id, DemandeCommStatut.Refusee)"
                                   >
                                     <Send class="w-4 h-4 mr-2" />
                                     Refuser

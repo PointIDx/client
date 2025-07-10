@@ -2,10 +2,11 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { LOGIN_MUTATION } from '@/graphql/mutations/login';
 import { SIGNUP_MUTATION } from '@/graphql/mutations/signup';
+import type { User } from '@/interfaces/user';
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(null);
-  const user = ref<{ id: string; email: string } | null>(null);
+  const user = ref<User | null>(null);
 
   async function login(email: string, password: string) {
     // In a real application, you would use a GraphQL client like Apollo or urql

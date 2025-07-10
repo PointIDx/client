@@ -9,7 +9,7 @@ import AppFooter from "@/components/AppFooter.vue"
 </script>
 
 <template>
-  <div class="min-h-screen bg-black text-white font-mono overflow-x-hidden">
+  <div class="min-h-screen bg-white text-black font-mono overflow-x-hidden">
     <AppHeader />
 
     <HeroSection />

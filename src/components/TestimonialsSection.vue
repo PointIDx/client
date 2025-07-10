@@ -28,15 +28,15 @@ const testimonials = [
 </script>
 
 <template>
-  <section id="temoignages" class="py-32 bg-gradient-to-b from-gray-900 to-black">
+  <section id="temoignages" class="py-32 bg-white">
     <div class="container mx-auto px-4">
       <div class="text-center mb-20">
-        <h2 class="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+        <h2 class="text-4xl md:text-6xl font-bold mb-6 text-gray-900">
           ILS NOUS FONT
           <br />
           CONFIANCE
         </h2>
-        <p class="text-xl text-gray-400 max-w-3xl mx-auto">
+        <p class="text-xl text-gray-700 max-w-3xl mx-auto">
           Découvrez ce que nos utilisateurs pensent de notre plateforme.
         </p>
       </div>
@@ -45,7 +45,7 @@ const testimonials = [
         <Card
           v-for="(testimonial, index) in testimonials"
           :key="index"
-          class="bg-gray-900/50 border-gray-700 hover:border-gray-600 transition-all duration-500 transform hover:scale-105 hover:shadow-2xl group"
+          class="bg-white border-gray-200 hover:border-gray-300 transition-all duration-500 transform hover:scale-105 hover:shadow-lg group"
         >
           <CardContent class="p-8">
             <div class="flex items-center mb-6">
@@ -56,7 +56,7 @@ const testimonials = [
                 :style="{ animationDelay: `${i * 200}ms` }"
               />
             </div>
-            <p class="text-gray-300 mb-8 text-lg leading-relaxed italic">"{{ testimonial.text }}"</p>
+            <p class="text-gray-700 mb-8 text-lg leading-relaxed italic">"{{ testimonial.text }}"</p>
             <div class="flex items-center">
               <div
                 class="w-12 h-12 rounded-full flex items-center justify-center mr-4 group-hover:scale-110 transition-transform duration-300"
@@ -65,8 +65,8 @@ const testimonials = [
                 <component :is="testimonial.icon" class="h-6 w-6 text-black" />
               </div>
               <div>
-                <div class="font-bold text-white text-lg">{{ testimonial.author }}</div>
-                <div class="text-gray-400">{{ testimonial.role }}</div>
+                <div class="font-bold text-gray-900 text-lg">{{ testimonial.author }}</div>
+                <div class="text-gray-600">{{ testimonial.role }}</div>
               </div>
             </div>
           </CardContent>

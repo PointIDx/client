@@ -2,12 +2,14 @@
 import { Button } from "@/components/ui/button"
 import UserTypeCard from "@/components/UserTypeCard.vue"
 import { Building2, Shield, User } from "lucide-vue-next"
+import type { UserType } from "@/interfaces/user-type"
+import { AccountType } from "@/enums/account-type"
 
 const emit = defineEmits(["selectType"])
 
-const userTypes = [
+const userTypes: UserType[] = [
   {
-    type: "prestataire",
+    type: AccountType.Prestataire,
     icon: Building2,
     iconBgClass: "bg-blue-100",
     iconTextColorClass: "text-blue-600",
@@ -29,7 +31,7 @@ const userTypes = [
     buttonVariant: "default",
   },
   {
-    type: "assureur",
+    type: AccountType.Assureur,
     icon: Shield,
     iconBgClass: "bg-green-100",
     iconTextColorClass: "text-green-600",
@@ -51,7 +53,7 @@ const userTypes = [
     buttonVariant: "outline",
   },
   {
-    type: "societaire",
+    type: AccountType.Societaire,
     icon: User,
     iconBgClass: "bg-purple-100",
     iconTextColorClass: "text-purple-600",
@@ -74,7 +76,7 @@ const userTypes = [
   },
 ]
 
-const onSelectType = (type: "prestataire" | "assureur" | "societaire") => {
+const onSelectType = (type: AccountType) => {
   emit("selectType", type)
 }
 </script>

@@ -4,13 +4,13 @@ import { Button } from "@/components/ui/button"
 </script>
 
 <template>
-  <section class="py-32 relative overflow-hidden">
-    <div class="absolute inset-0 bg-gradient-to-r from-blue-900/50 via-cyan-900/50 to-blue-900/50"></div>
+  <section class="py-32 relative overflow-hidden bg-gray-50">
+    <div class="absolute inset-0 bg-gradient-to-r from-blue-100/50 via-cyan-100/50 to-blue-100/50"></div>
     <div class="absolute inset-0">
       <div
         v-for="i in 30"
         :key="i"
-        class="absolute w-2 h-2 bg-cyan-400/20 rounded-full animate-ping"
+        class="absolute w-2 h-2 bg-blue-200/50 rounded-full animate-ping"
         :style="{
           left: `${Math.random() * 100}%`,
           top: `${Math.random() * 100}%`,
@@ -21,12 +21,12 @@ import { Button } from "@/components/ui/button"
     </div>
 
     <div class="container mx-auto px-4 text-center relative z-10">
-      <h2 class="text-4xl md:text-6xl font-bold mb-8 bg-gradient-to-r from-white via-cyan-200 to-white bg-clip-text text-transparent">
+      <h2 class="text-4xl md:text-6xl font-bold mb-8 text-gray-900">
         PRÊT À TRANSFORMER
         <br />
         VOTRE GESTION ?
       </h2>
-      <p class="text-xl text-gray-300 mb-12 max-w-3xl mx-auto">
+      <p class="text-xl text-gray-700 mb-12 max-w-3xl mx-auto">
         Rejoignez des centaines de professionnels qui font déjà confiance à PointID.
       </p>
       <div class="flex flex-col sm:flex-row gap-6 justify-center">

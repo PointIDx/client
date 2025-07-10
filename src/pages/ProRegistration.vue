@@ -10,72 +10,16 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { CheckCircle, Upload, Loader2, AlertCircle, ArrowLeft } from "lucide-vue-next"
 import AccountTypeSelection from "./AccountTypeSelection.vue"
 
-type AccountType = "prestataire" | "assureur" | "societaire" | null
+import { AccountType } from "@/enums/account-type"
+import type { CompanyInfo } from "@/interfaces/company-info"
+import type { Documents } from "@/interfaces/documents"
+import type { Contact } from "@/interfaces/contact"
+import type { Account } from "@/interfaces/account"
+import  type { ProviderInfo } from "@/interfaces/provider-info"
+import type { InsurerInfo } from "@/interfaces/insurer-info"
+import type { SocietaireInfo } from "@/interfaces/societaire-info"
 
-interface CompanyInfo {
-  raisonSociale: string
-  siret: string
-  formeJuridique: string
-  adresse: string
-  codePostal: string
-  ville: string
-  pays: string
-  dateCreation: string
-}
-
-interface Documents {
-  kbis: File | null
-  assurance: File | null
-  agrement?: File | null // Spécifique aux assureurs
-}
-
-interface Contact {
-  prenom: string
-  nom: string
-  email: string
-  telephone: string
-}
-
-interface Account {
-  email: string
-  password: string
-  confirmPassword: string
-}
-
-interface ProviderInfo {
-  secteursActivite: string
-  zonesGeographiques: {
-    departements: string[]
-    regions: string[]
-    codesPostaux: string[]
-  }
-}
-
-interface InsurerInfo {
-  numeroAgrement: string
-  typesAssurance: string[]
-  zonesCouverture: {
-    departements: string[]
-    regions: string[]
-    codesPostaux: string[]
-  }
-  garantiesProposees: string
-}
-
-interface SocietaireInfo {
-  civilite: string
-  prenom: string
-  nom: string
-  dateNaissance: string
-  adresseBien: string
-  codePostalBien: string
-  villeBien: string
-  typeProjet: string
-  numeroDossier: string
-  descriptionProjet: string
-}
-
-const accountType = ref<AccountType>(null)
+const accountType = ref<AccountType | null>(null)
 const currentStep = ref(1)
 const isLoading = ref(false)
 const siretValidated = ref(false)
@@ -424,7 +368,7 @@ const handleAccountTypeSelected = (type: AccountType) => {
                   <Input
                     id="siret"
                     v-model="companyInfo.siret"
-                    @input="(e) => { companyInfo.siret = (e.target as HTMLInputElement).value.replace(/\D/g, '').slice(0, 14); siretValidated = false; }"
+                    @input="(e: any) => { companyInfo.siret = (e.target as HTMLInputElement).value.replace(/\D/g, '').slice(0, 14); siretValidated = false; }"
                     placeholder="14 chiffres"
                     maxlength="14"
                   />
@@ -592,7 +536,7 @@ const handleAccountTypeSelected = (type: AccountType) => {
                     type="file"
                     class="hidden"
                     accept=".pdf"
-                    @change="(e) => e.target.files?.[0] && handleFileUpload('kbis', e.target.files[0])"
+                    @change="(e: any) => e.target.files?.[0] && handleFileUpload('kbis', e.target.files[0])"
                   />
                 </div>
               </div>
@@ -614,7 +558,7 @@ const handleAccountTypeSelected = (type: AccountType) => {
                     type="file"
                     class="hidden"
                     accept=".pdf"
-                    @change="(e) => e.target.files?.[0] && handleFileUpload('assurance', e.target.files[0])"
+                    @change="(e: any) => e.target.files?.[0] && handleFileUpload('assurance', e.target.files[0])"
                   />
                 </div>
               </div>
@@ -637,7 +581,7 @@ const handleAccountTypeSelected = (type: AccountType) => {
                     type="file"
                     class="hidden"
                     accept=".pdf"
-                    @change="(e) => e.target.files?.[0] && handleFileUpload('agrement', e.target.files[0])"
+                    @change="(e: any) => e.target.files?.[0] && handleFileUpload('agrement', e.target.files[0])"
                   />
                 </div>
               </div>

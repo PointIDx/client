@@ -21,15 +21,15 @@ const features = [
 </script>
 
 <template>
-  <section id="fonctionnalites" class="py-32 bg-black relative">
+  <section id="fonctionnalites" class="py-32 bg-white relative">
     <div class="container mx-auto px-4">
       <div class="text-center mb-20">
-        <h2 class="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+        <h2 class="text-4xl md:text-6xl font-bold mb-6 text-gray-900">
           FONCTIONNALITÉS
           <br />
           AVANCÉES
         </h2>
-        <p class="text-xl text-gray-400 max-w-3xl mx-auto">
+        <p class="text-xl text-gray-700 max-w-3xl mx-auto">
           Tous les outils dont vous avez besoin pour gérer efficacement vos sinistres et interventions.
         </p>
       </div>
@@ -41,8 +41,8 @@ const features = [
           class="text-center p-8 rounded-2xl border transition-all duration-500 transform hover:scale-105"
           :class="
             activeFeature === index
-              ? `border-${feature.color}-500/50 bg-${feature.color}-900/20 shadow-2xl shadow-${feature.color}-500/20`
-              : 'border-gray-800 bg-gray-900/30 hover:border-gray-700'
+              ? `border-${feature.color}-500/50 bg-${feature.color}-100/20 shadow-lg shadow-${feature.color}-500/20`
+              : 'border-gray-200 bg-gray-50 hover:border-gray-300'
           "
         >
           <div
@@ -50,22 +50,22 @@ const features = [
             :class="
               activeFeature === index
                 ? `bg-gradient-to-br from-${feature.color}-500 to-${feature.color}-400 scale-110`
-                : `bg-gray-800 group-hover:bg-${feature.color}-900/50`
+                : `bg-gray-100 group-hover:bg-${feature.color}-100/50`
             "
           >
             <component
               :is="feature.icon"
               class="h-10 w-10 transition-colors duration-500"
-              :class="activeFeature === index ? 'text-black' : `text-${feature.color}-400`"
+              :class="activeFeature === index ? 'text-black' : `text-${feature.color}-600`"
             />
           </div>
           <h3
             class="text-xl font-bold mb-3 transition-colors duration-500"
-            :class="activeFeature === index ? `text-${feature.color}-300` : 'text-white'"
+            :class="activeFeature === index ? `text-${feature.color}-700` : 'text-gray-900'"
           >
             {{ feature.title.toUpperCase() }}
           </h3>
-          <p class="text-gray-400 leading-relaxed">
+          <p class="text-gray-600 leading-relaxed">
             <span v-if="index === 0">Timeline détaillée de chaque étape du dossier avec notifications automatiques.</span>
             <span v-if="index === 1">Chat en temps réel entre tous les intervenants du dossier.</span>
             <span v-if="index === 2">Upload de photos, documents et commentaires pour enrichir le dossier.</span>
