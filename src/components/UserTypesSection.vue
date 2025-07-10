@@ -50,7 +50,7 @@ const userTypes = [
 
 const handleNavigation = (user: any) => {
   if (user.cta === 'ACCÉDER À MON DOSSIER') {
-    router.push('/societaire-login')
+    router.push('/societaire-app')
   }
 }
 </script>
