@@ -1,0 +1,110 @@
+# Configuration for https://github.com/actions/stale
+
+days-before-stale: 60
+days-before-close: 7
+stale-issue-message: >
+  This issue is stale because it has been open for 60 days with no activity.
+  It will be closed in 7 days if no further activity occurs.
+  If you are still experiencing this issue, please comment and provide any
+  additional information that may help us resolve it.
+stale-pr-message: >
+  This pull request is stale because it has been open for 60 days with no activity.
+  It will be closed in 7 days if no further activity occurs.
+  Please update the PR or comment to keep it open.
+close-issue-message: >
+  This issue was closed because it has been stalled for 7 days with no activity.
+  If you are still experiencing this issue, please open a new one.
+close-pr-message: >
+  This pull request was closed because it has been stalled for 7 days with no activity.
+  If you still want these changes to be merged, please open a new pull request.
+labels:
+  - stale
+  - wontfix
+exempt-issue-labels:
+  - bug
+  - enhancement
+  - documentation
+  - question
+  - help wanted
+  - good first issue
+exempt-pr-labels:
+  - bug
+  - enhancement
+  - documentation
+  - dependencies
+  - work in progress
+  - do not merge
+mark-issues-as-stale: true
+mark-prs-as-stale: true
+only-labels: []
+any-of-labels: []
+skip-labels:
+  - pinned
+  - security
+  - breaking change
+  - critical
+  - important
+  - blocked
+  - in progress
+  - awaiting review
+  - needs rebase
+  - needs testing
+  - needs design
+  - needs discussion
+  - needs triage
+  - needs more info
+  - duplicate
+  - invalid
+  - wont fix
+  - question
+  - help wanted
+  - good first issue
+  - documentation
+  - dependencies
+  - chore
+  - refactor
+  - performance
+  - ci
+  - build
+  - release
+  - revert
+  - style
+  - test
+  - ux
+  - accessibility
+  - internationalization
+  - localization
+  - security
+  - breaking change
+  - critical
+  - important
+  - blocked
+  - in progress
+  - awaiting review
+  - needs rebase
+  - needs testing
+  - needs design
+  - needs discussion
+  - needs triage
+  - needs more info
+  - duplicate
+  - invalid
+  - wont fix
+  - question
+  - help wanted
+  - good first issue
+  - documentation
+  - dependencies
+  - chore
+  - refactor
+  - performance
+  - ci
+  - build
+  - release
+  - revert
+  - style
+  - test
+  - ux
+  - accessibility
+  - internationalization
+  - localization
