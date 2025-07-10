@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
+import { ref, reactive } from "vue"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
 import {
   Building2,
   LogOut,
@@ -23,7 +23,7 @@ import {
   Camera,
   Send,
   Shield,
-} from 'lucide-vue-next'
+} from "lucide-vue-next"
 
 const props = defineProps({
   userEmail: {
@@ -36,7 +36,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['logout'])
+const emit = defineEmits(["logout"])
 
 const selectedFiles = ref<File[]>([])
 const comment = ref("")
@@ -186,7 +186,7 @@ const getTypeColor = (type: string) => {
 }
 
 const onLogout = () => {
-  emit('logout')
+  emit("logout")
 }
 </script>
 

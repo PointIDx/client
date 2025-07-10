@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Progress } from '@/components/ui/progress'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { CheckCircle, Upload, Loader2, AlertCircle, ArrowLeft } from 'lucide-vue-next'
-import AccountTypeSelection from './AccountTypeSelection.vue'
+import { ref, reactive, computed } from "vue"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Progress } from "@/components/ui/progress"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { CheckCircle, Upload, Loader2, AlertCircle, ArrowLeft } from "lucide-vue-next"
+import AccountTypeSelection from "./AccountTypeSelection.vue"
 
 type AccountType = "prestataire" | "assureur" | "societaire" | null
 

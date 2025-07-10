@@ -1,19 +1,34 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
-import { Building2, Eye, EyeOff, Lock, Mail, AlertCircle, CheckCircle } from 'lucide-vue-next'
+import { ref, onMounted } from "vue"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Badge } from "@/components/ui/badge"
+import { Building2, Eye, EyeOff, Lock, Mail, AlertCircle, CheckCircle } from "lucide-vue-next"
 
-const emit = defineEmits(['login'])
+const emit = defineEmits(["login"])
 
 const email = ref("")
 const dossier = ref("")
 const showDossier = ref(false)
 const isLoading = ref(false)
 const error = ref("")
+
+const particles = ref<Array<{ style: Record<string, string> }>>([])
+
+onMounted(() => {
+  for (let i = 0; i < 20; i++) {
+    particles.value.push({
+      style: {
+        left: `${Math.random() * 100}%`,
+        top: `${Math.random() * 100}%`,
+        animationDelay: `${Math.random() * 3}s`,
+        animationDuration: `${2 + Math.random() * 2}s`,
+      },
+    })
+  }
+})
 
 const handleSubmit = async () => {
   error.value = ""
@@ -23,7 +38,7 @@ const handleSubmit = async () => {
   await new Promise((resolve) => setTimeout(resolve, 1500))
 
   if (email.value === "jean.dupont@email.com" && dossier.value === "DOS2024001") {
-    emit('login', email.value, dossier.value)
+    emit("login", email.value, dossier.value)
   } else {
     error.value = "Identifiants incorrects. Vérifiez votre email et numéro de dossier."
   }
@@ -37,15 +52,10 @@ const handleSubmit = async () => {
     <!-- Animated background -->
     <div class="absolute inset-0 overflow-hidden">
       <div
-        v-for="i in 20"
+        v-for="(particle, i) in particles"
         :key="i"
         class="absolute w-1 h-1 bg-blue-400/20 rounded-full animate-pulse"
-        :style="{
-          left: `${Math.random() * 100}%`,
-          top: `${Math.random() * 100}%`,
-          animationDelay: `${Math.random() * 3}s`,
-          animationDuration: `${2 + Math.random() * 2}s`,
-        }"
+        :style="particle.style"
       />
     </div>
 
