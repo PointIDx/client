@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, computed, type Component } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -37,15 +37,14 @@ import {
   Plus,
 } from 'lucide-vue-next'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-
-import type { PrestataireAssureur } from '@/interfaces/prestataire-assureur'
-import type { DemandeCommAssureur } from '@/interfaces/demande-comm-assureur'
-import type { MissionAssureur } from '@/interfaces/mission-assureur'
+import MissionCreationDialog from '@/components/MissionCreationDialog.vue'
+import MissionsList from '@/components/MissionsList.vue'
+import type { Prestataire } from '@/interfaces/prestataire'
+import type { DemandeComm } from '@/interfaces/demande-comm'
+import type { IMission } from '@/interfaces/IMission'
 import { DemandeCommStatut } from '@/enums/demande-comm-statut'
-import { UrgenceSinistre } from '@/enums/urgence-sinistre'
-import { MissionStatutAssureur } from '@/enums/mission-statut-assureur'
 
-const mockPrestataires: PrestataireAssureur[] = [
+const mockPrestataires: Prestataire[] = [
   {
     id: "1",
     nom: "Martin Dubois",
@@ -116,55 +115,73 @@ const searchTerm = ref("")
 const selectedSecteur = ref("all")
 const selectedRegion = ref("all")
 const selectedDepartement = ref("all")
-const filteredPrestataires = ref<PrestataireAssureur[]>(mockPrestataires)
-const selectedPrestataire = ref<PrestataireAssureur | null>(null)
+const filteredPrestataires = ref<Prestataire[]>(mockPrestataires)
+const selectedPrestataire = ref<Prestataire | null>(null)
 const showCommDialog = ref(false)
 const messageComm = ref("")
-const demandes = ref<DemandeCommAssureur[]>([])
+const demandes = ref<DemandeComm[]>([])
 const showSuccess = ref(false)
 
 const showMissionDialog = ref(false)
-const selectedPrestataireForMission = ref<PrestataireAssureur | null>(null)
-const missions = ref<MissionAssureur[]>([])
+const selectedPrestataireForMission = ref<Prestataire | null>(null)
+const missions = ref<IMission[]>([
+    {
+    id: "1",
+    numeroMission: "M240001",
+    prestataire: {
+      id: "1",
+      nom: "Martin",
+      prenom: "Dubois",
+      raisonSociale: "DUBOIS MAÇONNERIE SARL",
+      telephone: "04 78 12 34 56",
+      email: "contact@dubois-maconnerie.fr",
+      ville: "Lyon",
+    },
+    client: {
+      civilite: "M",
+      nom: "Dupont",
+      prenom: "Jean",
+      telephone: "06 12 34 56 78",
+      email: "jean.dupont@email.com",
+      adresse: "15 Rue de la Paix",
+      codePostal: "69001",
+      ville: "Lyon",
+    },
+    chantier: {
+      adresse: "15 Rue de la Paix",
+      ville: "Lyon",
+      codePostal: "69001",
+      typeAcces: "Libre",
+      etage: "RDC",
+      contraintes: "Aucune",
+    },
+    mission: {
+      titre: "Réparation fissures mur porteur",
+      description: "Réparation de fissures importantes sur mur porteur suite à tassement",
+      budgetEstime: "2500",
+      delaiSouhaite: "2 semaines",
+      horaires: "8h-17h",
+      materiaux: "Fournis par le prestataire",
+      normes: "Normes DTU",
+      conditionsParticulieres: "Accès facile",
+    },
+    sinistre: {
+      type: "Fissures",
+      description: "Réparation de fissures importantes sur mur porteur suite à tassement",
+      urgence: "elevee",
+      numeroSinistre: "SIN2024001",
+      dateSinistre: "2024-01-10",
+      dateIntervention: "2024-01-15",
+    },
+    statut: "en_cours",
+    dateCreation: "2024-01-15T10:30:00Z",
+    documents: [],
+    dateEnvoi: "2024-01-15T11:00:00Z",
+    dateReponse: "2024-01-16T09:15:00Z",
+    dateFinPrevue: "2024-02-15T17:00:00Z",
+  }
+])
 const showMissionSuccess = ref(false)
-
-const missionForm = reactive({
-  client: {
-    civilite: "",
-    nom: "",
-    prenom: "",
-    telephone: "",
-    email: "",
-    adresse: "",
-    codePostal: "",
-    ville: "",
-  },
-  chantier: {
-    adresse: "",
-    codePostal: "",
-    ville: "",
-    typeAcces: "",
-    etage: "",
-    contraintes: "",
-  },
-  sinistre: {
-    type: "",
-    description: "",
-    urgence: UrgenceSinistre.Moyenne,
-    dateSinistre: "",
-    dateIntervention: "",
-  },
-  mission: {
-    titre: "",
-    description: "",
-    budgetEstime: "",
-    delaiSouhaite: "",
-    horaires: "",
-    materiaux: "",
-    normes: "",
-  },
-  documents: [] as File[],
-})
 
 const secteurs = ["Maçonnerie", "Plomberie", "Électricité", "Chauffage", "Couverture", "Menuiserie", "Peinture"]
 const regions = [
@@ -184,26 +201,6 @@ const regions = [
 ]
 
 const departements = ["01 - Ain", "13 - Bouches-du-Rhône", "31 - Haute-Garonne", "69 - Rhône", "75 - Paris"]
-
-const typesSinistre = [
-  "Dégât des eaux",
-  "Incendie",
-  "Fissures",
-  "Infiltration",
-  "Bris de glace",
-  "Cambriolage",
-  "Tempête",
-  "Autre",
-]
-
-const typesAcces = [
-  "Libre",
-  "Clés chez gardien",
-  "Clés chez voisin",
-  "Rendez-vous obligatoire",
-  "Code d'accès",
-  "Autre",
-]
 
 const applyFilters = () => {
   let filtered = mockPrestataires
@@ -244,7 +241,7 @@ const resetFilters = () => {
 const envoyerDemandeComm = () => {
   if (!selectedPrestataire.value || !messageComm.value.trim()) return
 
-  const nouvelleDemande: DemandeCommAssureur = {
+  const nouvelleDemande: DemandeComm = {
     id: Date.now().toString(),
     prestataire: selectedPrestataire.value,
     message: messageComm.value,
@@ -259,99 +256,58 @@ const envoyerDemandeComm = () => {
   setTimeout(() => (showSuccess.value = false), 3000)
 }
 
-type StatutBadge = {
-  text: string;
-  variant: "default" | "destructive" | "outline" | "secondary";
-  icon: Component;
-}
-
-
-const getStatutBadge = (statut: DemandeCommStatut): StatutBadge => {
+const getStatutBadge = (statut: DemandeComm["statut"]) => {
   switch (statut) {
-    case DemandeCommStatut.EnAttente:
-      return {
-        text: "En attente",
-        variant: "secondary" as const,
-        icon: Clock,
-      };
-    case DemandeCommStatut.Acceptee:
-      return {
-        text: "Acceptée",
-        variant: "default" as const,
-        icon: CheckCircle,
-      };
-    case DemandeCommStatut.Refusee:
-      return {
-        text: "Refusée",
-        variant: "destructive" as const,
-        icon: XCircle,
-      };
+    case "en_attente":
+      return `
+        <Badge variant="secondary">
+          <Clock class="w-3 h-3 mr-1" />
+          En attente
+        </Badge>
+      `
+    case "acceptee":
+      return `
+        <Badge variant="default">
+          <CheckCircle class="w-3 h-3 mr-1" />
+          Acceptée
+        </Badge>
+      `
+    case "refusee":
+      return `
+        <Badge variant="destructive">
+          <XCircle class="w-3 h-3 mr-1" />
+          Refusée
+        </Badge>
+      `
     default:
-      // Exhaustive check - this should never happen if DemandeCommStatut is properly typed
-      throw new Error(`Unknown statut: ${statut}`);
+      return ``
   }
 }
 
-
-const creerMission = () => {
-  if (!selectedPrestataireForMission.value) return
-
-  const nouvelleMission: MissionAssureur = {
-    id: Date.now().toString(),
-    prestataire: selectedPrestataireForMission.value,
-    client: missionForm.client,
-    chantier: missionForm.chantier,
-    sinistre: missionForm.sinistre,
-    mission: missionForm.mission,
-    documents: missionForm.documents,
-    statut: MissionStatutAssureur.Envoyee,
-    dateCreation: new Date().toISOString(),
-    numeroMission: `M${Date.now().toString().slice(-6)}`,
-  }
-
-  missions.value.push(nouvelleMission)
-
-  // Reset du formulaire
-  Object.assign(missionForm, {
-    client: { civilite: "", nom: "", prenom: "", telephone: "", email: "", adresse: "", codePostal: "", ville: "" },
-    chantier: { adresse: "", codePostal: "", ville: "", typeAcces: "", etage: "", contraintes: "" },
-    sinistre: { type: "", description: "", urgence: UrgenceSinistre.Moyenne, dateSinistre: "", dateIntervention: "" },
-    mission: {
-      titre: "",
-      description: "",
-      budgetEstime: "",
-      delaiSouhaite: "",
-      horaires: "",
-      materiaux: "",
-      normes: "",
-    },
-    documents: [],
-  })
-
-  showMissionDialog.value = false
+const handleCreateMission = (missionData: IMission) => {
+  missions.value.push(missionData)
   showMissionSuccess.value = true
   setTimeout(() => (showMissionSuccess.value = false), 5000)
 }
 
-const validateMissionForm = computed(() => {
-  return (
-    missionForm.client.nom &&
-    missionForm.client.prenom &&
-    missionForm.client.telephone &&
-    missionForm.chantier.adresse &&
-    missionForm.sinistre.type &&
-    missionForm.sinistre.description &&
-    missionForm.mission.titre &&
-    missionForm.mission.description
-  )
-})
+const handleContactClick = (prestataire: Prestataire) => {
+  selectedPrestataire.value = prestataire
+  showCommDialog.value = true
+}
+
+const handleMissionClick = (prestataire: Prestataire) => {
+  selectedPrestataireForMission.value = prestataire
+  showMissionDialog.value = true
+}
+
+import placeholderImage from '@/assets/placeholder.svg'
 </script>
 
 <template>
   <div class="min-h-screen bg-gray-50">
     <!-- Header -->
     <header class="bg-white shadow-sm border-b">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between items-center py-4">
           <div>
             <h1 class="text-2xl font-bold text-gray-900">Dashboard Assureur</h1>
@@ -371,7 +327,7 @@ const validateMissionForm = computed(() => {
     </header>
 
     <!-- Success Alert -->
-    <div v-if="showSuccess" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+    <div v-if="showSuccess" class="mx-auto px-4 sm:px-6 lg:px-8 pt-4">
       <Alert class="bg-green-50 border-green-200">
         <CheckCircle class="h-4 w-4 text-green-600" />
         <AlertDescription class="text-green-800">
@@ -380,14 +336,14 @@ const validateMissionForm = computed(() => {
       </Alert>
     </div>
 
-    <div v-if="showMissionSuccess" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+    <div v-if="showMissionSuccess" class="mx-auto px-4 sm:px-6 lg:px-8 pt-4">
       <Alert class="bg-green-50 border-green-200">
         <CheckCircle class="h-4 w-4 text-green-600" />
         <AlertDescription class="text-green-800">Mission créée et envoyée avec succès !</AlertDescription>
       </Alert>
     </div>
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <Tabs default-value="recherche" class="space-y-6">
         <TabsList>
           <TabsTrigger value="recherche">Recherche Prestataires</TabsTrigger>
@@ -489,13 +445,9 @@ const validateMissionForm = computed(() => {
                   <div class="flex items-start justify-between">
                     <div class="flex items-center space-x-3">
                       <Avatar>
-                        <AvatarImage :src="prestataire.avatar || '/placeholder.svg'" />
+                        <AvatarImage :src="prestataire.avatar || placeholderImage" />
                         <AvatarFallback>
-                          {{ prestataire.nom
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")
-                          }}
+                          {{ prestataire.nom.split(' ').map((n) => n[0]).join('') }}
                         </AvatarFallback>
                       </Avatar>
                       <div>
@@ -534,17 +486,13 @@ const validateMissionForm = computed(() => {
                           Voir fiche
                         </Button>
                       </DialogTrigger>
-                      <DialogContent class="bg-white max-w-2xl max-h-[80vh] overflow-y-auto">
+                      <DialogContent class="max-w-2xl max-h-[80vh] overflow-y-auto bg-white">
                         <DialogHeader>
                           <DialogTitle class="flex items-center space-x-3">
                             <Avatar class="w-12 h-12">
-                              <AvatarImage :src="prestataire.avatar || '/placeholder.svg'" />
+                              <AvatarImage :src="prestataire.avatar || placeholderImage" />
                               <AvatarFallback>
-                                {{ prestataire.nom
-                                  .split(" ")
-                                  .map((n) => n[0])
-                                  .join("")
-                                }}
+                                {{ prestataire.nom.split(' ').map((n) => n[0]).join('') }}
                               </AvatarFallback>
                             </Avatar>
                             <div>
@@ -674,17 +622,16 @@ const validateMissionForm = computed(() => {
                     <Button
                       size="sm"
                       class="flex-1"
-                      @click="() => { selectedPrestataire = prestataire; showCommDialog = true; }"
+                      @click="handleContactClick(prestataire)"
                     >
                       <MessageCircle class="w-4 h-4 mr-1" />
                       Contacter
                     </Button>
 
-                    <!-- Nouveau bouton pour créer une mission -->
                     <Button
                       size="sm"
                       variant="default"
-                      @click="() => { selectedPrestataireForMission = prestataire; showMissionDialog = true; }"
+                      @click="handleMissionClick(prestataire)"
                     >
                       <Plus class="w-4 h-4 mr-1" />
                       Mission
@@ -715,11 +662,7 @@ const validateMissionForm = computed(() => {
                     <div class="flex items-start space-x-4">
                       <Avatar>
                         <AvatarFallback>
-                          {{ demande.prestataire.nom
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")
-                          }}
+                          {{ demande.prestataire.nom.split(' ').map((n) => n[0]).join('') }}
                         </AvatarFallback>
                       </Avatar>
                       <div class="flex-1">
@@ -738,10 +681,7 @@ const validateMissionForm = computed(() => {
                       </div>
                     </div>
                     <div class="text-right">
-                      <Badge :variant="getStatutBadge(demande.statut)?.variant">
-                        <component :is="getStatutBadge(demande.statut)?.icon" class="w-3 h-3 mr-1" />
-                        {{ getStatutBadge(demande.statut)?.text }}
-                      </Badge>
+                      <div v-html="getStatutBadge(demande.statut)"></div>
                       <p v-if="demande.dateReponse" class="text-xs text-gray-500 mt-1">
                         Répondu le {{ new Date(demande.dateReponse).toLocaleDateString() }}
                       </p>
@@ -755,54 +695,7 @@ const validateMissionForm = computed(() => {
 
         <!-- Onglet Missions -->
         <TabsContent value="missions">
-          <Card>
-            <CardHeader>
-              <CardTitle>Mes missions</CardTitle>
-              <CardDescription>Suivez l'état de vos missions</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div v-if="missions.length === 0" class="text-center py-8 text-gray-500">
-                <FileText class="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                <p>Aucune mission créée</p>
-                <p class="text-sm">Recherchez des prestataires et créez une mission pour commencer</p>
-              </div>
-              <div v-else class="space-y-4">
-                <div v-for="mission in missions" :key="mission.id" class="border rounded-lg p-4">
-                  <div class="flex items-start justify-between">
-                    <div class="flex items-start space-x-4">
-                      <Avatar>
-                        <AvatarFallback>
-                          {{ mission.prestataire.nom
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")
-                          }}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div class="flex-1">
-                        <h4 class="font-semibold">{{ mission.prestataire.nom }}</h4>
-                        <p class="text-sm text-gray-600">{{ mission.prestataire.raisonSociale }}</p>
-                        <p class="text-sm text-gray-500 mt-1">
-                          Créée le {{ new Date(mission.dateCreation).toLocaleDateString() }}
-                        </p>
-                        <div class="mt-2">
-                          <p class="text-sm">
-                            <strong>Titre:</strong> {{ mission.mission.titre }}
-                          </p>
-                          <p class="text-sm">
-                            <strong>Description:</strong> {{ mission.mission.description }}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="text-right">
-                      <Badge variant="secondary">{{ mission.statut }}</Badge>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <MissionsList :missions="missions" />
         </TabsContent>
       </Tabs>
     </div>
@@ -819,11 +712,7 @@ const validateMissionForm = computed(() => {
           <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
             <Avatar>
               <AvatarFallback>
-                {{ selectedPrestataire.nom
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")
-                }}
+                {{ selectedPrestataire.nom.split(' ').map((n) => n[0]).join('') }}
               </AvatarFallback>
             </Avatar>
             <div>
@@ -867,287 +756,11 @@ const validateMissionForm = computed(() => {
     </Dialog>
 
     <!-- Dialog Création de mission -->
-    <Dialog :open="showMissionDialog" @update:open="showMissionDialog = $event">
-      <DialogContent class="bg-white max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Création de mission</DialogTitle>
-          <DialogDescription>
-            Remplissez les informations pour créer une mission pour {{ selectedPrestataireForMission?.nom }}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div v-if="selectedPrestataireForMission" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <!-- Colonne gauche : Informations client et chantier -->
-          <div class="space-y-6">
-            <!-- Informations client -->
-            <div>
-              <h4 class="font-semibold mb-3">Informations client</h4>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label for="civilite">Civilité</Label>
-                  <Select
-                    v-model="missionForm.client.civilite"
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Civilité" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="M.">M.</SelectItem>
-                      <SelectItem value="Mme">Mme</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label for="nom">Nom *</Label>
-                  <Input
-                    id="nom"
-                    v-model="missionForm.client.nom"
-                  />
-                </div>
-                <div>
-                  <Label for="prenom">Prénom *</Label>
-                  <Input
-                    id="prenom"
-                    v-model="missionForm.client.prenom"
-                  />
-                </div>
-                <div>
-                  <Label for="telephone">Téléphone *</Label>
-                  <Input
-                    id="telephone"
-                    type="tel"
-                    v-model="missionForm.client.telephone"
-                  />
-                </div>
-                <div>
-                  <Label for="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    v-model="missionForm.client.email"
-                  />
-                </div>
-                <div class="md:col-span-2">
-                  <Label for="adresse">Adresse</Label>
-                  <Input
-                    id="adresse"
-                    v-model="missionForm.client.adresse"
-                  />
-                </div>
-                <div>
-                  <Label for="codePostal">Code postal</Label>
-                  <Input
-                    id="codePostal"
-                    v-model="missionForm.client.codePostal"
-                  />
-                </div>
-                <div>
-                  <Label for="ville">Ville</Label>
-                  <Input
-                    id="ville"
-                    v-model="missionForm.client.ville"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <!-- Informations chantier -->
-            <div>
-              <h4 class="font-semibold mb-3">Informations chantier</h4>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="md:col-span-2">
-                  <Label for="adresseChantier">Adresse *</Label>
-                  <Input
-                    id="adresseChantier"
-                    v-model="missionForm.chantier.adresse"
-                  />
-                </div>
-                <div>
-                  <Label for="codePostalChantier">Code postal</Label>
-                  <Input
-                    id="codePostalChantier"
-                    v-model="missionForm.chantier.codePostal"
-                  />
-                </div>
-                <div>
-                  <Label for="villeChantier">Ville</Label>
-                  <Input
-                    id="villeChantier"
-                    v-model="missionForm.chantier.ville"
-                  />
-                </div>
-                <div>
-                  <Label for="typeAcces">Type d'accès</Label>
-                  <Select
-                    v-model="missionForm.chantier.typeAcces"
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Type d'accès" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem v-for="type in typesAcces" :key="type" :value="type">
-                        {{ type }}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label for="etage">Étage</Label>
-                  <Input
-                    id="etage"
-                    v-model="missionForm.chantier.etage"
-                  />
-                </div>
-                <div class="md:col-span-2">
-                  <Label for="contraintes">Contraintes d'accès</Label>
-                  <Textarea
-                    id="contraintes"
-                    v-model="missionForm.chantier.contraintes"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Colonne droite : Informations sinistre et mission -->
-          <div class="space-y-6">
-            <!-- Informations sinistre -->
-            <div>
-              <h4 class="font-semibold mb-3">Informations sinistre</h4>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="md:col-span-2">
-                  <Label for="typeSinistre">Type de sinistre *</Label>
-                  <Select
-                    v-model="missionForm.sinistre.type"
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Type de sinistre" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem v-for="type in typesSinistre" :key="type" :value="type">
-                        {{ type }}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div class="md:col-span-2">
-                  <Label for="descriptionSinistre">Description du sinistre *</Label>
-                  <Textarea
-                    id="descriptionSinistre"
-                    v-model="missionForm.sinistre.description"
-                  />
-                </div>
-                <div>
-                  <Label>Urgence</Label>
-                  <RadioGroup
-                    v-model="missionForm.sinistre.urgence"
-                  >
-                    <div class="flex items-center space-x-2">
-                      <RadioGroupItem value="faible" id="r1" />
-                      <Label for="r1">Faible</Label>
-                    </div>
-                    <div class="flex items-center space-x-2">
-                      <RadioGroupItem value="moyenne" id="r2" />
-                      <Label for="r2">Moyenne</Label>
-                    </div>
-                    <div class="flex items-center space-x-2">
-                      <RadioGroupItem value="elevee" id="r3" />
-                      <Label for="r3">Élevée</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-                <div>
-                  <Label for="dateSinistre">Date du sinistre</Label>
-                  <Input
-                    id="dateSinistre"
-                    type="date"
-                    v-model="missionForm.sinistre.dateSinistre"
-                  />
-                </div>
-                <div>
-                  <Label for="dateIntervention">Date souhaitée d'intervention</Label>
-                  <Input
-                    id="dateIntervention"
-                    type="date"
-                    v-model="missionForm.sinistre.dateIntervention"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <!-- Informations mission -->
-            <div>
-              <h4 class="font-semibold mb-3">Informations mission</h4>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="md:col-span-2">
-                  <Label for="titreMission">Titre de la mission *</Label>
-                  <Input
-                    id="titreMission"
-                    v-model="missionForm.mission.titre"
-                  />
-                </div>
-                <div class="md:col-span-2">
-                  <Label for="descriptionMission">Description de la mission *</Label>
-                  <Textarea
-                    id="descriptionMission"
-                    v-model="missionForm.mission.description"
-                  />
-                </div>
-                <div>
-                  <Label for="budgetEstime">Budget estimé</Label>
-                  <Input
-                    id="budgetEstime"
-                    v-model="missionForm.mission.budgetEstime"
-                  />
-                </div>
-                <div>
-                  <Label for="delaiSouhaite">Délai souhaité</Label>
-                  <Input
-                    id="delaiSouhaite"
-                    v-model="missionForm.mission.delaiSouhaite"
-                  />
-                </div>
-                <div>
-                  <Label for="horaires">Horaires</Label>
-                  <Input
-                    id="horaires"
-                    v-model="missionForm.mission.horaires"
-                  />
-                </div>
-                <div>
-                  <Label for="materiaux">Matériaux</Label>
-                  <Input
-                    id="materiaux"
-                    v-model="missionForm.mission.materiaux"
-                  />
-                </div>
-                <div class="md:col-span-2">
-                  <Label for="normes">Normes</Label>
-                  <Input
-                    id="normes"
-                    v-model="missionForm.mission.normes"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <!-- Documents -->
-            <div>
-              <h4 class="font-semibold mb-3">Documents</h4>
-              <Input type="file" multiple />
-            </div>
-
-            <div class="flex justify-end space-x-2 col-span-2">
-              <Button variant="outline" @click="showMissionDialog = false">
-                Annuler
-              </Button>
-              <Button @click="creerMission" :disabled="!validateMissionForm">
-                Créer la mission
-              </Button>
-            </div>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+    <MissionCreationDialog
+      :open="showMissionDialog"
+      :prestataire="selectedPrestataireForMission"
+      @update:open="showMissionDialog = $event"
+      @createMission="handleCreateMission"
+    />
   </div>
 </template>

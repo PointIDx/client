@@ -367,7 +367,7 @@ const marquerMessagesLus = (missionId: string) => {
   <div class="min-h-screen bg-gray-50">
     <!-- Header -->
     <header class="bg-white shadow-sm border-b">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between items-center py-4">
           <div>
             <h1 class="text-2xl font-bold text-gray-900">Dashboard Prestataire</h1>
@@ -400,14 +400,14 @@ const marquerMessagesLus = (missionId: string) => {
     </header>
 
     <!-- Success Alert -->
-    <div v-if="showSuccess" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+    <div v-if="showSuccess" class="mx-auto px-4 sm:px-6 lg:px-8 pt-4">
       <Alert class="bg-green-50 border-green-200">
         <CheckCircle class="h-4 w-4 text-green-600" />
         <AlertDescription class="text-green-800">{{ successMessage }}</AlertDescription>
       </Alert>
     </div>
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <Tabs default-value="missions" class="space-y-6">
         <TabsList>
           <TabsTrigger value="missions">

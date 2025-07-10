@@ -58,6 +58,8 @@ const handleContact = () => {
 const handleCreateMission = () => {
   emit('createMission', props.prestataire)
 }
+
+import placeholderImage from '@/assets/placeholder.svg'
 </script>
 
 <template>
@@ -66,7 +68,7 @@ const handleCreateMission = () => {
       <div class="flex items-start justify-between">
         <div class="flex items-center space-x-3">
           <Avatar>
-            <AvatarImage :src="prestataire.avatar || '/placeholder.svg'" />
+            <AvatarImage :src="prestataire.avatar || placeholderImage" />
             <AvatarFallback>
               {{
                 prestataire.nom
@@ -116,7 +118,7 @@ const handleCreateMission = () => {
             <DialogHeader>
               <DialogTitle class="flex items-center space-x-3">
                 <Avatar class="w-12 h-12">
-                  <AvatarImage :src="prestataire.avatar || '/placeholder.svg'" />
+                  <AvatarImage :src="prestataire.avatar || placeholderImage" />
                   <AvatarFallback>
                     {{
                       prestataire.nom

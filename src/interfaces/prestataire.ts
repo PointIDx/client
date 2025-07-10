@@ -1,6 +1,7 @@
 export interface Prestataire {
   id: string
   nom: string
+  prenom?: string
   raisonSociale: string
   secteurs: string[]
   specialites: string[]
