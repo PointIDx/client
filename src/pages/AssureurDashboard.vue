@@ -534,7 +534,7 @@ const validateMissionForm = computed(() => {
                           Voir fiche
                         </Button>
                       </DialogTrigger>
-                      <DialogContent class="max-w-2xl max-h-[80vh] overflow-y-auto">
+                      <DialogContent class="bg-white max-w-2xl max-h-[80vh] overflow-y-auto">
                         <DialogHeader>
                           <DialogTitle class="flex items-center space-x-3">
                             <Avatar class="w-12 h-12">
@@ -809,7 +809,7 @@ const validateMissionForm = computed(() => {
 
     <!-- Dialog Demande de communication -->
     <Dialog :open="showCommDialog" @update:open="showCommDialog = $event">
-      <DialogContent>
+      <DialogContent class="bg-white">
         <DialogHeader>
           <DialogTitle>Demande de communication</DialogTitle>
           <DialogDescription>Envoyez une demande de contact à {{ selectedPrestataire?.nom }}</DialogDescription>
@@ -868,7 +868,7 @@ const validateMissionForm = computed(() => {
 
     <!-- Dialog Création de mission -->
     <Dialog :open="showMissionDialog" @update:open="showMissionDialog = $event">
-      <DialogContent class="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent class="bg-white max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Création de mission</DialogTitle>
           <DialogDescription>
