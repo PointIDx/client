@@ -61,6 +61,7 @@ const showMissionDialog = ref(false)
 const selectedPrestataireForMission = ref<Prestataire | null>(null)
 const missions = ref<IMission[]>([])
 const showMissionSuccess = ref(false)
+const notifications = ref<any[]>([])  // Add notifications array
 
 const secteurs = ["Maçonnerie", "Plomberie", "Électricité", "Chauffage", "Couverture", "Menuiserie", "Peinture"]
 const regions = [
@@ -122,28 +123,29 @@ const envoyerDemandeComm = () => {
 const getStatutBadge = (statut: DemandeComm["statut"]) => {
   switch (statut) {
     case "en_attente":
-      return `
-        <Badge variant="secondary">
-          <Clock class="w-3 h-3 mr-1" />
-          En attente
-        </Badge>
-      `
+      return {
+        text: 'En attente',
+        class: 'bg-gray-200 text-gray-800 border-gray-400',
+        icon: Clock
+      }
     case "acceptee":
-      return `
-        <Badge variant="default">
-          <CheckCircle class="w-3 h-3 mr-1" />
-          Acceptée
-        </Badge>
-      `
+      return {
+        text: 'Acceptée',
+        class: 'bg-black text-white border-black',
+        icon: CheckCircle
+      }
     case "refusee":
-      return `
-        <Badge variant="destructive">
-          <XCircle class="w-3 h-3 mr-1" />
-          Refusée
-        </Badge>
-      `
+      return {
+        text: 'Refusée',
+        class: 'bg-gray-700 text-white border-gray-700',
+        icon: XCircle
+      }
     default:
-      return ``
+      return {
+        text: 'Inconnu',
+        class: 'bg-gray-100 text-gray-800 border-gray-300',
+        icon: Clock
+      }
   }
 }
 
@@ -151,6 +153,17 @@ const handleCreateMission = (missionData: IMission) => {
   missions.value.push(missionData)
   showMissionSuccess.value = true
   setTimeout(() => (showMissionSuccess.value = false), 5000)
+}
+
+const telechargerDocument = (documentName: string) => {
+  // Mock document download - replace with actual implementation
+  const link = document.createElement('a')
+  link.href = `/api/documents/${documentName}`
+  link.download = documentName
+  link.click()
+  
+  // Show success message
+  console.log(`Téléchargement de ${documentName} initié`)
 }
 
 const handleContactClick = (prestataire: Prestataire) => {
@@ -167,20 +180,36 @@ import placeholderImage from '@/assets/placeholder.svg'
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen bg-white text-black font-mono">
     <!-- Header -->
-    <header class="bg-white shadow-sm border-b">
+    <header class="bg-white border-b border-gray-300">
       <div class="mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between items-center py-4">
           <div>
-            <h1 class="text-2xl font-bold text-gray-900">Dashboard Assureur</h1>
-            <p class="text-gray-600">Recherchez et contactez des prestataires qualifiés</p>
+            <h1 class="text-2xl font-bold text-black">Dashboard Assureur</h1>
+            <p class="text-gray-700">Recherchez et contactez des prestataires qualifiés</p>
           </div>
           <div class="flex items-center space-x-4">
-            <Button variant="outline" size="sm">
-              <Bell class="w-4 h-4 mr-2" />
-              Notifications
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger as-child>
+                <Button variant="outline" size="sm" class="bg-transparent border-gray-400 text-gray-700 hover:bg-gray-100 hover:border-gray-500 relative">
+                  <Bell class="w-4 h-4 mr-2" />
+                  Notifications
+                  <Badge v-if="notifications.length > 0" class="absolute -top-2 -right-2 px-1 min-w-[1.2rem] h-5 bg-black text-white border-black">
+                    {{ notifications.length }}
+                  </Badge>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" class="w-80">
+                <DropdownMenuItem v-if="notifications.length === 0" class="text-gray-500 text-center">
+                  Aucune notification
+                </DropdownMenuItem>
+                <DropdownMenuItem v-for="notif in notifications" :key="notif.id" class="flex-col items-start p-3">
+                  <p class="text-sm font-medium">{{ notif.message }}</p>
+                  <p class="text-xs text-gray-500">{{ new Date(notif.date).toLocaleString() }}</p>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Avatar>
               <AvatarFallback>AD</AvatarFallback>
             </Avatar>
@@ -191,18 +220,18 @@ import placeholderImage from '@/assets/placeholder.svg'
 
     <!-- Success Alert -->
     <div v-if="showSuccess" class="mx-auto px-4 sm:px-6 lg:px-8 pt-4">
-      <Alert class="bg-green-50 border-green-200">
-        <CheckCircle class="h-4 w-4 text-green-600" />
-        <AlertDescription class="text-green-800">
+      <Alert class="bg-gray-100 border-gray-300">
+        <CheckCircle class="h-4 w-4 text-black" />
+        <AlertDescription class="text-black">
           Demande de communication envoyée avec succès ! Le prestataire sera notifié par email et sur son portail.
         </AlertDescription>
       </Alert>
     </div>
 
     <div v-if="showMissionSuccess" class="mx-auto px-4 sm:px-6 lg:px-8 pt-4">
-      <Alert class="bg-green-50 border-green-200">
-        <CheckCircle class="h-4 w-4 text-green-600" />
-        <AlertDescription class="text-green-800">Mission créée et envoyée avec succès !</AlertDescription>
+      <Alert class="bg-gray-100 border-gray-300">
+        <CheckCircle class="h-4 w-4 text-black" />
+        <AlertDescription class="text-black">Mission créée et envoyée avec succès !</AlertDescription>
       </Alert>
     </div>
 
@@ -345,7 +374,7 @@ import placeholderImage from '@/assets/placeholder.svg'
                   <div class="flex space-x-2 pt-2">
                     <Dialog>
                       <DialogTrigger as-child>
-                        <Button variant="outline" size="sm" class="flex-1 bg-transparent">
+                        <Button variant="outline" size="sm" class="flex-1 bg-white border-gray-400 text-gray-700 hover:bg-gray-100 hover:border-gray-500">
                           <Eye class="w-4 h-4 mr-1" />
                           Voir fiche
                         </Button>
@@ -458,7 +487,7 @@ import placeholderImage from '@/assets/placeholder.svg'
                               <div v-for="doc in prestataire.documentsPublics" :key="doc" class="flex items-center space-x-2">
                                 <FileText class="w-4 h-4 text-gray-500" />
                                 <span class="text-sm">{{ doc }}</span>
-                                <Button variant="ghost" size="sm">
+                                <Button variant="ghost" size="sm" @click="telechargerDocument(doc)">
                                   Télécharger
                                 </Button>
                               </div>
@@ -545,7 +574,10 @@ import placeholderImage from '@/assets/placeholder.svg'
                       </div>
                     </div>
                     <div class="text-right">
-                      <div v-html="getStatutBadge(demande.statut)"></div>
+                      <Badge :class="getStatutBadge(demande.statut).class">
+                        <component :is="getStatutBadge(demande.statut).icon" class="w-3 h-3 mr-1" />
+                        {{ getStatutBadge(demande.statut).text }}
+                      </Badge>
                       <p v-if="demande.dateReponse" class="text-xs text-gray-500 mt-1">
                         Répondu le {{ new Date(demande.dateReponse).toLocaleDateString() }}
                       </p>

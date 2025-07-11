@@ -5,7 +5,7 @@ export const PRESTATAIRE_SIGNUP_MUTATION = gql`
     prestataireSignup(input: $input) {
       token
       expiresIn
-      refresh_token
+      refreshToken
     }
   }
 `

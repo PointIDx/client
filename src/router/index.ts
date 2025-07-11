@@ -44,13 +44,13 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach((to, from, next) => {
-  const societaireStore = useSocietaireStore();
-  if (to.name === 'societaire-dashboard' && !societaireStore.token) {
-    next({ name: 'societaire-login' });
-  } else {
-    next();
-  }
-});
+// router.beforeEach((to, from, next) => {
+//   const societaireStore = useSocietaireStore();
+//   if (to.name === 'societaire-dashboard' && !societaireStore.token) {
+//     next({ name: 'societaire-login' });
+//   } else {
+//     next();
+//   }
+// });
 
 export default router

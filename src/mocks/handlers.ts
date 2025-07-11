@@ -137,20 +137,15 @@ export const handlers = [
 
   // Intercept "PrestataireSignup" GraphQL mutation.
   graphql.mutation('PrestataireSignup', (req) => {
-    const { companyInfo, contact, providerInfo, account } = req.variables;
+    const { input } = req.variables;
 
-    if (companyInfo && contact && providerInfo && account) {
+    if (input && input.companyInfo && input.contact && input.providerInfo && input.account) {
       return HttpResponse.json({
         data: {
           prestataireSignup: {
             token: 'mock-prestataire-jwt-token',
             expiresIn: 3600,
             refreshToken: 'mock-prestataire-refresh-token',
-            user: {
-              id: 'prestataire-123',
-              email: account.email,
-              accountType: 'prestataire',
-            },
           },
         },
       });
@@ -288,7 +283,7 @@ export const handlers = [
 
   // Intercept "SendFile" GraphQL mutation.
   graphql.mutation('SendFile', (req) => {
-    const { missionId, file, comment } = req.variables;
+    const { missionId, file } = req.variables;
 
     if (missionId && file) {
       return HttpResponse.json({
@@ -404,8 +399,7 @@ export const handlers = [
     });
   }),
 
-  graphql.mutation('CreateMission', ({ variables }) => {
-    const { input } = variables;
+  graphql.mutation('CreateMission', () => {
     return HttpResponse.json({
       data: {
         createMission: {
@@ -476,7 +470,7 @@ export const handlers = [
         getPrestataireMissions: [
           {
             id: 'mission-1',
-            missionStatus: 'NOUVELLE_DEMANDE',
+            missionStatus: 'nouvelle',
             dossier: {
               id: 'dossier-1',
               dossierNumber: 'DOSS-001',
@@ -488,10 +482,12 @@ export const handlers = [
               id: 'assureur-1',
               companyName: 'Assurance Alpha',
             },
+            dateCreation: '2024-01-15T10:00:00Z',
+            nouveauxMessages: 2,
           },
           {
             id: 'mission-2',
-            missionStatus: 'EN_COURS',
+            missionStatus: 'en_cours',
             dossier: {
               id: 'dossier-2',
               dossierNumber: 'DOSS-002',
@@ -503,10 +499,12 @@ export const handlers = [
               id: 'assureur-2',
               companyName: 'Assurance Beta',
             },
+            dateCreation: '2024-01-16T11:00:00Z',
+            nouveauxMessages: 0,
           },
           {
             id: 'mission-3',
-            missionStatus: 'TERMINEE',
+            missionStatus: 'terminee',
             dossier: {
               id: 'dossier-3',
               dossierNumber: 'DOSS-003',
@@ -518,6 +516,8 @@ export const handlers = [
               id: 'assureur-1',
               companyName: 'Assurance Alpha',
             },
+            dateCreation: '2024-01-14T09:30:00Z',
+            nouveauxMessages: 1,
           },
         ],
       },
@@ -544,7 +544,7 @@ export const handlers = [
           id: String(Math.random()),
           missionId,
           contenu: content,
-          expediteur: 'PRESTATAIRE',
+          expediteur: 'prestataire',
           dateEnvoi: new Date().toISOString(),
           lu: true,
         },

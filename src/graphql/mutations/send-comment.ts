@@ -1,17 +1,14 @@
 import { gql } from 'graphql-tag';
 
-export const SEND_COMMENT = gql`
-  mutation SendComment($dossierNumber: String!, $comment: String!) {
-    sendComment(dossierNumber: $dossierNumber, comment: $comment) {
-      success
-      message
-      historiqueItem {
-        auteur
-        message
-        date
-        type
-        fichiers
-      }
+export const SEND_COMMENT_MUTATION = gql`
+  mutation SendComment($missionId: ID!, $content: String!) {
+    sendComment(missionId: $missionId, content: $content) {
+      id
+      missionId
+      expediteur
+      contenu
+      dateEnvoi
+      lu
     }
   }
 `;

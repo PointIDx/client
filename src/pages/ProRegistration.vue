@@ -12,7 +12,7 @@ import AccountTypeSelection from "./AccountTypeSelection.vue"
 import { useRouter } from "vue-router"
 import { useForm, Field, ErrorMessage } from "vee-validate"
 import { toTypedSchema } from "@vee-validate/zod"
-import { useToast } from "@/components/ui/toast/use-toast"
+import { toast } from "vue-sonner"
 
 import { AccountType } from "@/enums/account-type"
 import { useAssureurStore } from "@/stores/assureur"
@@ -27,12 +27,27 @@ import {
   insurerInfoSchema,
   societaireInfoSchema,
 } from "@/schemas/registration-schemas"
+import { ASSUREUR_SIGNUP_MUTATION } from "@/graphql/mutations/assureur-signup"
+
+// Import new utilities and constants
+import { 
+  FORMES_JURIDIQUES, 
+  TYPES_ASSURANCE, 
+  REGIONS, 
+  TYPES_PROJET, 
+  VALIDATION_RULES,
+  VALIDATION_MESSAGES,
+  FILE_SIZE_LIMITS,
+  ACCEPTED_FILE_TYPES,
+  TIMEOUT_DURATIONS
+} from "@/constants"
+import { validatePdfFile } from "@/utils/file-validation"
+import { handleError, showSuccess, showInfo } from "@/utils/error-handling"
 
 const router = useRouter()
 const assureurStore = useAssureurStore()
 const prestataireStore = usePrestataireStore()
 const authStore = useAuthStore()
-const { toast } = useToast()
 
 const accountType = ref<AccountType | null>(null)
 const currentStep = ref(1)
@@ -120,18 +135,10 @@ watch(() => prestataireStore.companyInfo, (newVal) => {
   }
 }, { deep: true });
 
-const formeJuridiques = ["SARL", "SAS", "SASU", "EURL", "SA", "SNC", "SCS", "EI", "EIRL", "Micro-entreprise"]
+// Using constants instead of hardcoded arrays
+const formeJuridiques = FORMES_JURIDIQUES
 
-const typesAssuranceOptions = [
-  "Responsabilité Civile Professionnelle",
-  "Assurance Décennale",
-  "Assurance Multirisque Professionnelle",
-  "Assurance Auto Professionnelle",
-  "Assurance Matériel Professionnel",
-  "Protection Juridique",
-  "Cyber Assurance",
-  "Assurance Perte d'exploitation",
-]
+const typesAssuranceOptions = TYPES_ASSURANCE
 
 const departements = [
   "01 - Ain", "02 - Aisne", "03 - Allier", "04 - Alpes-de-Haute-Provence", "05 - Hautes-Alpes",
@@ -156,54 +163,38 @@ const departements = [
   "93 - Seine-Saint-Denis", "94 - Val-de-Marne", "95 - Val-d'Oise",
 ]
 
-const regions = [
-  "Auvergne-Rhône-Alpes", "Bourgogne-Franche-Comté", "Bretagne", "Centre-Val de Loire", "Corse",
-  "Grand Est", "Hauts-de-France", "Île-de-France", "Normandie", "Nouvelle-Aquitaine",
-  "Occitanie", "Pays de la Loire", "Provence-Alpes-Côte d'Azur",
-]
+const regions = REGIONS
 
-const typesProjet = [
-  "Sinistre habitation", "Travaux de rénovation", "Construction neuve", "Dégât des eaux",
-  "Incendie", "Cambriolage", "Bris de glace", "Autre",
-]
+const typesProjet = TYPES_PROJET
 
 const handleSiretValidation = async () => {
   isLoading.value = true;
   try {
     if (accountType.value === 'assureur') {
-      await assureurStore.validateSiret(siret.value);
+      await assureurStore.validateSiret(siret.value as string);
     } else if (accountType.value === 'prestataire') {
-      await prestataireStore.getSiretInfo(siret.value);
+      await prestataireStore.getSiretInfo(siret.value as string);
     }
-    toast({
-      title: "SIRET validé",
-      description: "Les informations de l'entreprise ont été récupérées.",
-    });
+    // Success message is now handled by the store utilities
   } catch (err: any) {
     setCompanyInfoErrors({ siret: err.message });
-    toast({
-      title: "Erreur de validation SIRET",
-      description: err.message,
-      variant: "destructive",
-    });
+    // Error handling is now handled by the store utilities
   } finally {
     isLoading.value = false;
   }
 };
 
 const handleFileUpload = (type: "kbis" | "assurance" | "agrement", file: File) => {
-  if (file.type !== "application/pdf") {
-    if (type === "kbis") setDocumentsErrors({ kbis: "Seuls les fichiers PDF sont acceptés" });
-    if (type === "assurance") setDocumentsErrors({ assurance: "Seuls les fichiers PDF sont acceptés" });
-    if (type === "agrement") setDocumentsErrors({ agrement: "Seuls les fichiers PDF sont acceptés" });
+  const validation = validatePdfFile(file)
+  
+  if (!validation.isValid) {
+    if (type === "kbis") setDocumentsErrors({ kbis: validation.error || VALIDATION_MESSAGES.INVALID_FILE_TYPE });
+    if (type === "assurance") setDocumentsErrors({ assurance: validation.error || VALIDATION_MESSAGES.INVALID_FILE_TYPE });
+    if (type === "agrement") setDocumentsErrors({ agrement: validation.error || VALIDATION_MESSAGES.INVALID_FILE_TYPE });
     return
   }
-  if (file.size > 5 * 1024 * 1024) {
-    if (type === "kbis") setDocumentsErrors({ kbis: "Le fichier ne doit pas dépasser 5MB" });
-    if (type === "assurance") setDocumentsErrors({ assurance: "Le fichier ne doit pas dépasser 5MB" });
-    if (type === "agrement") setDocumentsErrors({ agrement: "Le fichier ne doit pas dépasser 5MB" });
-    return
-  }
+  
+  // File is valid, set it
   if (type === "kbis") kbis.value = file as any;
   if (type === "assurance") assurance.value = file as any;
   if (type === "agrement") agrement.value = file as any;
@@ -276,7 +267,7 @@ const submitRegistration = async () => {
   try {
     let success = false;
     if (accountType.value === "societaire") {
-      success = await authStore.signup(accountValues.email, accountValues.password);
+      success = await authStore.signup(accountValues.email as string, accountValues.password as string);
       if (success) {
         router.push("/societaire-dashboard");
       }
@@ -399,20 +390,22 @@ const progressValue = computed(() => (currentStep.value / maxSteps.value) * 100)
 const handleAccountTypeSelected = (type: AccountType) => {
   accountType.value = type;
 };
+</script>
+
 
 <template>
   <div v-if="!accountType">
     <AccountTypeSelection @selectType="handleAccountTypeSelected" />
   </div>
-  <div v-else class="min-h-screen bg-gray-50 py-8">
+  <div v-else class="min-h-screen bg-white text-black font-mono py-8">
     <div class="container mx-auto max-w-2xl px-4">
       <div class="mb-8 text-center">
-        <h1 class="text-3xl font-bold text-gray-900">
+        <h1 class="text-3xl font-bold text-black">
           Inscription
           {{ accountType === "prestataire" ? "Prestataire" : accountType === "assureur" ? "Assureur" : "Sociétaire" }}
         </h1>
-        <p class="mt-2 text-gray-600">Créez votre compte professionnel en quelques étapes</p>
-        <Button variant="ghost" @click="resetAccountType" class="mt-2">
+        <p class="mt-2 text-gray-700">Créez votre compte professionnel en quelques étapes</p>
+        <Button variant="ghost" @click="resetAccountType" class="mt-2 text-gray-700 hover:text-black">
           <ArrowLeft class="mr-2 h-4 w-4" />
           Changer le type de compte
         </Button>
@@ -420,7 +413,7 @@ const handleAccountTypeSelected = (type: AccountType) => {
 
       <div class="mb-6">
         <Progress :value="progressValue" class="h-2" />
-        <div class="mt-2 flex justify-between text-sm text-gray-500">
+        <div class="mt-2 flex justify-between text-sm text-gray-700">
           <span>
             Étape {{ currentStep }} sur {{ maxSteps }}
           </span>
@@ -428,9 +421,9 @@ const handleAccountTypeSelected = (type: AccountType) => {
         </div>
       </div>
 
-      <Card>
+      <Card class="border-gray-300">
         <CardHeader>
-          <CardTitle>
+          <CardTitle class="text-black">
             <span v-if="currentStep === 1">
               {{ accountType === "societaire" ? "Informations personnelles" : "Informations légales de l'entreprise" }}
             </span>
@@ -446,7 +439,7 @@ const handleAccountTypeSelected = (type: AccountType) => {
             <span v-else-if="currentStep === 5">Création du compte</span>
             <span v-else-if="currentStep === 6">Confirmation</span>
           </CardTitle>
-          <CardDescription>
+          <CardDescription class="text-gray-700">
             <span v-if="currentStep === 1">Renseignez les informations de votre entreprise</span>
             <span v-else-if="currentStep === 2">Téléchargez vos documents obligatoires</span>
             <span v-else-if="currentStep === 3">Coordonnées du responsable</span>
@@ -476,13 +469,14 @@ const handleAccountTypeSelected = (type: AccountType) => {
                     v-model="siret"
                     v-bind="siretAttrs"
                     placeholder="14 chiffres"
-                    maxlength="14"
+                    :maxlength="VALIDATION_RULES.SIRET_LENGTH"
                     data-testid="siret-input"
                   />
                   <Button
                     @click="handleSiretValidation()"
-                    :disabled="siret.length !== 14 || isLoading || (accountType === 'assureur' && assureurStore.siretValidated) || (accountType === 'prestataire' && prestataireStore.siretValidated)"
+                    :disabled="siret?.length !== VALIDATION_RULES.SIRET_LENGTH || isLoading || (accountType === 'assureur' && assureurStore.siretValidated) || (accountType === 'prestataire' && prestataireStore.siretValidated)"
                     :variant="(accountType === 'assureur' && assureurStore.siretValidated) || (accountType === 'prestataire' && prestataireStore.siretValidated) ? 'default' : 'outline'"
+                    :class="(accountType === 'assureur' && assureurStore.siretValidated) || (accountType === 'prestataire' && prestataireStore.siretValidated) ? 'bg-black text-white hover:bg-gray-800' : 'border-gray-400 text-gray-700 hover:bg-gray-100 hover:border-gray-500'"
                     data-testid="verify-siret-button"
                   >
                     <Loader2 v-if="isLoading" class="h-4 w-4 animate-spin" />
@@ -675,14 +669,14 @@ const handleAccountTypeSelected = (type: AccountType) => {
           <div v-else-if="currentStep === 2 && accountType !== 'societaire'" class="space-y-6">
             <div>
               <Label for="kbis">Kbis (moins de 6 mois) *</Label>
-              <div class="mt-2 border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                <Upload class="mx-auto h-12 w-12 text-gray-400" />
+              <div class="mt-2 border-2 border-dashed border-gray-400 rounded-lg p-6 text-center bg-gray-50 hover:bg-gray-100 transition-colors">
+                <Upload class="mx-auto h-12 w-12 text-gray-600" />
                 <div class="mt-4">
                   <label for="kbis" class="cursor-pointer">
-                    <span class="mt-2 block text-sm font-medium text-gray-900">
+                    <span class="mt-2 block text-sm font-medium text-black">
                       {{ kbis ? kbis.name : "Cliquez pour télécharger votre Kbis" }}
                     </span>
-                    <span class="mt-1 block text-xs text-gray-500">PDF, max 5MB</span>
+                    <span class="mt-1 block text-xs text-gray-700">PDF, max 5MB</span>
                   </label>
                   <input
                     id="kbis"
@@ -699,14 +693,14 @@ const handleAccountTypeSelected = (type: AccountType) => {
 
             <div>
               <Label for="assurance">Attestation d'assurance responsabilité civile / décennale *</Label>
-              <div class="mt-2 border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                <Upload class="mx-auto h-12 w-12 text-gray-400" />
+              <div class="mt-2 border-2 border-dashed border-gray-400 rounded-lg p-6 text-center bg-gray-50 hover:bg-gray-100 transition-colors">
+                <Upload class="mx-auto h-12 w-12 text-gray-600" />
                 <div class="mt-4">
                   <label for="assurance" class="cursor-pointer">
-                    <span class="mt-2 block text-sm font-medium text-gray-900">
+                    <span class="mt-2 block text-sm font-medium text-black">
                       {{ assurance ? assurance.name : "Cliquez pour télécharger votre attestation" }}
                     </span>
-                    <span class="mt-1 block text-xs text-gray-500">PDF, max 5MB</span>
+                    <span class="mt-1 block text-xs text-gray-700">PDF, max 5MB</span>
                   </label>
                   <input
                     id="assurance"
@@ -724,14 +718,14 @@ const handleAccountTypeSelected = (type: AccountType) => {
             <!-- Document spécifique aux assureurs -->
             <div v-if="accountType === 'assureur'">
               <Label for="agrement">Agrément ACPR / Autorisation d'exercer *</Label>
-              <div class="mt-2 border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                <Upload class="mx-auto h-12 w-12 text-gray-400" />
+              <div class="mt-2 border-2 border-dashed border-gray-400 rounded-lg p-6 text-center bg-gray-50 hover:bg-gray-100 transition-colors">
+                <Upload class="mx-auto h-12 w-12 text-gray-600" />
                 <div class="mt-4">
                   <label for="agrement" class="cursor-pointer">
-                    <span class="mt-2 block text-sm font-medium text-gray-900">
+                    <span class="mt-2 block text-sm font-medium text-black">
                       {{ agrement ? agrement.name : "Cliquez pour télécharger votre agrément" }}
                     </span>
-                    <span class="mt-1 block text-xs text-gray-500">PDF, max 5MB</span>
+                    <span class="mt-1 block text-xs text-gray-700">PDF, max 5MB</span>
                   </label>
                   <input
                     id="agrement"
@@ -784,9 +778,9 @@ const handleAccountTypeSelected = (type: AccountType) => {
               />
             </div>
 
-            <div class="bg-blue-50 p-4 rounded-lg">
-              <h4 class="font-medium text-blue-900 mb-2">Une fois votre compte créé, vous pourrez :</h4>
-              <ul class="text-sm text-blue-800 space-y-1">
+            <div class="bg-gray-100 p-4 rounded-lg border border-gray-300">
+              <h4 class="font-medium text-black mb-2">Une fois votre compte créé, vous pourrez :</h4>
+              <ul class="text-sm text-gray-700 space-y-1">
                 <li>• Suivre l'avancement de votre dossier en temps réel</li>
                 <li>• Ajouter des photos et documents complémentaires</li>
                 <li>• Communiquer directement avec les intervenants</li>
@@ -885,8 +879,8 @@ const handleAccountTypeSelected = (type: AccountType) => {
               <ErrorMessage name="confirmPassword" class="text-red-500 text-sm" data-testid="societaire-confirm-password-error" />
             </div>
 
-            <div class="bg-green-50 p-4 rounded-lg">
-              <p class="text-sm text-green-800">
+            <div class="bg-gray-100 p-4 rounded-lg border border-gray-300">
+              <p class="text-sm text-gray-700">
                 <strong>Votre espace personnel vous permettra de :</strong>
                 <br />• Accéder à votre tableau de bord personnalisé
                 <br />• Gérer vos documents et photos
@@ -908,12 +902,12 @@ const handleAccountTypeSelected = (type: AccountType) => {
                 data-testid="secteurs-activite-input"
               />
               <ErrorMessage name="secteursActivite" class="text-red-500 text-sm" data-testid="secteurs-activite-error" />
-              <p class="text-sm text-gray-500 mt-1">Séparez les secteurs par des virgules</p>
+              <p class="text-sm text-gray-700 mt-1">Séparez les secteurs par des virgules</p>
             </div>
 
             <div>
               <Label>Zones géographiques d'intervention *</Label>
-              <p class="text-sm text-gray-500 mb-4">Sélectionnez au moins une zone d'intervention</p>
+              <p class="text-sm text-gray-700 mb-4">Sélectionnez au moins une zone d'intervention</p>
 
               <div class="space-y-4">
                 <div>
@@ -956,13 +950,13 @@ const handleAccountTypeSelected = (type: AccountType) => {
                 <label v-for="type in typesAssuranceOptions" :key="type" class="flex items-center space-x-2 text-sm">
                   <input
                     type="checkbox"
-                    :checked="insurerTypesAssurance.includes(type)"
+                    :checked="insurerTypesAssurance?.includes(type)"
                     @change="(e) => {
                       const target = e.target as HTMLInputElement;
                       if (target.checked) {
-                        insurerTypesAssurance.push(type);
+                        insurerTypesAssurance?.push(type);
                       } else {
-                        insurerTypesAssurance = insurerTypesAssurance.filter((t) => t !== type);
+                        insurerTypesAssurance = insurerTypesAssurance?.filter((t) => t !== type);
                       }
                     }"
                     class="rounded"
@@ -1045,9 +1039,9 @@ const handleAccountTypeSelected = (type: AccountType) => {
 
           <!-- Confirmation -->
           <div v-else-if="(currentStep === 6 && accountType !== 'societaire') || (currentStep === 4 && accountType === 'societaire')" class="text-center space-y-4">
-            <CheckCircle class="mx-auto h-16 w-16 text-green-600" />
-            <h3 class="text-xl font-semibold text-gray-900">Inscription réussie !</h3>
-            <p class="text-gray-600">
+            <CheckCircle class="mx-auto h-16 w-16 text-black" />
+            <h3 class="text-xl font-semibold text-black">Inscription réussie !</h3>
+            <p class="text-gray-700">
               <span v-if="accountType === 'societaire'">
                 Votre compte sociétaire a été créé avec succès. Vous pouvez maintenant accéder à votre espace
                 personnel à l'adresse <strong>{{ account.email }}</strong>.
@@ -1058,8 +1052,8 @@ const handleAccountTypeSelected = (type: AccountType) => {
                 fois votre compte validé par nos équipes.
               </span>
             </p>
-            <div :class="`${accountType === 'societaire' ? 'bg-green-50' : 'bg-blue-50'} p-4 rounded-lg`">
-              <p :class="`text-sm ${accountType === 'societaire' ? 'text-green-800' : 'text-blue-800'}`">
+            <div class="bg-gray-100 p-4 rounded-lg border border-gray-300">
+              <p class="text-sm text-gray-700">
                 <span v-if="accountType === 'societaire'">
                   <strong>Vous pouvez maintenant :</strong>
                   <br />
@@ -1082,12 +1076,12 @@ const handleAccountTypeSelected = (type: AccountType) => {
                 </span>
               </p>
             </div>
-            <Button v-if="accountType === 'societaire'" class="mt-4">Accéder à mon espace</Button>
+            <Button v-if="accountType === 'societaire'" class="mt-4 bg-black text-white hover:bg-gray-800">Accéder à mon espace</Button>
           </div>
 
           <!-- Boutons de navigation -->
           <div v-if="(accountType === 'societaire' && currentStep < 4) || (accountType !== 'societaire' && currentStep < 6)" class="flex justify-between pt-6">
-            <Button variant="outline" @click="prevStep" :disabled="currentStep === 1">
+            <Button variant="outline" @click="prevStep" :disabled="currentStep === 1" class="border-gray-400 text-gray-700 hover:bg-gray-100 hover:border-gray-500">
               Précédent
             </Button>
 
@@ -1105,7 +1099,8 @@ const handleAccountTypeSelected = (type: AccountType) => {
               (accountType === 'assureur' && currentStep === 5 && !accountMeta.valid) ||
               isLoading
             "
-            data-testid="next-button">
+            data-testid="next-button"
+            class="bg-black text-white hover:bg-gray-800">
               <Loader2 v-if="isLoading && ((accountType === 'societaire' && currentStep >= 3) || (accountType !== 'societaire' && currentStep >= 5))" class="mr-2 h-4 w-4 animate-spin" />
               <span v-if="(accountType === 'societaire' && currentStep < 3) || (accountType !== 'societaire' && currentStep < 5)">Suivant</span>
               <span v-else>Finaliser l'inscription</span>

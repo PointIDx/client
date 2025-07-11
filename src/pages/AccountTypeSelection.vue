@@ -11,8 +11,8 @@ const userTypes: UserType[] = [
   {
     type: AccountType.Prestataire,
     icon: Building2,
-    iconBgClass: "bg-blue-100",
-    iconTextColorClass: "text-blue-600",
+    iconBgClass: "bg-gray-100",
+    iconTextColorClass: "text-gray-800",
     title: "Prestataire",
     description: "Entreprise de travaux, artisan, professionnel du bâtiment",
     youAreList: [
@@ -33,8 +33,8 @@ const userTypes: UserType[] = [
   {
     type: AccountType.Assureur,
     icon: Shield,
-    iconBgClass: "bg-green-100",
-    iconTextColorClass: "text-green-600",
+    iconBgClass: "bg-gray-200",
+    iconTextColorClass: "text-gray-800",
     title: "Assureur",
     description: "Compagnie d'assurance, courtier, agent général",
     youAreList: [
@@ -55,8 +55,8 @@ const userTypes: UserType[] = [
   {
     type: AccountType.Societaire,
     icon: User,
-    iconBgClass: "bg-purple-100",
-    iconTextColorClass: "text-purple-600",
+    iconBgClass: "bg-gray-300",
+    iconTextColorClass: "text-gray-800",
     title: "Sociétaire",
     description: "Particulier, client final, bénéficiaire",
     youAreList: [
@@ -72,7 +72,7 @@ const userTypes: UserType[] = [
       "Timeline des interventions",
     ],
     buttonText: "S'inscrire comme Sociétaire",
-    buttonVariant: "secondary",
+    buttonVariant: "outline",
   },
 ]
 
@@ -82,11 +82,11 @@ const onSelectType = (type: AccountType) => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 py-8">
+  <div class="min-h-screen bg-white text-black font-mono py-8">
     <div class="container mx-auto max-w-4xl px-4">
       <div class="mb-8 text-center">
-        <h1 class="text-3xl font-bold text-gray-900">Inscription Professionnelle</h1>
-        <p class="mt-2 text-gray-600">Choisissez le type de compte qui correspond à votre activité</p>
+        <h1 class="text-3xl font-bold text-black">Inscription Professionnelle</h1>
+        <p class="mt-2 text-gray-700">Choisissez le type de compte qui correspond à votre activité</p>
       </div>
 
       <div class="grid md:grid-cols-3 gap-6">
@@ -107,12 +107,12 @@ const onSelectType = (type: AccountType) => {
       </div>
 
       <div class="mt-12 text-center">
-        <div class="bg-white p-6 rounded-lg shadow-sm">
-          <h3 class="text-lg font-semibold text-gray-900 mb-2">Vous hésitez ?</h3>
-          <p class="text-gray-600 mb-4">
+        <div class="bg-gray-100 p-6 rounded-lg border border-gray-300">
+          <h3 class="text-lg font-semibold text-black mb-2">Vous hésitez ?</h3>
+          <p class="text-gray-700 mb-4">
             Contactez notre équipe pour vous aider à choisir le type de compte le plus adapté à votre activité.
           </p>
-          <Button variant="ghost">Nous contacter</Button>
+          <Button variant="ghost" class="text-gray-700 hover:text-black">Nous contacter</Button>
         </div>
       </div>
     </div>

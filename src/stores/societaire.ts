@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import { useLazyQuery, useMutation} from '@vue/apollo-composable';
 import { SOCIETAIRE_LOGIN } from '@/graphql/mutations/societaire-login';
 import { SEND_FILE } from '@/graphql/mutations/send-file';
-import { SEND_COMMENT } from '@/graphql/mutations/send-comment';
+import { SEND_COMMENT_MUTATION } from '@/graphql/mutations/send-comment';
 import { GET_SOCIETAIRE_DOSSIER } from '@/graphql/queries/get-societaire-dossier';
 import type { DossierData } from '@/interfaces/dossier-data';
 import type { TimelineItem } from '@/interfaces/timeline-item';
@@ -21,7 +21,7 @@ export const useSocietaireStore = defineStore('societaire', () => {
 
   const { mutate: societaireLoginMutation } = useMutation(SOCIETAIRE_LOGIN, {});
   const { mutate: sendFileMutation } = useMutation(SEND_FILE, {});
-  const { mutate: sendCommentMutation } = useMutation(SEND_COMMENT, {});
+  const { mutate: sendCommentMutation } = useMutation(SEND_COMMENT_MUTATION, {});
   const { onResult: onSocietaireDossierResult, load: loadSocietaireDossier } = useLazyQuery(GET_SOCIETAIRE_DOSSIER, () => ({
     dossierNumber: dossierNumber.value,
   }), { enabled: false });

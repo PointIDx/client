@@ -16,9 +16,13 @@ import { UPDATE_MISSION_STATUS_MUTATION } from '@/graphql/mutations/update-missi
 import { MissionStatutPrestataire } from '@/enums/mission-statut-prestataire'
 
 import { SEND_COMMENT_MUTATION } from '@/graphql/mutations/send-comment'
-import { SEND_FILE_MUTATION } from '@/graphql/mutations/send-file'
+import { SEND_FILE } from '@/graphql/mutations/send-file'
 import { ON_NEW_MESSAGE_SUBSCRIPTION } from '@/graphql/subscriptions/on-new-message'
 import type { Message } from '@/interfaces/message'
+
+// Import new utilities
+import { fetchSiretInfo } from '@/utils/siret'
+import { handleError, handleGraphQLError, showSuccess } from '@/utils/error-handling'
 
 export const usePrestataireStore = defineStore('prestataire', () => {
   const companyInfo = ref<CompanyInfo | null>(null)
@@ -38,27 +42,19 @@ export const usePrestataireStore = defineStore('prestataire', () => {
 
   async function getSiretInfo(siret: string) {
     try {
-      // This should be a call to our backend, which then calls the INSEE API
-      const response = await fetch(`/api/siret/${siret}`)
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Failed to fetch SIRET information')
+      const result = await fetchSiretInfo(siret)
+      
+      if (result.isValid && result.companyInfo) {
+        companyInfo.value = result.companyInfo
+        siretValidated.value = true
+        showSuccess('Informations SIRET récupérées avec succès')
+      } else {
+        siretValidated.value = false
+        throw new Error(result.error || 'Erreur lors de la validation SIRET')
       }
-      const data = await response.json()
-      const { uniteLegale, adresseEtablissement, dateCreationEtablissement } = data.etablissement
-      companyInfo.value = {
-        siret,
-        raisonSociale: uniteLegale.denominationUniteLegale,
-        formeJuridique: uniteLegale.categorieJuridiqueUniteLegale,
-        adresse: `${adresseEtablissement.numeroVoieEtablissement} ${adresseEtablissement.typeVoieEtablissement} ${adresseEtablissement.libelleVoieEtablissement}`,
-        codePostal: adresseEtablissement.codePostalEtablissement,
-        ville: adresseEtablissement.libelleCommuneEtablissement,
-        dateCreation: dateCreationEtablissement
-      }
-      siretValidated.value = true
     } catch (error) {
-      console.error(error)
       siretValidated.value = false
+      handleError(error, 'SIRET Validation', { showToast: true })
       throw error
     }
   }
@@ -85,10 +81,11 @@ export const usePrestataireStore = defineStore('prestataire', () => {
       localStorage.setItem('token', token)
       localStorage.setItem('expiresIn', expiresIn)
       localStorage.setItem('refreshToken', refreshToken)
-      // Potentially set user in auth store here
+      
+      showSuccess('Inscription réussie ! Redirection vers votre dashboard...')
     } catch (error) {
-      console.error('Error during prestataire signup:', error)
-      throw new Error('Failed to sign up prestataire')
+      handleGraphQLError(error, 'Prestataire Signup', { showToast: true })
+      throw error
     }
   }
 
@@ -100,8 +97,8 @@ export const usePrestataireStore = defineStore('prestataire', () => {
       })
       missions.value = data.getPrestataireMissions
     } catch (error) {
-      console.error('Error fetching prestataire missions:', error)
-      throw new Error('Failed to fetch missions')
+      handleGraphQLError(error, 'Fetch Missions', { showToast: true })
+      throw error
     }
   }
 
@@ -114,8 +111,8 @@ export const usePrestataireStore = defineStore('prestataire', () => {
       })
       mission.value = data.mission
     } catch (error) {
-      console.error('Error fetching mission details:', error)
-      throw new Error('Failed to fetch mission details')
+      handleGraphQLError(error, 'Fetch Mission Details', { showToast: true })
+      throw error
     }
   }
 
@@ -134,9 +131,11 @@ export const usePrestataireStore = defineStore('prestataire', () => {
       if (index !== -1) {
         missions.value[index].missionStatus = updatedMission.missionStatus
       }
+      
+      showSuccess('Statut de la mission mis à jour avec succès')
     } catch (error) {
-      console.error('Error updating mission status:', error)
-      throw new Error('Failed to update mission status')
+      handleGraphQLError(error, 'Update Mission Status', { showToast: true })
+      throw error
     }
   }
 
@@ -151,25 +150,25 @@ export const usePrestataireStore = defineStore('prestataire', () => {
       })
       messages.value.push(data.sendComment)
     } catch (error) {
-      console.error('Error sending message:', error)
-      throw new Error('Failed to send message')
+      handleGraphQLError(error, 'Send Message', { showToast: true })
+      throw error
     }
   }
 
   async function sendFile(missionId: string, file: File, comment: string) {
     try {
-      const { data } = await client.mutate({
-        mutation: SEND_FILE_MUTATION,
+      await client.mutate({
+        mutation: SEND_FILE,
         variables: {
           missionId,
           file,
           comment,
         }
       })
-      // Handle the response, maybe update the mission's documents
+      showSuccess('Fichier envoyé avec succès')
     } catch (error) {
-      console.error('Error sending file:', error)
-      throw new Error('Failed to send file')
+      handleGraphQLError(error, 'Send File', { showToast: true })
+      throw error
     }
   }
 
@@ -184,7 +183,7 @@ export const usePrestataireStore = defineStore('prestataire', () => {
           messages.value.push(data.onNewMessage)
         },
         error(err) {
-          console.error('Error in message subscription:', err)
+          handleError(err, 'Message Subscription', { showToast: false })
         }
       })
   }

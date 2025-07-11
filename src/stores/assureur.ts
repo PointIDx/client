@@ -11,6 +11,11 @@ import { useQuery, useMutation } from '@vue/apollo-composable';
 import type { Prestataire } from '@/interfaces/prestataire';
 import type { Mission } from '@/interfaces/mission';
 
+// Import new utilities
+import { fetchSiretInfo } from '@/utils/siret';
+import { handleError, handleGraphQLError, showSuccess } from '@/utils/error-handling';
+import { DEFAULT_VALUES } from '@/constants';
+
 export const useAssureurStore = defineStore('assureur', () => {
   const siretValidated = ref(false);
   const companyInfo = ref<CompanyInfo>({
@@ -20,7 +25,7 @@ export const useAssureurStore = defineStore('assureur', () => {
     adresse: '',
     codePostal: '',
     ville: '',
-    pays: 'France',
+    pays: DEFAULT_VALUES.COUNTRY,
     dateCreation: '',
   });
 
@@ -29,31 +34,23 @@ export const useAssureurStore = defineStore('assureur', () => {
   const mission = ref<Mission | null>(null);
 
   const validateSiret = async (siret: string) => {
-    if (siret.length !== 14) {
-      siretValidated.value = false;
-      throw new Error('Le SIRET doit contenir exactement 14 chiffres');
-    }
-
     try {
-      // In a real application, this would be an actual API call to INSEE
-      // For now, we'll simulate the API call with a mock
-      const response = await fetch(`/api/siret/${siret}`);
-      if (!response.ok) {
-        throw new Error('Erreur lors de la vérification du SIRET. Veuillez réessayer.');
+      const result = await fetchSiretInfo(siret);
+      
+      if (result.isValid && result.companyInfo) {
+        // Update the company info with the validated data
+        companyInfo.value = { ...companyInfo.value, ...result.companyInfo };
+        siretValidated.value = true;
+        showSuccess('SIRET validé avec succès');
+        return true;
+      } else {
+        siretValidated.value = false;
+        throw new Error(result.error || 'Erreur lors de la validation SIRET');
       }
-      const data = await response.json();
-
-      companyInfo.value.raisonSociale = data.etablissement.uniteLegale.denominationUniteLegale;
-      companyInfo.value.adresse = `${data.etablissement.adresseEtablissement.numeroVoieEtablissement} ${data.etablissement.adresseEtablissement.typeVoieEtablissement} ${data.etablissement.adresseEtablissement.libelleVoieEtablissement}`;
-      companyInfo.value.codePostal = data.etablissement.adresseEtablissement.codePostalEtablissement;
-      companyInfo.value.ville = data.etablissement.adresseEtablissement.libelleCommuneEtablissement;
-      companyInfo.value.dateCreation = data.etablissement.dateCreationEtablissement;
-
-      siretValidated.value = true;
-      return true;
-    } catch (error: any) {
+    } catch (error) {
       siretValidated.value = false;
-      throw new Error(error.message || 'Erreur lors de la vérification du SIRET. Veuillez réessayer.');
+      handleError(error, 'SIRET Validation', { showToast: true });
+      throw error;
     }
   };
 

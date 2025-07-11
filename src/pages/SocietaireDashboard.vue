@@ -79,19 +79,19 @@ const handleSubmit = async () => {
 
 const getStatusColor = (statut: string) => {
   switch (statut) {
-    case TimelineStatut.Termine: return "text-green-600 bg-green-100/50 border-green-300"
-    case TimelineStatut.EnCours: return "text-blue-600 bg-blue-100/50 border-blue-300"
-    case TimelineStatut.Attente: return "text-gray-600 bg-gray-100/50 border-gray-300"
-    default: return "text-gray-600 bg-gray-100/50 border-gray-300"
+    case TimelineStatut.Termine: return "text-white bg-black border-black"
+    case TimelineStatut.EnCours: return "text-gray-800 bg-gray-200 border-gray-400"
+    case TimelineStatut.Attente: return "text-gray-800 bg-gray-100 border-gray-300"
+    default: return "text-gray-800 bg-gray-100 border-gray-300"
   }
 }
 
 const getTypeColor = (type: string) => {
   switch (type) {
-    case HistoriqueType.Client: return "bg-blue-100/60 border-blue-300"
-    case HistoriqueType.Prestataire: return "bg-green-100/60 border-green-300"
-    case HistoriqueType.Assureur: return "bg-purple-100/60 border-purple-300"
-    default: return "bg-gray-100/60 border-gray-200"
+    case HistoriqueType.Client: return "bg-gray-100 border-gray-300"
+    case HistoriqueType.Prestataire: return "bg-gray-200 border-gray-400"
+    case HistoriqueType.Assureur: return "bg-gray-300 border-gray-500"
+    default: return "bg-gray-100 border-gray-300"
   }
 }
 
@@ -100,38 +100,49 @@ const onLogout = () => {
   emit("logout")
 }
 
+const telechargerDocument = (doc: any) => {
+  // Mock document download - replace with actual implementation
+  const link = document.createElement('a')
+  link.href = `/api/documents/${doc.nom}`
+  link.download = doc.nom
+  link.click()
+  
+  // Show success message
+  console.log(`Téléchargement de ${doc.nom} initié`)
+}
+
 onMounted(() => {
   societaireStore.fetchSocietaireDossier();
 });
 </script>
 
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 font-mono">
+  <div class="min-h-screen bg-white text-black font-mono">
     <!-- Header -->
-    <header class="border-b border-gray-200 bg-white/50 backdrop-blur-sm sticky top-0 z-50">
+    <header class="border-b border-gray-300 bg-white sticky top-0 z-50">
       <div class="mx-auto px-4 h-16 flex items-center justify-between">
         <div class="flex items-center space-x-3">
-          <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-lg flex items-center justify-center">
+          <div class="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
             <Building2 class="h-5 w-5 text-white" />
           </div>
           <div>
-            <span class="text-lg font-bold bg-gradient-to-r from-blue-500 to-cyan-400 bg-clip-text text-transparent">
+            <span class="text-lg font-bold text-black">
               PointID
             </span>
-            <span class="text-gray-500 text-sm ml-2">/ ESPACE SOCIÉTAIRE</span>
+            <span class="text-gray-700 text-sm ml-2">/ ESPACE SOCIÉTAIRE</span>
           </div>
         </div>
 
         <div class="flex items-center space-x-4">
           <div class="text-right">
-            <div class="text-gray-900 text-sm font-semibold">{{ societaireStore.email }}</div>
-            <div class="text-gray-500 text-xs">Dossier: {{ societaireStore.dossierNumber }}</div>
+            <div class="text-black text-sm font-semibold">{{ societaireStore.email }}</div>
+            <div class="text-gray-700 text-xs">Dossier: {{ societaireStore.dossierNumber }}</div>
           </div>
           <Button
             @click="onLogout"
             variant="outline"
             size="sm"
-            class="border-gray-300 text-gray-500 hover:text-gray-900 hover:border-gray-400 bg-transparent"
+            class="border-gray-400 text-gray-700 hover:text-black hover:border-gray-500 bg-white"
           >
             <LogOut class="h-4 w-4 mr-2" />
             DÉCONNEXION
@@ -145,11 +156,11 @@ onMounted(() => {
         <!-- Colonne principale -->
         <div class="lg:col-span-2 space-y-8">
           <!-- Informations du dossier -->
-          <Card class="bg-white/50 border-gray-200">
+          <Card class="bg-white border-gray-300">
             <CardHeader>
               <div class="flex items-center justify-between">
-                <CardTitle class="text-xl font-bold text-gray-900 flex items-center">
-                  <FileText class="h-5 w-5 mr-2 text-blue-500" />
+                <CardTitle class="text-xl font-bold text-black flex items-center">
+                  <FileText class="h-5 w-5 mr-2 text-gray-600" />
                   DOSSIER SINISTRE
                 </CardTitle>
                 <Badge :class="`${getStatusColor(societaireStore.dossierData?.statut || '')} border font-mono`">
@@ -419,7 +430,7 @@ onMounted(() => {
                       <p class="text-gray-500 text-xs">{{ doc.taille }} - {{ doc.auteur }} - {{ doc.date }}</p>
                     </div>
                   </div>
-                  <Button variant="ghost" size="sm" class="text-gray-500 hover:text-gray-900">
+                  <Button variant="ghost" size="sm" class="text-gray-500 hover:text-gray-900" @click="telechargerDocument(doc)">
                     Télécharger
                   </Button>
                 </div>
