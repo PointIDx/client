@@ -16,6 +16,7 @@ import { useToast } from "@/components/ui/toast/use-toast"
 
 import { AccountType } from "@/enums/account-type"
 import { useAssureurStore } from "@/stores/assureur"
+import { usePrestataireStore } from "@/stores/prestataire"
 import { useAuthStore } from "@/stores/auth"
 import {
   companyInfoSchema,
@@ -29,6 +30,7 @@ import {
 
 const router = useRouter()
 const assureurStore = useAssureurStore()
+const prestataireStore = usePrestataireStore()
 const authStore = useAuthStore()
 const { toast } = useToast()
 
@@ -108,6 +110,16 @@ watch(() => assureurStore.companyInfo, (newVal) => {
   }
 }, { deep: true });
 
+watch(() => prestataireStore.companyInfo, (newVal) => {
+  if (newVal) {
+    raisonSociale.value = newVal.raisonSociale;
+    adresse.value = newVal.adresse;
+    codePostal.value = newVal.codePostal;
+    ville.value = newVal.ville;
+    dateCreation.value = newVal.dateCreation;
+  }
+}, { deep: true });
+
 const formeJuridiques = ["SARL", "SAS", "SASU", "EURL", "SA", "SNC", "SCS", "EI", "EIRL", "Micro-entreprise"]
 
 const typesAssuranceOptions = [
@@ -158,7 +170,11 @@ const typesProjet = [
 const handleSiretValidation = async () => {
   isLoading.value = true;
   try {
-    await assureurStore.validateSiret(siret.value);
+    if (accountType.value === 'assureur') {
+      await assureurStore.validateSiret(siret.value);
+    } else if (accountType.value === 'prestataire') {
+      await prestataireStore.getSiretInfo(siret.value);
+    }
     toast({
       title: "SIRET validé",
       description: "Les informations de l'entreprise ont été récupérées.",
@@ -199,8 +215,10 @@ const validateStep = async (step: number) => {
     case 1:
       if (accountType.value === "societaire") {
         isValid = societaireInfoMeta.value.valid;
-      } else {
+      } else if (accountType.value === "assureur") {
         isValid = companyInfoMeta.value.valid && assureurStore.siretValidated;
+      } else if (accountType.value === "prestataire") {
+        isValid = companyInfoMeta.value.valid && prestataireStore.siretValidated;
       }
       break;
     case 2:
@@ -263,8 +281,18 @@ const submitRegistration = async () => {
         router.push("/societaire-dashboard");
       }
     } else if (accountType.value === "prestataire") {
-      // Placeholder for prestataire signup logic
-      success = await authStore.signup(accountValues.email, accountValues.password);
+      const companyInfoData = companyInfoValues;
+      const contactData = contactValues;
+      const providerInfoData = providerInfoValues;
+      const accountData = accountValues;
+
+      await prestataireStore.prestataireSignup(
+        companyInfoData,
+        contactData,
+        providerInfoData,
+        accountData
+      );
+      success = true;
       if (success) {
         router.push("/prestataire-dashboard");
       }
@@ -360,7 +388,12 @@ const resetAccountType = () => {
   handleSocietaireInfoSubmit(() => {});
 };
 
-const maxSteps = computed(() => (accountType.value === "societaire" ? 4 : 6));
+const maxSteps = computed(() => {
+  if (accountType.value === "societaire") return 4;
+  if (accountType.value === "prestataire") return 6;
+  if (accountType.value === "assureur") return 6;
+  return 6;
+});
 const progressValue = computed(() => (currentStep.value / maxSteps.value) * 100);
 
 const handleAccountTypeSelected = (type: AccountType) => {
@@ -448,12 +481,12 @@ const handleAccountTypeSelected = (type: AccountType) => {
                   />
                   <Button
                     @click="handleSiretValidation()"
-                    :disabled="siret.length !== 14 || isLoading || assureurStore.siretValidated"
-                    :variant="assureurStore.siretValidated ? 'default' : 'outline'"
+                    :disabled="siret.length !== 14 || isLoading || (accountType === 'assureur' && assureurStore.siretValidated) || (accountType === 'prestataire' && prestataireStore.siretValidated)"
+                    :variant="(accountType === 'assureur' && assureurStore.siretValidated) || (accountType === 'prestataire' && prestataireStore.siretValidated) ? 'default' : 'outline'"
                     data-testid="verify-siret-button"
                   >
                     <Loader2 v-if="isLoading" class="h-4 w-4 animate-spin" />
-                    <CheckCircle v-else-if="assureurStore.siretValidated" class="h-4 w-4" />
+                    <CheckCircle v-else-if="(accountType === 'assureur' && assureurStore.siretValidated) || (accountType === 'prestataire' && prestataireStore.siretValidated)" class="h-4 w-4" />
                     <span v-else>Vérifier</span>
                   </Button>
                 </div>
@@ -466,7 +499,7 @@ const handleAccountTypeSelected = (type: AccountType) => {
                   id="raisonSociale"
                   v-model="raisonSociale"
                   v-bind="raisonSocialeAttrs"
-                  :disabled="!assureurStore.siretValidated"
+                  :disabled="(accountType === 'assureur' && !assureurStore.siretValidated) || (accountType === 'prestataire' && !prestataireStore.siretValidated)"
                   data-testid="raison-sociale-input"
                 />
                 <ErrorMessage name="raisonSociale" class="text-red-500 text-sm" data-testid="raison-sociale-error" />
@@ -498,7 +531,7 @@ const handleAccountTypeSelected = (type: AccountType) => {
                   type="date"
                   v-model="dateCreation"
                   v-bind="dateCreationAttrs"
-                  :disabled="!assureurStore.siretValidated"
+                  :disabled="(accountType === 'assureur' && !assureurStore.siretValidated) || (accountType === 'prestataire' && !prestataireStore.siretValidated)"
                   data-testid="date-creation-input"
                 />
                 <ErrorMessage name="dateCreation" class="text-red-500 text-sm" data-testid="date-creation-error" />
@@ -510,7 +543,7 @@ const handleAccountTypeSelected = (type: AccountType) => {
                   id="adresse"
                   v-model="adresse"
                   v-bind="adresseAttrs"
-                  :disabled="!assureurStore.siretValidated"
+                  :disabled="(accountType === 'assureur' && !assureurStore.siretValidated) || (accountType === 'prestataire' && !prestataireStore.siretValidated)"
                   data-testid="adresse-input"
                 />
                 <ErrorMessage name="adresse" class="text-red-500 text-sm" data-testid="adresse-error" />
@@ -522,7 +555,7 @@ const handleAccountTypeSelected = (type: AccountType) => {
                   id="codePostal"
                   v-model="codePostal"
                   v-bind="codePostalAttrs"
-                  :disabled="!assureurStore.siretValidated"
+                  :disabled="(accountType === 'assureur' && !assureurStore.siretValidated) || (accountType === 'prestataire' && !prestataireStore.siretValidated)"
                   data-testid="code-postal-input"
                 />
                 <ErrorMessage name="codePostal" class="text-red-500 text-sm" data-testid="code-postal-error" />
@@ -534,7 +567,7 @@ const handleAccountTypeSelected = (type: AccountType) => {
                   id="ville"
                   v-model="ville"
                   v-bind="villeAttrs"
-                  :disabled="!assureurStore.siretValidated"
+                  :disabled="(accountType === 'assureur' && !assureurStore.siretValidated) || (accountType === 'prestataire' && !prestataireStore.siretValidated)"
                   data-testid="ville-input"
                 />
                 <ErrorMessage name="ville" class="text-red-500 text-sm" data-testid="ville-error" />
@@ -869,9 +902,12 @@ const handleAccountTypeSelected = (type: AccountType) => {
               <Label for="secteursActivite">Secteurs d'activité *</Label>
               <Input
                 id="secteursActivite"
-                v-model="providerInfo.secteursActivite"
+                v-model="secteursActivite"
+                v-bind="secteursActiviteAttrs"
                 placeholder="Ex: Maçonnerie, Plomberie, Électricité..."
+                data-testid="secteurs-activite-input"
               />
+              <ErrorMessage name="secteursActivite" class="text-red-500 text-sm" data-testid="secteurs-activite-error" />
               <p class="text-sm text-gray-500 mt-1">Séparez les secteurs par des virgules</p>
             </div>
 
@@ -886,20 +922,15 @@ const handleAccountTypeSelected = (type: AccountType) => {
                     <label v-for="region in regions" :key="region" class="flex items-center space-x-2 text-sm">
                       <input
                         type="checkbox"
-                        :checked="providerInfo.zonesGeographiques.regions.includes(region)"
-                        @change="(e) => {
-                          const target = e.target as HTMLInputElement;
-                          if (target.checked) {
-                            providerInfo.zonesGeographiques.regions.push(region);
-                          } else {
-                            providerInfo.zonesGeographiques.regions = providerInfo.zonesGeographiques.regions.filter((r) => r !== region);
-                          }
-                        }"
+                        :value="region"
+                        v-model="providerRegions"
                         class="rounded"
+                        data-testid="provider-region-checkbox"
                       />
                       <span>{{ region }}</span>
                     </label>
                   </div>
+                  <ErrorMessage name="zonesGeographiques.regions" class="text-red-500 text-sm" data-testid="provider-regions-error" />
                 </div>
               </div>
             </div>

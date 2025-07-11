@@ -1,0 +1,46 @@
+<task_definition>
+    <meta>
+        <name>Prestataire registration</name>
+        <description>Automated signup for a new prestataire account.</description>
+        <priority>high</priority>
+        <estimated_duration>2-3 hours</estimated_duration>
+    </meta>
+
+    <prerequisites>
+        <dependencies>
+            <import> use import { gql } from 'graphql-tag'; for gql when creating a graphql query/mutation/subscription</import>
+            <tool>vue-sooner toast and shadcn Toaster for presenting information about success or errors </tool>
+        </dependencies>
+    </prerequisites>
+
+    <workflow>
+        <step id="1" name="signup" depends_on="none">
+            <description>Create a new Prestataire account</description>
+            <actions>
+                <action>Navigate to /pro-registration</action>
+                <action>Clicking on "S'inscrire comme Prestataire" should display a form for the 'prestataire' account type (AccountType.PRESTATAIRE)</action>
+                <action>Use shadcn forms for the entire form structure and apply validation to all inputs.</action>
+                <action>Create a new store for the prestataire in /src/stores/prestataire.ts</action>
+                <action>Implement a method within the prestataire store to fetch company information using its SIRET number from the GET https://api.insee.fr/entreprises/sirene/V3/siret/{numeroSiret} endpoint.</action>
+                <action>The "Vérifier" button must trigger the SIRET verification method.</action>
+                <action>Use the response from the SIRET API to automatically fill the CompanyInfo form fields.</action>
+                <action>The 'Contact référant' section, which corresponds to the Contact interface, must be part of the shadcn form and include validation.</action>
+                <action>The 'Informations prestataire' section must also be integrated into the shadcn form with appropriate validation rules.</action>
+                <action>The 'Création du compte' section (email, password, password confirmation) must be part of the shadcn form and include validation.</action>
+                <action>Clicking the "Finaliser l'inscription" button must call a 'prestataireSignup' method in the prestataire store. This method must be connected to a GraphQL mutation.</action>
+                <action>Create the corresponding GraphQL mutation and a mock handler for it in /src/mocks/handlers.ts.</action>
+                <action>Add 'data-testid' attributes to all form inputs and buttons to facilitate Playwright testing.</action>
+                <action>Write Playwright tests for the complete prestataire registration flow, following the conventions in the /e2e folder.</action>
+            </actions>
+            <success_criteria>
+                <criterion>The prestataire account is created successfully.</criterion>
+                <criterion>The user is redirected to /prestataire-dashboard upon successful registration.</criterion>
+                <criterion>A JWT (token, expiresIn, refresh_token) is returned and saved in local storage.</criterion>
+            </success_criteria>
+            <errors_handling>
+                <if_condition error="form_validation_error">Display a user-friendly error message and prevent form submission.</if_condition>
+                <if_condition error="graphql_call_error">Display an error notification using the toaster and fail gracefully.</if_condition>
+            </errors_handling>
+        </step>
+    </workflow>
+</task_definition>

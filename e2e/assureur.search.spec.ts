@@ -3,13 +3,12 @@ import { test, expect } from '@playwright/test';
 test.describe('Assureur Dashboard', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/assureur-dashboard');
-    await page.waitForLoadState('networkidle');
   });
 
   test('should display search filters and results', async ({ page }) => {
     await expect(page.getByText('Filtres de recherche')).toBeVisible();
     await expect(page.getByPlaceholder('Nom, entreprise, spécialité...')).toBeVisible();
-    await expect(page.getByTestId('search-button')).toBeVisible();
+    await expect(page.getByText('Rechercher')).toBeVisible();
     await expect(page.getByText('prestataire(s) trouvé(s)')).toBeVisible();
   });
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -43,79 +43,14 @@ import type { Prestataire } from '@/interfaces/prestataire'
 import type { DemandeComm } from '@/interfaces/demande-comm'
 import type { IMission } from '@/interfaces/IMission'
 import { DemandeCommStatut } from '@/enums/demande-comm-statut'
+import { useAssureurStore } from '@/stores/assureur'
 
-const mockPrestataires: Prestataire[] = [
-  {
-    id: "1",
-    nom: "Martin Dubois",
-    raisonSociale: "DUBOIS MAÇONNERIE SARL",
-    secteurs: ["Maçonnerie", "Gros œuvre"],
-    specialites: ["Rénovation", "Construction neuve", "Réparation fissures"],
-    ville: "Lyon",
-    departement: "69 - Rhône",
-    region: "Auvergne-Rhône-Alpes",
-    notemoyenne: 4.8,
-    nombreAvis: 127,
-    siret: "12345678901234",
-    formeJuridique: "SARL",
-    dateCreation: "2015-03-15",
-    telephone: "04 78 12 34 56",
-    email: "contact@dubois-maconnerie.fr",
-    adresse: "123 Rue de la République, 69001 Lyon",
-    description:
-      "Entreprise spécialisée dans la maçonnerie traditionnelle et moderne avec plus de 20 ans d'expérience.",
-    certifications: ["Qualibat RGE", "Assurance décennale"],
-    documentsPublics: ["Attestation assurance", "Certificat Qualibat"],
-  },
-  {
-    id: "2",
-    nom: "Sophie Moreau",
-    raisonSociale: "MOREAU PLOMBERIE",
-    secteurs: ["Plomberie", "Chauffage"],
-    specialites: ["Dépannage urgence", "Installation sanitaire", "Chauffage central"],
-    ville: "Marseille",
-    departement: "13 - Bouches-du-Rhône",
-    region: "Provence-Alpes-Côte d'Azur",
-    notemoyenne: 4.6,
-    nombreAvis: 89,
-    siret: "98765432109876",
-    formeJuridique: "EURL",
-    dateCreation: "2018-07-22",
-    telephone: "04 91 23 45 67",
-    email: "sophie@moreau-plomberie.fr",
-    adresse: "456 Avenue du Prado, 13008 Marseille",
-    description: "Plombier chauffagiste disponible 24h/24 pour tous vos dépannages et installations.",
-    certifications: ["RGE QualiPAC", "Assurance RC Pro"],
-    documentsPublics: ["Attestation assurance", "Certificat RGE"],
-  },
-  {
-    id: "3",
-    nom: "Pierre Leroy",
-    raisonSociale: "LEROY ÉLECTRICITÉ",
-    secteurs: ["Électricité", "Domotique"],
-    specialites: ["Installation électrique", "Mise aux normes", "Domotique"],
-    ville: "Toulouse",
-    departement: "31 - Haute-Garonne",
-    region: "Occitanie",
-    notemoyenne: 4.9,
-    nombreAvis: 156,
-    siret: "11223344556677",
-    formeJuridique: "SASU",
-    dateCreation: "2012-11-08",
-    telephone: "05 61 12 34 56",
-    email: "pierre@leroy-electricite.fr",
-    adresse: "789 Rue des Pyrénées, 31000 Toulouse",
-    description: "Électricien qualifié spécialisé dans les installations modernes et la domotique.",
-    certifications: ["Qualifélec", "Habilitation électrique"],
-    documentsPublics: ["Attestation assurance", "Certificat Qualifélec"],
-  },
-]
+const assureurStore = useAssureurStore()
 
 const searchTerm = ref("")
 const selectedSecteur = ref("all")
 const selectedRegion = ref("all")
 const selectedDepartement = ref("all")
-const filteredPrestataires = ref<Prestataire[]>(mockPrestataires)
 const selectedPrestataire = ref<Prestataire | null>(null)
 const showCommDialog = ref(false)
 const messageComm = ref("")
@@ -124,63 +59,7 @@ const showSuccess = ref(false)
 
 const showMissionDialog = ref(false)
 const selectedPrestataireForMission = ref<Prestataire | null>(null)
-const missions = ref<IMission[]>([
-    {
-    id: "1",
-    numeroMission: "M240001",
-    prestataire: {
-      id: "1",
-      nom: "Martin",
-      prenom: "Dubois",
-      raisonSociale: "DUBOIS MAÇONNERIE SARL",
-      telephone: "04 78 12 34 56",
-      email: "contact@dubois-maconnerie.fr",
-      ville: "Lyon",
-    },
-    client: {
-      civilite: "M",
-      nom: "Dupont",
-      prenom: "Jean",
-      telephone: "06 12 34 56 78",
-      email: "jean.dupont@email.com",
-      adresse: "15 Rue de la Paix",
-      codePostal: "69001",
-      ville: "Lyon",
-    },
-    chantier: {
-      adresse: "15 Rue de la Paix",
-      ville: "Lyon",
-      codePostal: "69001",
-      typeAcces: "Libre",
-      etage: "RDC",
-      contraintes: "Aucune",
-    },
-    mission: {
-      titre: "Réparation fissures mur porteur",
-      description: "Réparation de fissures importantes sur mur porteur suite à tassement",
-      budgetEstime: "2500",
-      delaiSouhaite: "2 semaines",
-      horaires: "8h-17h",
-      materiaux: "Fournis par le prestataire",
-      normes: "Normes DTU",
-      conditionsParticulieres: "Accès facile",
-    },
-    sinistre: {
-      type: "Fissures",
-      description: "Réparation de fissures importantes sur mur porteur suite à tassement",
-      urgence: "elevee",
-      numeroSinistre: "SIN2024001",
-      dateSinistre: "2024-01-10",
-      dateIntervention: "2024-01-15",
-    },
-    statut: "en_cours",
-    dateCreation: "2024-01-15T10:30:00Z",
-    documents: [],
-    dateEnvoi: "2024-01-15T11:00:00Z",
-    dateReponse: "2024-01-16T09:15:00Z",
-    dateFinPrevue: "2024-02-15T17:00:00Z",
-  }
-])
+const missions = ref<IMission[]>([])
 const showMissionSuccess = ref(false)
 
 const secteurs = ["Maçonnerie", "Plomberie", "Électricité", "Chauffage", "Couverture", "Menuiserie", "Peinture"]
@@ -203,39 +82,23 @@ const regions = [
 const departements = ["01 - Ain", "13 - Bouches-du-Rhône", "31 - Haute-Garonne", "69 - Rhône", "75 - Paris"]
 
 const applyFilters = () => {
-  let filtered = mockPrestataires
-
-  if (searchTerm.value) {
-    filtered = filtered.filter(
-      (p) =>
-        p.nom.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
-        p.raisonSociale.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
-        p.secteurs.some((s) => s.toLowerCase().includes(searchTerm.value.toLowerCase())) ||
-        p.specialites.some((s) => s.toLowerCase().includes(searchTerm.value.toLowerCase())),
-    )
-  }
-
-  if (selectedSecteur.value !== "all") {
-    filtered = filtered.filter((p) => p.secteurs.includes(selectedSecteur.value))
-  }
-
-  if (selectedRegion.value !== "all") {
-    filtered = filtered.filter((p) => p.region === selectedRegion.value)
-  }
-
-  if (selectedDepartement.value !== "all") {
-    filtered = filtered.filter((p) => p.departement === selectedDepartement.value)
-  }
-
-  filteredPrestataires.value = filtered
+  assureurStore.searchPrestataires({
+    name: searchTerm.value === "" ? undefined : searchTerm.value,
+    specialty: selectedSecteur.value === "all" ? undefined : selectedSecteur.value,
+    location: selectedRegion.value === "all" ? undefined : selectedRegion.value,
+  });
 }
+
+onMounted(() => {
+  applyFilters();
+});
 
 const resetFilters = () => {
   searchTerm.value = ""
   selectedSecteur.value = "all"
   selectedRegion.value = "all"
   selectedDepartement.value = "all"
-  filteredPrestataires.value = mockPrestataires
+  applyFilters();
 }
 
 const envoyerDemandeComm = () => {
@@ -369,6 +232,7 @@ import placeholderImage from '@/assets/placeholder.svg'
                     <Search class="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
                       id="search"
+                      data-testid="search-input"
                       placeholder="Nom, entreprise, spécialité..."
                       v-model="searchTerm"
                       class="pl-10"
@@ -379,7 +243,7 @@ import placeholderImage from '@/assets/placeholder.svg'
                 <div>
                   <Label>Secteur</Label>
                   <Select v-model="selectedSecteur">
-                    <SelectTrigger>
+                    <SelectTrigger data-testid="secteur-select-trigger">
                       <SelectValue placeholder="Tous secteurs" />
                     </SelectTrigger>
                     <SelectContent>
@@ -394,7 +258,7 @@ import placeholderImage from '@/assets/placeholder.svg'
                 <div>
                   <Label>Région</Label>
                   <Select v-model="selectedRegion">
-                    <SelectTrigger>
+                    <SelectTrigger data-testid="region-select-trigger">
                       <SelectValue placeholder="Toutes régions" />
                     </SelectTrigger>
                     <SelectContent>
@@ -409,7 +273,7 @@ import placeholderImage from '@/assets/placeholder.svg'
                 <div>
                   <Label>Département</Label>
                   <Select v-model="selectedDepartement">
-                    <SelectTrigger>
+                    <SelectTrigger data-testid="departement-select-trigger">
                       <SelectValue placeholder="Tous départements" />
                     </SelectTrigger>
                     <SelectContent>
@@ -422,10 +286,10 @@ import placeholderImage from '@/assets/placeholder.svg'
                 </div>
 
                 <div class="flex items-end space-x-2">
-                  <Button @click="applyFilters" class="flex-1">
+                  <Button @click="applyFilters" class="flex-1" data-testid="search-button">
                     Rechercher
                   </Button>
-                  <Button variant="outline" @click="resetFilters">
+                  <Button variant="outline" @click="resetFilters" data-testid="reset-filters-button">
                     Reset
                   </Button>
                 </div>
@@ -436,11 +300,11 @@ import placeholderImage from '@/assets/placeholder.svg'
           <!-- Résultats -->
           <div>
             <div class="flex justify-between items-center mb-4">
-              <h2 class="text-lg font-semibold">{{ filteredPrestataires.length }} prestataire(s) trouvé(s)</h2>
+              <h2 class="text-lg font-semibold">{{ assureurStore.prestataires.length }} prestataire(s) trouvé(s)</h2>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <Card v-for="prestataire in filteredPrestataires" :key="prestataire.id" class="hover:shadow-lg transition-shadow">
+              <Card v-for="prestataire in assureurStore.prestataires" :key="prestataire.id" class="hover:shadow-lg transition-shadow">
                 <CardHeader class="pb-3">
                   <div class="flex items-start justify-between">
                     <div class="flex items-center space-x-3">

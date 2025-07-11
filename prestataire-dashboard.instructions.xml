@@ -1,0 +1,78 @@
+<task_definition>
+    <meta>
+        <name>Prestataire Dashboard Logic</name>
+        <description>Business logic for the prestataire dashboard, including viewing missions, updating mission status, and communicating.</description>
+        <priority>high</priority>
+        <estimated_duration>3-4 hours</estimated_duration>
+    </meta>
+
+    <prerequisites>
+        <dependencies>
+            <import>use import { gql } from 'graphql-tag'; for gql when creating a graphql query/mutation/subscription</import>
+            <tool>vue-sooner toast and shadcn Toaster for presenting information about success or errors</tool>
+        </dependencies>
+    </prerequisites>
+
+    <workflow>
+        <step id="1" name="view_missions" depends_on="none">
+            <description>Fetch and display missions assigned to the prestataire.</description>
+            <actions>
+                <action>In the prestataire store (/src/stores/prestataire.ts), create a method to fetch missions for the logged-in prestataire.</action>
+                <action>This method must use a GraphQL query to retrieve the missions.</action>
+                <action>Create a corresponding mock handler for this query in /src/mocks/handlers.ts.</action>
+                <action>The dashboard must feature tabs to filter missions by status (e.g., "Nouvelles demandes," "En cours," "Terminées"), using the 'mission-statut-prestataire' enum.</action>
+                <action>Display the missions in a list or table. The existing MissionsList.vue component should be considered for reuse.</action>
+                <action>Add 'data-testid' attributes to all relevant elements (tabs, list items, etc.) for Playwright testing.</action>
+                <action>Write Playwright tests to verify that missions are fetched and displayed correctly, including the filtering functionality.</action>
+            </actions>
+            <success_criteria>
+                <criterion>A list of missions (type MissionPrestataire[]) is successfully fetched and displayed in the UI.</criterion>
+                <criterion>Filtering missions by status works as expected.</criterion>
+            </success_criteria>
+            <errors_handling>
+                <if_condition error="graphql_call_error">Display an error notification using the toaster and fail gracefully.</if_condition>
+            </errors_handling>
+        </step>
+
+        <step id="2" name="manage_mission_status" depends_on="view_missions">
+            <description>Allow the prestataire to accept, refuse, or update the status of a mission.</description>
+            <actions>
+                <action>For each mission, provide UI controls (e.g., buttons) to change its status (e.g., "Accepter," "Refuser," "Marquer comme terminée").</action>
+                <action>Clicking these controls must trigger a method in the prestataire store.</action>
+                <action>This store method must use a GraphQL mutation to update the mission status in the backend.</action>
+                <action>Create mock handlers for these status-update mutations in /src/mocks/handlers.ts.</action>
+                <action>Update the UI optimistically or refetch the mission list upon a successful mutation to reflect the change.</action>
+                <action>Use the toaster to provide feedback (success or error) for the action.</action>
+                <action>Add 'data-testid' attributes to the status-changing controls for testing.</action>
+                <action>Write Playwright tests to verify all mission status transitions.</action>
+            </actions>
+            <success_criteria>
+                <criterion>The mission status is correctly updated in the backend.</criterion>
+                <criterion>The UI accurately reflects the new mission status.</criterion>
+            </success_criteria>
+            <errors_handling>
+                <if_condition error="graphql_call_error">Display an error notification using the toaster and fail gracefully.</if_condition>
+            </errors_handling>
+        </step>
+
+        <step id="3" name="communication" depends_on="view_missions">
+            <description>Allow the prestataire to communicate with the assureur about a specific mission.</description>
+            <actions>
+                <action>Each mission's detailed view must include a chat or messaging interface.</action>
+                <action>Create a method in the prestataire store to send a message/comment, using the existing 'send-comment' GraphQL mutation.</action>
+                <action>Display messages in a threaded format within the mission's detail view.</action>
+                <action>Implement a GraphQL subscription to receive new messages in real-time and update the chat view automatically.</action>
+                <action>Create mock handlers for sending and receiving messages via subscriptions.</action>
+                <action>Add 'data-testid' attributes to the messaging interface (input field, send button, message list) for testing.</action>
+                <action>Write Playwright tests for the communication feature, including sending and receiving messages.</action>
+            </actions>
+            <success_criteria>
+                <criterion>The prestataire can successfully send and receive messages related to a mission.</criterion>
+                <criterion>Real-time message updates are working correctly.</criterion>
+            </success_criteria>
+            <errors_handling>
+                <if_condition error="graphql_call_error">Display an error notification using the toaster and fail gracefully.</if_condition>
+            </errors_handling>
+        </step>
+    </workflow>
+</task_definition>
