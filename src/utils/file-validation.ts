@@ -82,7 +82,7 @@ export function validatePdfFile(file: File): FileValidationResult {
 export function validateImageFile(file: File): FileValidationResult {
   return validateFile(file, {
     maxSize: FILE_SIZE_LIMITS.MAX_IMAGE_SIZE,
-    acceptedTypes: ACCEPTED_FILE_TYPES.IMAGES
+    acceptedTypes: [...ACCEPTED_FILE_TYPES.IMAGES]
   })
 }
 

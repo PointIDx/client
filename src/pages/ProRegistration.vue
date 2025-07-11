@@ -15,6 +15,10 @@ import { toTypedSchema } from "@vee-validate/zod"
 import { toast } from "vue-sonner"
 
 import { AccountType } from "@/enums/account-type"
+import type { CompanyInfo } from "@/interfaces/company-info"
+import type { Contact } from "@/interfaces/contact"
+import type { ProviderInfo } from "@/interfaces/provider-info"
+import type { Account } from "@/interfaces/account"
 import { useAssureurStore } from "@/stores/assureur"
 import { usePrestataireStore } from "@/stores/prestataire"
 import { useAuthStore } from "@/stores/auth"
@@ -52,6 +56,7 @@ const authStore = useAuthStore()
 const accountType = ref<AccountType | null>(null)
 const currentStep = ref(1)
 const isLoading = ref(false)
+const error = ref('')
 
 // Form states
 const { handleSubmit: handleCompanyInfoSubmit, defineField: defineCompanyInfoField, meta: companyInfoMeta, values: companyInfoValues, errors: companyInfoErrors, setErrors: setCompanyInfoErrors } = useForm({
@@ -278,10 +283,10 @@ const submitRegistration = async () => {
       const accountData = accountValues;
 
       await prestataireStore.prestataireSignup(
-        companyInfoData,
-        contactData,
-        providerInfoData,
-        accountData
+        companyInfoData as CompanyInfo,
+        contactData as Contact,
+        providerInfoData as ProviderInfo,
+        accountData as Account
       );
       success = true;
       if (success) {
@@ -289,9 +294,9 @@ const submitRegistration = async () => {
       }
     } else if (accountType.value === "assureur") {
       // Assureur signup logic
-      const companyInfoData = companyInfoValues;
+      const companyInfoData = companyInfoValues as CompanyInfo;
       const documentsData = documentsValues;
-      const contactData = contactValues;
+      const contactData = contactValues as Contact;
       const insurerInfoData = insurerInfoValues;
       const accountData = accountValues;
 
@@ -746,7 +751,7 @@ const handleAccountTypeSelected = (type: AccountType) => {
             <div>
               <Label for="typeProjet">Type de projet/sinistre *</Label>
               <Select
-                v-model="societaireInfo.typeProjet"
+                v-model="typeProjet"
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Sélectionnez le type" />
@@ -763,7 +768,7 @@ const handleAccountTypeSelected = (type: AccountType) => {
               <Label for="numeroDossier">Numéro de dossier (optionnel)</Label>
               <Input
                 id="numeroDossier"
-                v-model="societaireInfo.numeroDossier"
+                v-model="numeroDossier"
                 placeholder="Si vous avez déjà un numéro de dossier"
               />
             </div>
@@ -772,7 +777,7 @@ const handleAccountTypeSelected = (type: AccountType) => {
               <Label for="descriptionProjet">Description du projet/sinistre *</Label>
               <textarea
                 id="descriptionProjet"
-                v-model="societaireInfo.descriptionProjet"
+                v-model="descriptionProjet"
                 placeholder="Décrivez votre projet ou sinistre en détail..."
                 class="w-full min-h-[100px] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
@@ -987,13 +992,13 @@ const handleAccountTypeSelected = (type: AccountType) => {
                 <label v-for="region in regions" :key="region" class="flex items-center space-x-2 text-sm">
                   <input
                     type="checkbox"
-                    :checked="insurerRegions.includes(region)"
+                    :checked="insurerRegions?.includes(region) || false"
                     @change="(e) => {
                       const target = e.target as HTMLInputElement;
                       if (target.checked) {
-                        insurerRegions.push(region);
+                        insurerRegions?.push(region);
                       } else {
-                        insurerRegions = insurerRegions.filter((r) => r !== region);
+                        if (insurerRegions) insurerRegions.splice(insurerRegions.indexOf(region), 1);
                       }
                     }"
                     class="rounded"
@@ -1013,7 +1018,7 @@ const handleAccountTypeSelected = (type: AccountType) => {
               <Input
                 id="emailLogin"
                 type="email"
-                v-model="account.email"
+                v-model="emailLogin"
               />
             </div>
 
@@ -1022,7 +1027,7 @@ const handleAccountTypeSelected = (type: AccountType) => {
               <Input
                 id="password"
                 type="password"
-                v-model="account.password"
+                v-model="password"
               />
             </div>
 
@@ -1031,9 +1036,9 @@ const handleAccountTypeSelected = (type: AccountType) => {
               <Input
                 id="confirmPassword"
                 type="password"
-                v-model="account.confirmPassword"
+                v-model="confirmPassword"
               />
-              <p v-if="account.password && account.confirmPassword && account.password !== account.confirmPassword" class="text-sm text-red-600 mt-1">Les mots de passe ne correspondent pas</p>
+              <p v-if="password && confirmPassword && password !== confirmPassword" class="text-sm text-red-600 mt-1">Les mots de passe ne correspondent pas</p>
             </div>
           </div>
 
@@ -1044,11 +1049,11 @@ const handleAccountTypeSelected = (type: AccountType) => {
             <p class="text-gray-700">
               <span v-if="accountType === 'societaire'">
                 Votre compte sociétaire a été créé avec succès. Vous pouvez maintenant accéder à votre espace
-                personnel à l'adresse <strong>{{ account.email }}</strong>.
+                personnel à l'adresse <strong>{{ emailLogin }}</strong>.
               </span>
               <span v-else>
                 Votre demande d'inscription {{ accountType === "prestataire" ? "prestataire" : "assureur" }} a été
-                envoyée. Vous recevrez un email de confirmation à l'adresse <strong>{{ account.email }}</strong> une
+                envoyée. Vous recevrez un email de confirmation à l'adresse <strong>{{ emailLogin }}</strong> une
                 fois votre compte validé par nos équipes.
               </span>
             </p>
