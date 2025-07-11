@@ -16,6 +16,17 @@ const router = createRouter({
       component: () => import('../pages/ProRegistration.vue'),
     },
     {
+      path: '/login-selection',
+      name: 'login-selection',
+      component: () => import('../pages/LoginSelection.vue'),
+    },
+    {
+      path: '/login/:type',
+      name: 'login',
+      component: () => import('../pages/Login.vue'),
+      props: true,
+    },
+    {
       path: '/societaire-login',
       name: 'societaire-login',
       component: () => import('../pages/SocietaireLogin.vue'),

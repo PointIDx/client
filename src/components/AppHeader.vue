@@ -40,7 +40,11 @@ const navigateTo = (path: string) => {
         class="flex items-center space-x-4 transition-all duration-1000"
         :class="isVisible ? 'translate-x-0 opacity-100' : 'translate-x-10 opacity-0'"
       >
-        <Button variant="ghost" class="text-gray-600 hover:text-gray-900 hover:bg-gray-100">
+        <Button 
+          variant="ghost" 
+          class="text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+          @click="navigateTo('/login-selection')"
+        >
           Se connecter
         </Button>
         <Button
