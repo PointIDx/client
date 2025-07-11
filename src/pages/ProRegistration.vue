@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, computed } from "vue"
+import { ref, computed, watch } from "vue"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -10,85 +10,103 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { CheckCircle, Upload, Loader2, AlertCircle, ArrowLeft } from "lucide-vue-next"
 import AccountTypeSelection from "./AccountTypeSelection.vue"
 import { useRouter } from "vue-router"
+import { useForm, Field, ErrorMessage } from "vee-validate"
+import { toTypedSchema } from "@vee-validate/zod"
+import { useToast } from "@/components/ui/toast/use-toast"
 
 import { AccountType } from "@/enums/account-type"
-import type { CompanyInfo } from "@/interfaces/company-info"
-import type { Documents } from "@/interfaces/documents"
-import type { Contact } from "@/interfaces/contact"
-import type { Account } from "@/interfaces/account"
-import  type { ProviderInfo } from "@/interfaces/provider-info"
-import type { InsurerInfo } from "@/interfaces/insurer-info"
-import type { SocietaireInfo } from "@/interfaces/societaire-info"
+import { useAssureurStore } from "@/stores/assureur"
+import { useAuthStore } from "@/stores/auth"
+import {
+  companyInfoSchema,
+  documentsSchema,
+  contactSchema,
+  accountSchema,
+  providerInfoSchema,
+  insurerInfoSchema,
+  societaireInfoSchema,
+} from "@/schemas/registration-schemas"
 
 const router = useRouter()
+const assureurStore = useAssureurStore()
+const authStore = useAuthStore()
+const { toast } = useToast()
+
 const accountType = ref<AccountType | null>(null)
 const currentStep = ref(1)
 const isLoading = ref(false)
-const siretValidated = ref(false)
-const error = ref("")
 
-const companyInfo = reactive<CompanyInfo>({
-  raisonSociale: "",
-  siret: "",
-  formeJuridique: "",
-  adresse: "",
-  codePostal: "",
-  ville: "",
-  pays: "France",
-  dateCreation: "",
+// Form states
+const { handleSubmit: handleCompanyInfoSubmit, defineField: defineCompanyInfoField, meta: companyInfoMeta, values: companyInfoValues, errors: companyInfoErrors, setErrors: setCompanyInfoErrors } = useForm({
+  validationSchema: toTypedSchema(companyInfoSchema),
 })
+const [siret, siretAttrs] = defineCompanyInfoField('siret')
+const [raisonSociale, raisonSocialeAttrs] = defineCompanyInfoField('raisonSociale')
+const [formeJuridique, formeJuridiqueAttrs] = defineCompanyInfoField('formeJuridique')
+const [adresse, adresseAttrs] = defineCompanyInfoField('adresse')
+const [codePostal, codePostalAttrs] = defineCompanyInfoField('codePostal')
+const [ville, villeAttrs] = defineCompanyInfoField('ville')
+const [dateCreation, dateCreationAttrs] = defineCompanyInfoField('dateCreation')
 
-const documents = reactive<Documents>({
-  kbis: null,
-  assurance: null,
-  agrement: null,
+const { handleSubmit: handleDocumentsSubmit, defineField: defineDocumentsField, meta: documentsMeta, values: documentsValues, errors: documentsErrors, setErrors: setDocumentsErrors } = useForm({
+  validationSchema: toTypedSchema(documentsSchema),
 })
+const [kbis, kbisAttrs] = defineDocumentsField('kbis')
+const [assurance, assuranceAttrs] = defineDocumentsField('assurance')
+const [agrement, agrementAttrs] = defineDocumentsField('agrement')
 
-const contact = reactive<Contact>({
-  prenom: "",
-  nom: "",
-  email: "",
-  telephone: "",
+const { handleSubmit: handleContactSubmit, defineField: defineContactField, meta: contactMeta, values: contactValues, errors: contactErrors, setErrors: setContactErrors } = useForm({
+  validationSchema: toTypedSchema(contactSchema),
 })
+const [prenom, prenomAttrs] = defineContactField('prenom')
+const [nom, nomAttrs] = defineContactField('nom')
+const [emailContact, emailContactAttrs] = defineContactField('email')
+const [telephone, telephoneAttrs] = defineContactField('telephone')
 
-const account = reactive<Account>({
-  email: "",
-  password: "",
-  confirmPassword: "",
+const { handleSubmit: handleAccountSubmit, defineField: defineAccountField, meta: accountMeta, values: accountValues, errors: accountErrors, setErrors: setAccountErrors } = useForm({
+  validationSchema: toTypedSchema(accountSchema),
 })
+const [emailLogin, emailLoginAttrs] = defineAccountField('email')
+const [password, passwordAttrs] = defineAccountField('password')
+const [confirmPassword, confirmPasswordAttrs] = defineAccountField('confirmPassword')
 
-const providerInfo = reactive<ProviderInfo>({
-  secteursActivite: "",
-  zonesGeographiques: {
-    departements: [],
-    regions: [],
-    codesPostaux: [],
-  },
+const { handleSubmit: handleProviderInfoSubmit, defineField: defineProviderInfoField, meta: providerInfoMeta, values: providerInfoValues, errors: providerInfoErrors, setErrors: setProviderInfoErrors } = useForm({
+  validationSchema: toTypedSchema(providerInfoSchema),
 })
+const [secteursActivite, secteursActiviteAttrs] = defineProviderInfoField('secteursActivite')
+const [providerRegions, providerRegionsAttrs] = defineProviderInfoField('zonesGeographiques.regions')
 
-const insurerInfo = reactive<InsurerInfo>({
-  numeroAgrement: "",
-  typesAssurance: [],
-  zonesCouverture: {
-    departements: [],
-    regions: [],
-    codesPostaux: [],
-  },
-  garantiesProposees: "",
+const { handleSubmit: handleInsurerInfoSubmit, defineField: defineInsurerInfoField, meta: insurerInfoMeta, values: insurerInfoValues, errors: insurerInfoErrors, setErrors: setInsurerInfoErrors } = useForm({
+  validationSchema: toTypedSchema(insurerInfoSchema),
 })
+const [numeroAgrement, numeroAgrementAttrs] = defineInsurerInfoField('numeroAgrement')
+const [insurerTypesAssurance, insurerTypesAssuranceAttrs] = defineInsurerInfoField('typesAssurance')
+const [garantiesProposees, garantiesProposeesAttrs] = defineInsurerInfoField('garantiesProposees')
+const [insurerRegions, insurerRegionsAttrs] = defineInsurerInfoField('zonesCouverture.regions')
 
-const societaireInfo = reactive<SocietaireInfo>({
-  civilite: "",
-  prenom: "",
-  nom: "",
-  dateNaissance: "",
-  adresseBien: "",
-  codePostalBien: "",
-  villeBien: "",
-  typeProjet: "",
-  numeroDossier: "",
-  descriptionProjet: "",
+const { handleSubmit: handleSocietaireInfoSubmit, defineField: defineSocietaireInfoField, meta: societaireInfoMeta, values: societaireInfoValues, errors: societaireInfoErrors, setErrors: setSocietaireInfoErrors } = useForm({
+  validationSchema: toTypedSchema(societaireInfoSchema),
 })
+const [civilite, civiliteAttrs] = defineSocietaireInfoField('civilite')
+const [prenomSocietaire, prenomSocietaireAttrs] = defineSocietaireInfoField('prenom')
+const [nomSocietaire, nomSocietaireAttrs] = defineSocietaireInfoField('nom')
+const [dateNaissance, dateNaissanceAttrs] = defineSocietaireInfoField('dateNaissance')
+const [adresseBien, adresseBienAttrs] = defineSocietaireInfoField('adresseBien')
+const [codePostalBien, codePostalBienAttrs] = defineSocietaireInfoField('codePostalBien')
+const [villeBien, villeBienAttrs] = defineSocietaireInfoField('villeBien')
+const [typeProjet, typeProjetAttrs] = defineSocietaireInfoField('typeProjet')
+const [numeroDossier, numeroDossierAttrs] = defineSocietaireInfoField('numeroDossier')
+const [descriptionProjet, descriptionProjetAttrs] = defineSocietaireInfoField('descriptionProjet')
+
+watch(() => assureurStore.companyInfo, (newVal) => {
+  if (newVal) {
+    raisonSociale.value = newVal.raisonSociale;
+    adresse.value = newVal.adresse;
+    codePostal.value = newVal.codePostal;
+    ville.value = newVal.ville;
+    dateCreation.value = newVal.dateCreation;
+  }
+}, { deep: true });
 
 const formeJuridiques = ["SARL", "SAS", "SASU", "EURL", "SA", "SNC", "SCS", "EI", "EIRL", "Micro-entreprise"]
 
@@ -137,167 +155,217 @@ const typesProjet = [
   "Incendie", "Cambriolage", "Bris de glace", "Autre",
 ]
 
-const validateSiret = async (siret: string) => {
-  if (siret.length !== 14) {
-    error.value = "Le SIRET doit contenir exactement 14 chiffres"
-    return false
-  }
-
-  isLoading.value = true
-  error.value = ""
-
+const handleSiretValidation = async () => {
+  isLoading.value = true;
   try {
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-
-    const mockApiResponse = {
-      etablissement: {
-        uniteLegale: {
-          denominationUniteLegale: accountType.value === "prestataire" ? "EXEMPLE ENTREPRISE SARL" : "ASSURANCE EXEMPLE SA",
-          categorieJuridiqueUniteLegale: "5499",
-        },
-        adresseEtablissement: {
-          numeroVoieEtablissement: "123",
-          typeVoieEtablissement: "RUE",
-          libelleVoieEtablissement: "DE LA PAIX",
-          codePostalEtablissement: "75001",
-          libelleCommuneEtablissement: "PARIS",
-        },
-        dateCreationEtablissement: "2020-01-15",
-      },
-    }
-
-    companyInfo.raisonSociale = mockApiResponse.etablissement.uniteLegale.denominationUniteLegale
-    companyInfo.adresse = `${mockApiResponse.etablissement.adresseEtablissement.numeroVoieEtablissement} ${mockApiResponse.etablissement.adresseEtablissement.typeVoieEtablissement} ${mockApiResponse.etablissement.adresseEtablissement.libelleVoieEtablissement}`
-    companyInfo.codePostal = mockApiResponse.etablissement.adresseEtablissement.codePostalEtablissement
-    companyInfo.ville = mockApiResponse.etablissement.adresseEtablissement.libelleCommuneEtablissement
-    companyInfo.dateCreation = mockApiResponse.etablissement.dateCreationEtablissement
-
-    siretValidated.value = true
-    return true
-  } catch (err) {
-    error.value = "Erreur lors de la vérification du SIRET. Veuillez réessayer."
-    return false
+    await assureurStore.validateSiret(siret.value);
+    toast({
+      title: "SIRET validé",
+      description: "Les informations de l'entreprise ont été récupérées.",
+    });
+  } catch (err: any) {
+    setCompanyInfoErrors({ siret: err.message });
+    toast({
+      title: "Erreur de validation SIRET",
+      description: err.message,
+      variant: "destructive",
+    });
   } finally {
-    isLoading.value = false
+    isLoading.value = false;
   }
-}
+};
 
 const handleFileUpload = (type: "kbis" | "assurance" | "agrement", file: File) => {
   if (file.type !== "application/pdf") {
-    error.value = "Seuls les fichiers PDF sont acceptés"
+    if (type === "kbis") setDocumentsErrors({ kbis: "Seuls les fichiers PDF sont acceptés" });
+    if (type === "assurance") setDocumentsErrors({ assurance: "Seuls les fichiers PDF sont acceptés" });
+    if (type === "agrement") setDocumentsErrors({ agrement: "Seuls les fichiers PDF sont acceptés" });
     return
   }
   if (file.size > 5 * 1024 * 1024) {
-    error.value = "Le fichier ne doit pas dépasser 5MB"
+    if (type === "kbis") setDocumentsErrors({ kbis: "Le fichier ne doit pas dépasser 5MB" });
+    if (type === "assurance") setDocumentsErrors({ assurance: "Le fichier ne doit pas dépasser 5MB" });
+    if (type === "agrement") setDocumentsErrors({ agrement: "Le fichier ne doit pas dépasser 5MB" });
     return
   }
-  documents[type] = file as any // Type assertion for simplicity, consider better type handling
-  error.value = ""
-}
+  if (type === "kbis") kbis.value = file as any;
+  if (type === "assurance") assurance.value = file as any;
+  if (type === "agrement") agrement.value = file as any;
+};
 
-const validateStep = (step: number) => {
+const validateStep = async (step: number) => {
+  let isValid = false;
   switch (step) {
     case 1:
       if (accountType.value === "societaire") {
-        return (
-          societaireInfo.civilite &&
-          societaireInfo.prenom &&
-          societaireInfo.nom &&
-          societaireInfo.dateNaissance &&
-          societaireInfo.adresseBien &&
-          societaireInfo.codePostalBien &&
-          societaireInfo.villeBien
-        )
+        isValid = societaireInfoMeta.value.valid;
+      } else {
+        isValid = companyInfoMeta.value.valid && assureurStore.siretValidated;
       }
-      return (
-        siretValidated.value &&
-        companyInfo.raisonSociale &&
-        companyInfo.formeJuridique &&
-        companyInfo.adresse &&
-        companyInfo.codePostal &&
-        companyInfo.ville &&
-        companyInfo.dateCreation
-      )
+      break;
     case 2:
       if (accountType.value === "societaire") {
-        return societaireInfo.typeProjet && societaireInfo.descriptionProjet
+        isValid = societaireInfoMeta.value.valid; // Assuming project info is part of societaireInfoSchema
+      } else {
+        isValid = documentsMeta.value.valid;
       }
-      if (accountType.value === "assureur") {
-        return documents.kbis && documents.assurance && documents.agrement
-      }
-      return documents.kbis && documents.assurance
+      break;
     case 3:
       if (accountType.value === "societaire") {
-        return (
-          account.email && account.password && account.confirmPassword && account.password === account.confirmPassword
-        )
+        isValid = accountMeta.value.valid;
+      } else {
+        isValid = contactMeta.value.valid;
       }
-      return contact.prenom && contact.nom && contact.email && contact.telephone
+      break;
     case 4:
       if (accountType.value === "societaire") {
-        return true // Pas d'étape 4 pour les sociétaires
+        isValid = true; // No step 4 for societaire
+      } else if (accountType.value === "prestataire") {
+        isValid = providerInfoMeta.value.valid;
+      } else if (accountType.value === "assureur") {
+        isValid = insurerInfoMeta.value.valid;
       }
-      if (accountType.value === "prestataire") {
-        return providerInfo.secteursActivite && providerInfo.zonesGeographiques.regions.length > 0
-      }
-      if (accountType.value === "assureur") {
-        return insurerInfo.numeroAgrement && insurerInfo.typesAssurance.length > 0 && insurerInfo.garantiesProposees && insurerInfo.zonesCouverture.regions.length > 0
-      }
-      return false
+      break;
     case 5:
-      return (
-        account.email && account.password && account.confirmPassword && account.password === account.confirmPassword
-      )
+      isValid = accountMeta.value.valid;
+      break;
     default:
-      return false
+      isValid = false;
   }
-}
+  if (!isValid) {
+    toast({
+      title: "Validation échouée",
+      description: "Veuillez remplir tous les champs obligatoires et corriger les erreurs.",
+      variant: "destructive",
+    });
+  }
+  return isValid;
+};
 
-const nextStep = () => {
-  if (validateStep(currentStep.value)) {
-    currentStep.value++
-    error.value = ""
-  } else {
-    error.value = "Veuillez remplir tous les champs obligatoires"
+const nextStep = async () => {
+  const isValid = await validateStep(currentStep.value);
+  if (isValid) {
+    currentStep.value++;
   }
-}
+};
 
 const prevStep = () => {
-  currentStep.value--
-  error.value = ""
-}
+  currentStep.value--;
+};
 
 const submitRegistration = async () => {
-  isLoading.value = true
+  isLoading.value = true;
   try {
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+    let success = false;
     if (accountType.value === "societaire") {
-      router.push("/societaire-dashboard")
+      success = await authStore.signup(accountValues.email, accountValues.password);
+      if (success) {
+        router.push("/societaire-dashboard");
+      }
     } else if (accountType.value === "prestataire") {
-      router.push("/prestataire-dashboard")
+      // Placeholder for prestataire signup logic
+      success = await authStore.signup(accountValues.email, accountValues.password);
+      if (success) {
+        router.push("/prestataire-dashboard");
+      }
     } else if (accountType.value === "assureur") {
-      router.push("/assureur-dashboard")
+      // Assureur signup logic
+      const companyInfoData = companyInfoValues;
+      const documentsData = documentsValues;
+      const contactData = contactValues;
+      const insurerInfoData = insurerInfoValues;
+      const accountData = accountValues;
+
+      // Prepare files for upload (if using a multipart form or similar)
+      const formData = new FormData();
+      formData.append('operations', JSON.stringify({
+        query: ASSUREUR_SIGNUP_MUTATION.loc?.source.body,
+        variables: {
+          companyInfo: companyInfoData,
+          documents: {
+            kbis: null, // Placeholder, actual file will be appended
+            assurance: null,
+            agrement: null,
+          },
+          contact: contactData,
+          insurerInfo: insurerInfoData,
+          account: accountData,
+        },
+      }));
+      formData.append('map', JSON.stringify({
+        "0": ["variables.documents.kbis"],
+        "1": ["variables.documents.assurance"],
+        "2": ["variables.documents.agrement"],
+      }));
+      formData.append('0', documentsData.kbis);
+      formData.append('1', documentsData.assurance);
+      formData.append('2', documentsData.agrement);
+
+      try {
+        const response = await fetch('/graphql', {
+          method: 'POST',
+          body: formData,
+        });
+        const result = await response.json();
+
+        if (result.data && result.data.assureurSignup) {
+          // Save token and redirect
+          localStorage.setItem('token', result.data.assureurSignup.token);
+          localStorage.setItem('expiresIn', result.data.assureurSignup.expiresIn);
+          localStorage.setItem('refreshToken', result.data.assureurSignup.refreshToken);
+          authStore.user = result.data.assureurSignup.user;
+          success = true;
+          router.push("/assureur-dashboard");
+        } else {
+          throw new Error(result.errors?.[0]?.message || "Erreur lors de l'inscription de l'assureur.");
+        }
+      } catch (graphQLError: any) {
+        throw new Error(graphQLError.message || "Erreur de communication avec le serveur GraphQL.");
+      }
     }
-  } catch (err) {
-    error.value = "Erreur lors de l'inscription. Veuillez réessayer."
+
+    if (success) {
+      toast({
+        title: "Inscription réussie",
+        description: "Votre compte a été créé avec succès.",
+      });
+    } else {
+      toast({
+        title: "Erreur d'inscription",
+        description: "Une erreur est survenue lors de l'inscription. Veuillez réessayer.",
+        variant: "destructive",
+      });
+    }
+  } catch (err: any) {
+    toast({
+      title: "Erreur d'inscription",
+      description: err.message || "Une erreur inattendue est survenue.",
+      variant: "destructive",
+    });
   } finally {
-    isLoading.value = false
+    isLoading.value = false;
   }
-}
+};
 
 const resetAccountType = () => {
-  accountType.value = null
-  currentStep.value = 1
-  error.value = ""
-}
+  accountType.value = null;
+  currentStep.value = 1;
+  // Reset forms
+  handleCompanyInfoSubmit(() => {});
+  handleDocumentsSubmit(() => {});
+  handleContactSubmit(() => {});
+  handleAccountSubmit(() => {});
+  handleProviderInfoSubmit(() => {});
+  handleInsurerInfoSubmit(() => {});
+  handleSocietaireInfoSubmit(() => {});
+};
 
-const maxSteps = computed(() => (accountType.value === "societaire" ? 4 : 6))
-const progressValue = computed(() => (currentStep.value / maxSteps.value) * 100)
+const maxSteps = computed(() => (accountType.value === "societaire" ? 4 : 6));
+const progressValue = computed(() => (currentStep.value / maxSteps.value) * 100);
 
 const handleAccountTypeSelected = (type: AccountType) => {
-  accountType.value = type
-}
-</script>
+  accountType.value = type;
+};
 
 <template>
   <div v-if="!accountType">
@@ -371,46 +439,56 @@ const handleAccountTypeSelected = (type: AccountType) => {
                 <div class="flex gap-2">
                   <Input
                     id="siret"
-                    v-model="companyInfo.siret"
-                    @input="(e: any) => { companyInfo.siret = (e.target as HTMLInputElement).value.replace(/\D/g, '').slice(0, 14); siretValidated = false; }"
+                    type="text"
+                    v-model="siret"
+                    v-bind="siretAttrs"
                     placeholder="14 chiffres"
                     maxlength="14"
+                    data-testid="siret-input"
                   />
                   <Button
-                    @click="validateSiret(companyInfo.siret)"
-                    :disabled="companyInfo.siret.length !== 14 || isLoading"
-                    :variant="siretValidated ? 'default' : 'outline'"
+                    @click="handleSiretValidation()"
+                    :disabled="siret.length !== 14 || isLoading || assureurStore.siretValidated"
+                    :variant="assureurStore.siretValidated ? 'default' : 'outline'"
+                    data-testid="verify-siret-button"
                   >
                     <Loader2 v-if="isLoading" class="h-4 w-4 animate-spin" />
-                    <CheckCircle v-else-if="siretValidated" class="h-4 w-4" />
+                    <CheckCircle v-else-if="assureurStore.siretValidated" class="h-4 w-4" />
                     <span v-else>Vérifier</span>
                   </Button>
                 </div>
+                <ErrorMessage name="siret" class="text-red-500 text-sm" data-testid="siret-error" />
               </div>
 
               <div class="md:col-span-2">
                 <Label for="raisonSociale">Raison sociale *</Label>
                 <Input
                   id="raisonSociale"
-                  v-model="companyInfo.raisonSociale"
-                  :disabled="!siretValidated"
+                  v-model="raisonSociale"
+                  v-bind="raisonSocialeAttrs"
+                  :disabled="!assureurStore.siretValidated"
+                  data-testid="raison-sociale-input"
                 />
+                <ErrorMessage name="raisonSociale" class="text-red-500 text-sm" data-testid="raison-sociale-error" />
               </div>
 
               <div>
                 <Label for="formeJuridique">Forme juridique *</Label>
                 <Select
-                  v-model="companyInfo.formeJuridique"
+                  v-model="formeJuridique"
+                  v-bind="formeJuridiqueAttrs"
+                  data-testid="forme-juridique-select"
                 >
-                  <SelectTrigger>
+                  <SelectTrigger data-testid="forme-juridique-trigger">
                     <SelectValue placeholder="Sélectionnez" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent data-testid="forme-juridique-options">
                     <SelectItem v-for="forme in formeJuridiques" :key="forme" :value="forme">
                       {{ forme }}
                     </SelectItem>
                   </SelectContent>
                 </Select>
+                <ErrorMessage name="formeJuridique" class="text-red-500 text-sm" data-testid="forme-juridique-error" />
               </div>
 
               <div>
@@ -418,36 +496,48 @@ const handleAccountTypeSelected = (type: AccountType) => {
                 <Input
                   id="dateCreation"
                   type="date"
-                  v-model="companyInfo.dateCreation"
-                  :disabled="!siretValidated"
+                  v-model="dateCreation"
+                  v-bind="dateCreationAttrs"
+                  :disabled="!assureurStore.siretValidated"
+                  data-testid="date-creation-input"
                 />
+                <ErrorMessage name="dateCreation" class="text-red-500 text-sm" data-testid="date-creation-error" />
               </div>
 
               <div class="md:col-span-2">
                 <Label for="adresse">Adresse complète (siège social) *</Label>
                 <Input
                   id="adresse"
-                  v-model="companyInfo.adresse"
-                  :disabled="!siretValidated"
+                  v-model="adresse"
+                  v-bind="adresseAttrs"
+                  :disabled="!assureurStore.siretValidated"
+                  data-testid="adresse-input"
                 />
+                <ErrorMessage name="adresse" class="text-red-500 text-sm" data-testid="adresse-error" />
               </div>
 
               <div>
                 <Label for="codePostal">Code postal *</Label>
                 <Input
                   id="codePostal"
-                  v-model="companyInfo.codePostal"
-                  :disabled="!siretValidated"
+                  v-model="codePostal"
+                  v-bind="codePostalAttrs"
+                  :disabled="!assureurStore.siretValidated"
+                  data-testid="code-postal-input"
                 />
+                <ErrorMessage name="codePostal" class="text-red-500 text-sm" data-testid="code-postal-error" />
               </div>
 
               <div>
                 <Label for="ville">Ville *</Label>
                 <Input
                   id="ville"
-                  v-model="companyInfo.ville"
-                  :disabled="!siretValidated"
+                  v-model="ville"
+                  v-bind="villeAttrs"
+                  :disabled="!assureurStore.siretValidated"
+                  data-testid="ville-input"
                 />
+                <ErrorMessage name="ville" class="text-red-500 text-sm" data-testid="ville-error" />
               </div>
             </div>
           </div>
@@ -458,16 +548,19 @@ const handleAccountTypeSelected = (type: AccountType) => {
               <div>
                 <Label for="civilite">Civilité *</Label>
                 <Select
-                  v-model="societaireInfo.civilite"
+                  v-model="civilite"
+                  v-bind="civiliteAttrs"
+                  data-testid="societaire-civilite-select"
                 >
-                  <SelectTrigger>
+                  <SelectTrigger data-testid="societaire-civilite-trigger">
                     <SelectValue placeholder="Sélectionnez" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent data-testid="societaire-civilite-options">
                     <SelectItem value="M">Monsieur</SelectItem>
                     <SelectItem value="Mme">Madame</SelectItem>
                   </SelectContent>
                 </Select>
+                <ErrorMessage name="civilite" class="text-red-500 text-sm" data-testid="societaire-civilite-error" />
               </div>
 
               <div>
@@ -475,49 +568,72 @@ const handleAccountTypeSelected = (type: AccountType) => {
                 <Input
                   id="dateNaissance"
                   type="date"
-                  v-model="societaireInfo.dateNaissance"
+                  v-model="dateNaissance"
+                  v-bind="dateNaissanceAttrs"
+                  data-testid="societaire-date-naissance-input"
                 />
+                <ErrorMessage name="dateNaissance" class="text-red-500 text-sm" data-testid="societaire-date-naissance-error" />
               </div>
 
               <div>
                 <Label for="prenomSocietaire">Prénom *</Label>
                 <Input
                   id="prenomSocietaire"
-                  v-model="societaireInfo.prenom"
+                  type="text"
+                  v-model="prenomSocietaire"
+                  v-bind="prenomSocietaireAttrs"
+                  data-testid="societaire-prenom-input"
                 />
+                <ErrorMessage name="prenom" class="text-red-500 text-sm" data-testid="societaire-prenom-error" />
               </div>
 
               <div>
                 <Label for="nomSocietaire">Nom *</Label>
                 <Input
                   id="nomSocietaire"
-                  v-model="societaireInfo.nom"
+                  type="text"
+                  v-model="nomSocietaire"
+                  v-bind="nomSocietaireAttrs"
+                  data-testid="societaire-nom-input"
                 />
+                <ErrorMessage name="nom" class="text-red-500 text-sm" data-testid="societaire-nom-error" />
               </div>
 
               <div class="md:col-span-2">
                 <Label for="adresseBien">Adresse du bien/projet *</Label>
                 <Input
                   id="adresseBien"
-                  v-model="societaireInfo.adresseBien"
+                  type="text"
+                  v-model="adresseBien"
+                  v-bind="adresseBienAttrs"
                   placeholder="Adresse complète du bien concerné"
+                  data-testid="societaire-adresse-bien-input"
                 />
+                <ErrorMessage name="adresseBien" class="text-red-500 text-sm" data-testid="societaire-adresse-bien-error" />
               </div>
 
               <div>
                 <Label for="codePostalBien">Code postal *</Label>
                 <Input
                   id="codePostalBien"
-                  v-model="societaireInfo.codePostalBien"
+                  type="text"
+                  v-model="codePostalBien"
+                  v-bind="codePostalBienAttrs"
+                  data-testid="societaire-code-postal-bien-input"
                 />
+                <ErrorMessage name="codePostalBien" class="text-red-500 text-sm" data-testid="societaire-code-postal-bien-error" />
               </div>
 
               <div>
                 <Label for="villeBien">Ville *</Label>
                 <Input
                   id="villeBien"
-                  v-model="societaireInfo.villeBien"
+                  type="text"
+                  v-model="villeBien"
+                  v-bind="villeBienAttrs"
+                  data-testid="societaire-ville-bien-input"
                 />
+                <ErrorMessage name="villeBien" class="text-red-500 text-sm" data-testid="societaire-ville-bien-error" />
               </div>
             </div>
           </div>
@@ -525,13 +641,13 @@ const handleAccountTypeSelected = (type: AccountType) => {
           <!-- Étape 2: Documents -->
           <div v-else-if="currentStep === 2 && accountType !== 'societaire'" class="space-y-6">
             <div>
-              <Label>Kbis (moins de 6 mois) *</Label>
+              <Label for="kbis">Kbis (moins de 6 mois) *</Label>
               <div class="mt-2 border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                 <Upload class="mx-auto h-12 w-12 text-gray-400" />
                 <div class="mt-4">
                   <label for="kbis" class="cursor-pointer">
                     <span class="mt-2 block text-sm font-medium text-gray-900">
-                      {{ documents.kbis ? documents.kbis.name : "Cliquez pour télécharger votre Kbis" }}
+                      {{ kbis ? kbis.name : "Cliquez pour télécharger votre Kbis" }}
                     </span>
                     <span class="mt-1 block text-xs text-gray-500">PDF, max 5MB</span>
                   </label>
@@ -540,20 +656,22 @@ const handleAccountTypeSelected = (type: AccountType) => {
                     type="file"
                     class="hidden"
                     accept=".pdf"
-                    @change="(e: any) => e.target.files?.[0] && handleFileUpload('kbis', e.target.files[0])"
+                    @change="(e: any) => handleFileUpload('kbis', e.target.files?.[0])"
+                    data-testid="kbis-upload"
                   />
                 </div>
               </div>
+              <ErrorMessage name="kbis" class="text-red-500 text-sm" data-testid="kbis-error" />
             </div>
 
             <div>
-              <Label>Attestation d'assurance responsabilité civile / décennale *</Label>
+              <Label for="assurance">Attestation d'assurance responsabilité civile / décennale *</Label>
               <div class="mt-2 border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                 <Upload class="mx-auto h-12 w-12 text-gray-400" />
                 <div class="mt-4">
                   <label for="assurance" class="cursor-pointer">
                     <span class="mt-2 block text-sm font-medium text-gray-900">
-                      {{ documents.assurance ? documents.assurance.name : "Cliquez pour télécharger votre attestation" }}
+                      {{ assurance ? assurance.name : "Cliquez pour télécharger votre attestation" }}
                     </span>
                     <span class="mt-1 block text-xs text-gray-500">PDF, max 5MB</span>
                   </label>
@@ -562,21 +680,23 @@ const handleAccountTypeSelected = (type: AccountType) => {
                     type="file"
                     class="hidden"
                     accept=".pdf"
-                    @change="(e: any) => e.target.files?.[0] && handleFileUpload('assurance', e.target.files[0])"
+                    @change="(e: any) => handleFileUpload('assurance', e.target.files?.[0])"
+                    data-testid="assurance-upload"
                   />
                 </div>
               </div>
+              <ErrorMessage name="assurance" class="text-red-500 text-sm" data-testid="assurance-error" />
             </div>
 
             <!-- Document spécifique aux assureurs -->
             <div v-if="accountType === 'assureur'">
-              <Label>Agrément ACPR / Autorisation d'exercer *</Label>
+              <Label for="agrement">Agrément ACPR / Autorisation d'exercer *</Label>
               <div class="mt-2 border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                 <Upload class="mx-auto h-12 w-12 text-gray-400" />
                 <div class="mt-4">
                   <label for="agrement" class="cursor-pointer">
                     <span class="mt-2 block text-sm font-medium text-gray-900">
-                      {{ documents.agrement ? documents.agrement.name : "Cliquez pour télécharger votre agrément" }}
+                      {{ agrement ? agrement.name : "Cliquez pour télécharger votre agrément" }}
                     </span>
                     <span class="mt-1 block text-xs text-gray-500">PDF, max 5MB</span>
                   </label>
@@ -585,10 +705,12 @@ const handleAccountTypeSelected = (type: AccountType) => {
                     type="file"
                     class="hidden"
                     accept=".pdf"
-                    @change="(e: any) => e.target.files?.[0] && handleFileUpload('agrement', e.target.files[0])"
+                    @change="(e: any) => handleFileUpload('agrement', e.target.files?.[0])"
+                    data-testid="agrement-upload"
                   />
                 </div>
               </div>
+              <ErrorMessage name="agrement" class="text-red-500 text-sm" data-testid="agrement-error" />
             </div>
           </div>
 
@@ -647,16 +769,24 @@ const handleAccountTypeSelected = (type: AccountType) => {
               <Label for="prenom">Prénom du contact *</Label>
               <Input
                 id="prenom"
-                v-model="contact.prenom"
+                type="text"
+                v-model="prenom"
+                v-bind="prenomAttrs"
+                data-testid="contact-prenom-input"
               />
+              <ErrorMessage name="prenom" class="text-red-500 text-sm" data-testid="contact-prenom-error" />
             </div>
 
             <div>
               <Label for="nom">Nom du contact *</Label>
               <Input
                 id="nom"
-                v-model="contact.nom"
+                type="text"
+                v-model="nom"
+                v-bind="nomAttrs"
+                data-testid="contact-nom-input"
               />
+              <ErrorMessage name="nom" class="text-red-500 text-sm" data-testid="contact-nom-error" />
             </div>
 
             <div>
@@ -664,8 +794,11 @@ const handleAccountTypeSelected = (type: AccountType) => {
               <Input
                 id="emailContact"
                 type="email"
-                v-model="contact.email"
+                v-model="emailContact"
+                v-bind="emailContactAttrs"
+                data-testid="contact-email-input"
               />
+              <ErrorMessage name="email" class="text-red-500 text-sm" data-testid="contact-email-error" />
             </div>
 
             <div>
@@ -673,8 +806,11 @@ const handleAccountTypeSelected = (type: AccountType) => {
               <Input
                 id="telephone"
                 type="tel"
-                v-model="contact.telephone"
+                v-model="telephone"
+                v-bind="telephoneAttrs"
+                data-testid="contact-telephone-input"
               />
+              <ErrorMessage name="telephone" class="text-red-500 text-sm" data-testid="contact-telephone-error" />
             </div>
           </div>
 
@@ -685,8 +821,11 @@ const handleAccountTypeSelected = (type: AccountType) => {
               <Input
                 id="emailLoginSocietaire"
                 type="email"
-                v-model="account.email"
+                v-model="emailLogin"
+                v-bind="emailLoginAttrs"
+                data-testid="societaire-email-input"
               />
+              <ErrorMessage name="email" class="text-red-500 text-sm" data-testid="societaire-email-error" />
             </div>
 
             <div>
@@ -694,8 +833,11 @@ const handleAccountTypeSelected = (type: AccountType) => {
               <Input
                 id="passwordSocietaire"
                 type="password"
-                v-model="account.password"
+                v-model="password"
+                v-bind="passwordAttrs"
+                data-testid="societaire-password-input"
               />
+              <ErrorMessage name="password" class="text-red-500 text-sm" data-testid="societaire-password-error" />
             </div>
 
             <div>
@@ -703,9 +845,11 @@ const handleAccountTypeSelected = (type: AccountType) => {
               <Input
                 id="confirmPasswordSocietaire"
                 type="password"
-                v-model="account.confirmPassword"
+                v-model="confirmPassword"
+                v-bind="confirmPasswordAttrs"
+                data-testid="societaire-confirm-password-input"
               />
-              <p v-if="account.password && account.confirmPassword && account.password !== account.confirmPassword" class="text-sm text-red-600 mt-1">Les mots de passe ne correspondent pas</p>
+              <ErrorMessage name="confirmPassword" class="text-red-500 text-sm" data-testid="societaire-confirm-password-error" />
             </div>
 
             <div class="bg-green-50 p-4 rounded-lg">
@@ -714,6 +858,7 @@ const handleAccountTypeSelected = (type: AccountType) => {
                 <br />• Accéder à votre tableau de bord personnalisé
                 <br />• Gérer vos documents et photos
                 <br />• Suivre tous vos dossiers en cours
+                <br />• Recevoir des notifications sur l'évolution de votre dossier
               </p>
             </div>
           </div>
@@ -765,9 +910,13 @@ const handleAccountTypeSelected = (type: AccountType) => {
               <Label for="numeroAgrement">Numéro d'agrément ACPR *</Label>
               <Input
                 id="numeroAgrement"
-                v-model="insurerInfo.numeroAgrement"
+                type="text"
+                v-model="numeroAgrement"
+                v-bind="numeroAgrementAttrs"
                 placeholder="Ex: 12345678"
+                data-testid="agrement-input"
               />
+              <ErrorMessage name="numeroAgrement" class="text-red-500 text-sm" data-testid="agrement-error" />
             </div>
 
             <div>
@@ -776,29 +925,35 @@ const handleAccountTypeSelected = (type: AccountType) => {
                 <label v-for="type in typesAssuranceOptions" :key="type" class="flex items-center space-x-2 text-sm">
                   <input
                     type="checkbox"
-                    :checked="insurerInfo.typesAssurance.includes(type)"
+                    :checked="insurerTypesAssurance.includes(type)"
                     @change="(e) => {
                       const target = e.target as HTMLInputElement;
                       if (target.checked) {
-                        insurerInfo.typesAssurance.push(type);
+                        insurerTypesAssurance.push(type);
                       } else {
-                        insurerInfo.typesAssurance = insurerInfo.typesAssurance.filter((t) => t !== type);
+                        insurerTypesAssurance = insurerTypesAssurance.filter((t) => t !== type);
                       }
                     }"
                     class="rounded"
+                    data-testid="type-assurance-checkbox"
                   />
                   <span>{{ type }}</span>
                 </label>
               </div>
+              <ErrorMessage name="typesAssurance" class="text-red-500 text-sm" data-testid="types-assurance-error" />
             </div>
 
             <div>
               <Label for="garantiesProposees">Garanties et services proposés *</Label>
               <Input
                 id="garantiesProposees"
-                v-model="insurerInfo.garantiesProposees"
+                type="text"
+                v-model="garantiesProposees"
+                v-bind="garantiesProposeesAttrs"
                 placeholder="Décrivez vos principales garanties..."
+                data-testid="garanties-proposees-input"
               />
+              <ErrorMessage name="garantiesProposees" class="text-red-500 text-sm" data-testid="garanties-proposees-error" />
             </div>
 
             <div>
@@ -807,20 +962,22 @@ const handleAccountTypeSelected = (type: AccountType) => {
                 <label v-for="region in regions" :key="region" class="flex items-center space-x-2 text-sm">
                   <input
                     type="checkbox"
-                    :checked="insurerInfo.zonesCouverture.regions.includes(region)"
+                    :checked="insurerRegions.includes(region)"
                     @change="(e) => {
                       const target = e.target as HTMLInputElement;
                       if (target.checked) {
-                        insurerInfo.zonesCouverture.regions.push(region);
+                        insurerRegions.push(region);
                       } else {
-                        insurerInfo.zonesCouverture.regions = insurerInfo.zonesCouverture.regions.filter((r) => r !== region);
+                        insurerRegions = insurerRegions.filter((r) => r !== region);
                       }
                     }"
                     class="rounded"
+                    data-testid="zone-couverture-checkbox"
                   />
                   <span>{{ region }}</span>
                 </label>
               </div>
+              <ErrorMessage name="zonesCouverture.regions" class="text-red-500 text-sm" data-testid="zones-couverture-error" />
             </div>
           </div>
 
@@ -903,7 +1060,21 @@ const handleAccountTypeSelected = (type: AccountType) => {
               Précédent
             </Button>
 
-            <Button @click="(accountType === 'societaire' && currentStep < 3) || (accountType !== 'societaire' && currentStep < 5) ? nextStep() : submitRegistration()" :disabled="!validateStep(currentStep) || (isLoading && ((accountType === 'societaire' && currentStep >= 3) || (accountType !== 'societaire' && currentStep >= 5)))">
+            <Button @click="(accountType === 'societaire' && currentStep < 3) || (accountType !== 'societaire' && currentStep < 5) ? nextStep() : submitRegistration()" :disabled="
+              (accountType === 'societaire' && !societaireInfoMeta.valid) ||
+              (accountType === 'prestataire' && currentStep === 1 && !companyInfoMeta.valid) ||
+              (accountType === 'prestataire' && currentStep === 2 && !documentsMeta.valid) ||
+              (accountType === 'prestataire' && currentStep === 3 && !contactMeta.valid) ||
+              (accountType === 'prestataire' && currentStep === 4 && !providerInfoMeta.valid) ||
+              (accountType === 'prestataire' && currentStep === 5 && !accountMeta.valid) ||
+              (accountType === 'assureur' && currentStep === 1 && !companyInfoMeta.valid) ||
+              (accountType === 'assureur' && currentStep === 2 && !documentsMeta.valid) ||
+              (accountType === 'assureur' && currentStep === 3 && !contactMeta.valid) ||
+              (accountType === 'assureur' && currentStep === 4 && !insurerInfoMeta.valid) ||
+              (accountType === 'assureur' && currentStep === 5 && !accountMeta.valid) ||
+              isLoading
+            "
+            data-testid="next-button">
               <Loader2 v-if="isLoading && ((accountType === 'societaire' && currentStep >= 3) || (accountType !== 'societaire' && currentStep >= 5))" class="mr-2 h-4 w-4 animate-spin" />
               <span v-if="(accountType === 'societaire' && currentStep < 3) || (accountType !== 'societaire' && currentStep < 5)">Suivant</span>
               <span v-else>Finaliser l'inscription</span>

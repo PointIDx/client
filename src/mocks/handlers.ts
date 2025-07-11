@@ -1,6 +1,33 @@
-import { graphql, HttpResponse } from 'msw'
+import { graphql, HttpResponse, http } from 'msw'
 
 export const handlers = [
+  // Mock SIRET API
+  http.get('/api/siret/:siret', ({ params }) => {
+    const { siret } = params;
+    if (siret === '12345678901234') {
+      return HttpResponse.json({
+        etablissement: {
+          uniteLegale: {
+            denominationUniteLegale: "ASSURANCE TEST SA",
+            categorieJuridiqueUniteLegale: "5499",
+          },
+          adresseEtablissement: {
+            numeroVoieEtablissement: "10",
+            typeVoieEtablissement: "RUE",
+            libelleVoieEtablissement: "DE LA PAIX",
+            codePostalEtablissement: "75001",
+            libelleCommuneEtablissement: "PARIS",
+          },
+          dateCreationEtablissement: "2020-01-01",
+        },
+      });
+    } else {
+      return HttpResponse.json({
+        message: "SIRET non trouvé ou invalide",
+      }, { status: 404 });
+    }
+  }),
+
   // Intercept "viewer" GraphQL query.
   graphql.query('viewer', () => {
     return HttpResponse.json({
@@ -66,6 +93,39 @@ export const handlers = [
         errors: [
           {
             message: 'Missing email or password',
+            extensions: {
+              code: 'BAD_USER_INPUT',
+            },
+          },
+        ],
+      }, { status: 400 });
+    }
+  }),
+
+  // Intercept "AssureurSignup" GraphQL mutation.
+  graphql.mutation('AssureurSignup', (req) => {
+    const { companyInfo, documents, contact, insurerInfo, account } = req.variables;
+
+    if (companyInfo && documents && contact && insurerInfo && account) {
+      return HttpResponse.json({
+        data: {
+          assureurSignup: {
+            token: 'mock-assureur-jwt-token',
+            expiresIn: 3600,
+            refreshToken: 'mock-assureur-refresh-token',
+            user: {
+              id: 'assureur-789',
+              email: account.email,
+              accountType: 'assureur',
+            },
+          },
+        },
+      });
+    } else {
+      return HttpResponse.json({
+        errors: [
+          {
+            message: 'Missing required fields for AssureurSignup',
             extensions: {
               code: 'BAD_USER_INPUT',
             },
