@@ -3,6 +3,8 @@ import { ref, onMounted } from "vue"
 import { Button } from "@/components/ui/button"
 import { Building2 } from "lucide-vue-next"
 import { useRouter } from 'vue-router'
+// import logo
+import Logo from '@/assets/logo.svg'
 
 const router = useRouter()
 const isVisible = ref(false)
@@ -19,17 +21,7 @@ const navigateTo = (path: string) => {
 <template>
   <header class="border-b border-gray-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 sticky top-0 z-50">
     <div class="container mx-auto px-4 h-16 flex items-center justify-between">
-      <div
-        class="flex items-center space-x-3 transition-all duration-1000"
-        :class="isVisible ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'"
-      >
-        <div class="w-8 h-8 bg-gray-800 rounded-lg flex items-center justify-center">
-          <Building2 class="h-5 w-5 text-white" />
-        </div>
-        <span class="text-xl font-bold text-gray-900">
-          PointID
-        </span>
-      </div>
+      <img :src="Logo" alt="Logo" class="h-12"/>
 
       <nav class="hidden md:flex items-center space-x-8">
         <a

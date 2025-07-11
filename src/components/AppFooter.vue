@@ -11,6 +11,8 @@ const contactInfo = [
   { icon: Mail, text: 'contact@pointid.fr' },
   { icon: Location, text: 'Paris, France' },
 ]
+
+import Logo from '@/assets/logo.svg'
 </script>
 
 <template>
@@ -19,12 +21,7 @@ const contactInfo = [
       <div class="grid md:grid-cols-4 gap-12">
         <div>
           <div class="flex items-center space-x-3 mb-6">
-            <div class="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center">
-              <Building2 class="h-6 w-6 text-white" />
-            </div>
-            <span class="text-2xl font-bold text-gray-900">
-              PointID
-            </span>
+            <img :src="Logo" alt="Logo" class="h-12"/>
           </div>
           <p class="text-gray-600 mb-6 leading-relaxed">
             La plateforme de référence pour la gestion des sinistres et interventions professionnelles.
