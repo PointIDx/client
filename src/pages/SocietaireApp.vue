@@ -6,7 +6,7 @@ import { useSocietaireStore } from '@/stores/societaire'
 
 const societaireStore = useSocietaireStore()
 
-const isLoggedIn = computed(() => !!societaireStore.token)
+const isLoggedIn = computed(() => !!societaireStore.tokens)
 
 const handleLogout = () => {
   societaireStore.logout()

@@ -9,6 +9,8 @@ import { setupWorker } from 'msw/browser'
 import { handlers } from './mocks/handlers'
 import apolloClient from './apollo-client'
 import { provideApolloClient } from '@vue/apollo-composable'
+import { useAuthStore } from './stores/auth'
+import { useSocietaireStore } from './stores/societaire'
 
 async function enableMocking() {
   if (!import.meta.env.DEV) {
@@ -30,5 +32,12 @@ app.use(createPinia())
 app.use(router)
 
 enableMocking().then(() => {
+  // Initialize auth stores after mounting
+  const authStore = useAuthStore()
+  const societaireStore = useSocietaireStore()
+  
+  authStore.initAuth()
+  societaireStore.initAuth()
+  
   app.mount('#app')
 })

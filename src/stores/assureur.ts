@@ -65,7 +65,7 @@ export const useAssureurStore = defineStore('assureur', () => {
 
     onError((error) => {
       console.error('Error searching prestataires:', error);
-      throw new Error('Erreur lors de la recherche des prestataires.');
+      handleGraphQLError(error, 'Search Prestataires', { showToast: true });
     });
   };
 

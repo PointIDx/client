@@ -2,22 +2,36 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Societaire Flow', () => {
   test('should allow a societaire to log in and view dashboard', async ({ page }) => {
-    await page.goto('/societaire-login');
+    // Go to login selection first
+    await page.goto('/login-selection');
+    await page.waitForLoadState('domcontentloaded');
+    
+    // Click on the societaire card - it should be the third card
+    await page.locator('button:has-text(\"Se connecter comme Sociétaire\")').click();
+    await page.waitForURL('/login/societaire', { timeout: 10000 });
 
-    await page.fill('input[type="email"]', 'societaire@example.com');
-    await page.fill('input[type="text"]', 'DOSSIER123');
+    // Fill in login form with test credentials
+    await page.fill('input[type="email"]', 'jean.dupont@email.com');
+    await page.fill('input[type="password"]', 'DOS2024001');
     await page.click('button[type="submit"]');
 
     await expect(page).toHaveURL('/societaire-dashboard');
-    await expect(page.locator('text=DOSSIER SINISTRE')).toBeVisible();
-    await expect(page.locator('text=societaire@example.com')).toBeVisible();
-    await expect(page.locator('text=Dossier: DOSSIER123')).toBeVisible();
+    
+    // Wait for the page to load and show the dashboard content
+    await page.waitForSelector('text=ESPACE SOCIÉTAIRE', { timeout: 10000 });
+    await expect(page.locator('text=DOSSIER SINISTRE')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=jean.dupont@email.com')).toBeVisible();
+    await expect(page.locator('text=DOS2024001')).toBeVisible();
   });
 
   test('should allow a societaire to send a comment', async ({ page }) => {
-    await page.goto('/societaire-login');
-    await page.fill('input[type="email"]', 'societaire@example.com');
-    await page.fill('input[type="text"]', 'DOSSIER123');
+    // Login via new flow
+    await page.goto('/login-selection');
+    await page.waitForLoadState('domcontentloaded');
+    await page.locator('text=Sociétaire').first().click();
+    await page.waitForURL('/login/societaire');
+    await page.fill('input[type="email"]', 'jean.dupont@email.com');
+    await page.fill('input[type="password"]', 'DOS2024001');
     await page.click('button[type="submit"]');
     await page.waitForURL('/societaire-dashboard');
 
@@ -30,9 +44,13 @@ test.describe('Societaire Flow', () => {
   });
 
   test('should allow a societaire to upload a file with a comment', async ({ page }) => {
-    await page.goto('/societaire-login');
-    await page.fill('input[type="email"]', 'societaire@example.com');
-    await page.fill('input[type="text"]', 'DOSSIER123');
+    // Login via new flow
+    await page.goto('/login-selection');
+    await page.waitForLoadState('domcontentloaded');
+    await page.locator('text=Sociétaire').first().click();
+    await page.waitForURL('/login/societaire');
+    await page.fill('input[type="email"]', 'jean.dupont@email.com');
+    await page.fill('input[type="password"]', 'DOS2024001');
     await page.click('button[type="submit"]');
     await page.waitForURL('/societaire-dashboard');
 
@@ -58,7 +76,7 @@ test.describe('Societaire Flow', () => {
     await page.click('button:has-text("AJOUTER AU DOSSIER")');
 
     await expect(page.locator('text=Contenu ajouté avec succès !')).toBeVisible();
-    await expect(page.locator('text=test-file.txt')).toBeVisible();
-    await expect(page.locator(`p:has-text("${testComment}")`)).toBeVisible();
+    await expect(page.locator('text=test-file.txt').first()).toBeVisible();
+    await expect(page.locator(`text=${testComment}`)).toBeVisible();
   });
 });

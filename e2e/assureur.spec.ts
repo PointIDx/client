@@ -2,7 +2,15 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Assureur Dashboard', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/assureur-dashboard');
+    // Login as assureur first
+    await page.goto('/login-selection');
+    await page.waitForLoadState('domcontentloaded');
+    await page.locator('button:has-text("Se connecter comme Assureur")').click();
+    await page.waitForURL('/login/assureur');
+    await page.fill('input[type="email"]', 'assureur@test.com');
+    await page.fill('input[type="password"]', 'password123');
+    await page.click('button[type="submit"]');
+    await page.waitForURL('/assureur-dashboard');
     await page.waitForLoadState('networkidle');
   });
 
@@ -23,7 +31,7 @@ test.describe('Assureur Dashboard', () => {
 
   test('should filter prestataires by secteur', async ({ page }) => {
     await page.getByTestId('secteur-select-trigger').click();
-    await page.getByText('Plomberie').click();
+    await page.locator('[role="option"]').filter({ hasText: 'Plomberie' }).click();
     await page.getByTestId('search-button').click();
     await expect(page.getByText('MOREAU PLOMBERIE')).toBeVisible();
     await expect(page.getByText('DUBOIS MAÇONNERIE SARL')).not.toBeVisible();

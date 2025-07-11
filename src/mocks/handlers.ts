@@ -1,5 +1,60 @@
 import { graphql, HttpResponse, http } from 'msw'
 
+// Stateful mock data for missions
+let mockMissions = [
+  {
+    id: 'mission-1',
+    missionStatus: 'nouvelle',
+    dossier: {
+      id: 'dossier-1',
+      dossierNumber: 'DOSS-001',
+      description: 'Fuite d\'eau dans la cuisine',
+      address: '123 Rue de la Fuite, Paris',
+      type: 'Dégât des eaux',
+    },
+    assureur: {
+      id: 'assureur-1',
+      companyName: 'Assurance Alpha',
+    },
+    dateCreation: '2024-01-15T10:00:00Z',
+    nouveauxMessages: 2,
+  },
+  {
+    id: 'mission-2',
+    missionStatus: 'en_cours',
+    dossier: {
+      id: 'dossier-2',
+      dossierNumber: 'DOSS-002',
+      description: 'Fenêtre cassée',
+      address: '456 Avenue du Verre, Lyon',
+      type: 'Bris de glace',
+    },
+    assureur: {
+      id: 'assureur-2',
+      companyName: 'Assurance Beta',
+    },
+    dateCreation: '2024-01-16T11:00:00Z',
+    nouveauxMessages: 0,
+  },
+  {
+    id: 'mission-3',
+    missionStatus: 'terminee',
+    dossier: {
+      id: 'dossier-3',
+      dossierNumber: 'DOSS-003',
+      description: 'Porte d\'entrée forcée',
+      address: '789 Boulevard de la Clé, Marseille',
+      type: 'Serrurerie',
+    },
+    assureur: {
+      id: 'assureur-1',
+      companyName: 'Assurance Alpha',
+    },
+    dateCreation: '2024-01-14T09:30:00Z',
+    nouveauxMessages: 1,
+  },
+];
+
 export const handlers = [
   // Mock SIRET API
   http.get('/api/siret/:siret', ({ params }) => {
@@ -412,49 +467,169 @@ export const handlers = [
     });
   }),
 
+  // Intercept "AssureurLogin" GraphQL mutation.
+  graphql.mutation('AssureurLogin', (req) => {
+    const { email, password } = req.variables;
+
+    if (email === 'assureur@test.com' && password === 'password123') {
+      return HttpResponse.json({
+        data: {
+          assureurLogin: {
+            tokens: {
+              token: 'mock-assureur-jwt-token',
+              refreshToken: 'mock-assureur-refresh-token',
+              expiresIn: 3600,
+            },
+            user: {
+              id: 'assureur-123',
+              email: 'assureur@test.com',
+              accountType: 'assureur',
+            },
+          },
+        },
+      });
+    } else {
+      return HttpResponse.json({
+        errors: [
+          {
+            message: 'Invalid assureur credentials',
+            extensions: {
+              code: 'UNAUTHENTICATED',
+            },
+          },
+        ],
+      }, { status: 401 });
+    }
+  }),
+
+  // Intercept "PrestataireLogin" GraphQL mutation.
+  graphql.mutation('PrestataireLogin', (req) => {
+    const { email, password } = req.variables;
+
+    if (email === 'prestataire@test.com' && password === 'password123') {
+      return HttpResponse.json({
+        data: {
+          prestataireLogin: {
+            tokens: {
+              token: 'mock-prestataire-jwt-token',
+              refreshToken: 'mock-prestataire-refresh-token',
+              expiresIn: 3600,
+            },
+            user: {
+              id: 'prestataire-456',
+              email: 'prestataire@test.com',
+              accountType: 'prestataire',
+            },
+          },
+        },
+      });
+    } else {
+      return HttpResponse.json({
+        errors: [
+          {
+            message: 'Invalid prestataire credentials',
+            extensions: {
+              code: 'UNAUTHENTICATED',
+            },
+          },
+        ],
+      }, { status: 401 });
+    }
+  }),
+
   // Intercept "SearchPrestataires" GraphQL query.
   graphql.query('SearchPrestataires', ({ variables }) => {
     const { location, specialty, name } = variables;
     
-    // Simulate filtering logic
+    // Mock data matching what tests expect
     let filteredPrestataires = [
       {
         id: '1',
-        companyName: 'Plomberie Express',
-        contactPerson: 'Jean Dupont',
-        email: 'jean.dupont@plomberie-express.com',
-        phone: '0123456789',
-        address: '123 Rue de la Plomberie, Paris',
-        specialties: ['Plomberie', 'Chauffage'],
+        nom: 'Jean Dubois',
+        raisonSociale: 'DUBOIS MAÇONNERIE SARL',
+        siret: '12345678901234',
+        formeJuridique: 'SARL',
+        email: 'contact@dubois-maconnerie.fr',
+        telephone: '0142123456',
+        adresse: '123 Rue de la Paix',
+        codePostal: '75001',
+        ville: 'Paris',
+        departement: '75 - Paris',
+        region: 'Île-de-France',
+        secteurs: ['Maçonnerie', 'Gros œuvre'],
+        specialites: ['Murs porteurs', 'Fondations', 'Rénovation'],
+        description: 'Entreprise spécialisée en maçonnerie générale avec 15 ans d\'expérience.',
+        certifications: ['RGE', 'Qualibat'],
+        documentsPublics: ['Kbis', 'Assurance décennale', 'Attestation fiscale'],
+        notemoyenne: 4.5,
+        nombreAvis: 23,
+        dateCreation: '2010-05-15',
+        avatar: null,
       },
       {
         id: '2',
-        companyName: 'Electricité Rapide',
-        contactPerson: 'Marie Curie',
-        email: 'marie.curie@electricite-rapide.com',
-        phone: '0987654321',
-        address: "456 Avenue de l'Electricité, Lyon",
-        specialties: ['Electricité', 'Domotique'],
+        nom: 'Marie Moreau',
+        raisonSociale: 'MOREAU PLOMBERIE',
+        siret: '23456789012345',
+        formeJuridique: 'EURL',
+        email: 'contact@moreau-plomberie.fr',
+        telephone: '0143234567',
+        adresse: '456 Avenue des Champs',
+        codePostal: '13001',
+        ville: 'Marseille',
+        departement: '13 - Bouches-du-Rhône',
+        region: 'Provence-Alpes-Côte d\'Azur',
+        secteurs: ['Plomberie', 'Chauffage'],
+        specialites: ['Sanitaires', 'Réparations', 'Installation chauffage'],
+        description: 'Plombier professionnel disponible 7j/7 pour urgences.',
+        certifications: ['RGE', 'PG'],
+        documentsPublics: ['Kbis', 'Assurance décennale'],
+        notemoyenne: 4.8,
+        nombreAvis: 41,
+        dateCreation: '2015-03-10',
+        avatar: null,
       },
       {
         id: '3',
-        companyName: 'Serrurerie Sécurité',
-        contactPerson: 'Paul Lefevre',
-        email: 'paul.lefevre@serrurerie-securite.com',
-        phone: '0112233445',
-        address: '789 Boulevard de la Serrurerie, Marseille',
-        specialties: ['Serrurerie'],
-      },
+        nom: 'Pierre Leroy',
+        raisonSociale: 'LEROY ÉLECTRICITÉ',
+        siret: '34567890123456',
+        formeJuridique: 'SAS',
+        email: 'contact@leroy-electricite.fr',
+        telephone: '0144345678',
+        adresse: '789 Boulevard Saint-Germain',
+        codePostal: '31000',
+        ville: 'Toulouse',
+        departement: '31 - Haute-Garonne',
+        region: 'Occitanie',
+        secteurs: ['Électricité', 'Domotique'],
+        specialites: ['Installation électrique', 'Mise aux normes', 'Domotique'],
+        description: 'Électricien certifié pour tous types d\'installations.',
+        certifications: ['Qualifelec', 'RGE'],
+        documentsPublics: ['Kbis', 'Assurance décennale', 'Certificat Qualifelec'],
+        notemoyenne: 4.2,
+        nombreAvis: 18,
+        dateCreation: '2018-09-20',
+        avatar: null,
+      }
     ];
 
-    if (location) {
-      filteredPrestataires = filteredPrestataires.filter(p => p.address.toLowerCase().includes(location.toLowerCase()));
+    // Apply filters
+    if (name) {
+      filteredPrestataires = filteredPrestataires.filter(p => 
+        p.nom.toLowerCase().includes(name.toLowerCase()) ||
+        p.raisonSociale.toLowerCase().includes(name.toLowerCase()) ||
+        p.secteurs.some(s => s.toLowerCase().includes(name.toLowerCase())) ||
+        p.specialites.some(s => s.toLowerCase().includes(name.toLowerCase()))
+      );
     }
     if (specialty) {
-      filteredPrestataires = filteredPrestataires.filter(p => p.specialties.some(s => s.toLowerCase().includes(specialty.toLowerCase())));
+      filteredPrestataires = filteredPrestataires.filter(p => p.secteurs.includes(specialty));
     }
-    if (name) {
-      filteredPrestataires = filteredPrestataires.filter(p => p.companyName.toLowerCase().includes(name.toLowerCase()) || p.contactPerson.toLowerCase().includes(name.toLowerCase()));
+    if (location) {
+      filteredPrestataires = filteredPrestataires.filter(p => 
+        p.region === location || p.departement === location
+      );
     }
 
     return HttpResponse.json({
@@ -467,73 +642,32 @@ export const handlers = [
   graphql.query('GetPrestataireMissions', () => {
     return HttpResponse.json({
       data: {
-        getPrestataireMissions: [
-          {
-            id: 'mission-1',
-            missionStatus: 'nouvelle',
-            dossier: {
-              id: 'dossier-1',
-              dossierNumber: 'DOSS-001',
-              description: 'Fuite d\'eau dans la cuisine',
-              address: '123 Rue de la Fuite, Paris',
-              type: 'Dégât des eaux',
-            },
-            assureur: {
-              id: 'assureur-1',
-              companyName: 'Assurance Alpha',
-            },
-            dateCreation: '2024-01-15T10:00:00Z',
-            nouveauxMessages: 2,
-          },
-          {
-            id: 'mission-2',
-            missionStatus: 'en_cours',
-            dossier: {
-              id: 'dossier-2',
-              dossierNumber: 'DOSS-002',
-              description: 'Fenêtre cassée',
-              address: '456 Avenue du Verre, Lyon',
-              type: 'Bris de glace',
-            },
-            assureur: {
-              id: 'assureur-2',
-              companyName: 'Assurance Beta',
-            },
-            dateCreation: '2024-01-16T11:00:00Z',
-            nouveauxMessages: 0,
-          },
-          {
-            id: 'mission-3',
-            missionStatus: 'terminee',
-            dossier: {
-              id: 'dossier-3',
-              dossierNumber: 'DOSS-003',
-              description: 'Porte d\'entrée forcée',
-              address: '789 Boulevard de la Clé, Marseille',
-              type: 'Serrurerie',
-            },
-            assureur: {
-              id: 'assureur-1',
-              companyName: 'Assurance Alpha',
-            },
-            dateCreation: '2024-01-14T09:30:00Z',
-            nouveauxMessages: 1,
-          },
-        ],
+        getPrestataireMissions: mockMissions,
       },
     });
   }),
 
   graphql.mutation('UpdateMissionStatus', ({ variables }) => {
     const { missionId, status } = variables;
-    return HttpResponse.json({
-      data: {
-        updateMissionStatus: {
-          id: missionId,
-          missionStatus: status,
+    
+    // Find and update the mission in our mock data
+    const missionIndex = mockMissions.findIndex(m => m.id === missionId);
+    if (missionIndex !== -1) {
+      mockMissions[missionIndex].missionStatus = status;
+      
+      return HttpResponse.json({
+        data: {
+          updateMissionStatus: {
+            id: missionId,
+            missionStatus: status,
+          },
         },
-      },
-    });
+      });
+    }
+    
+    return HttpResponse.json({
+      errors: [{ message: 'Mission not found' }],
+    }, { status: 404 });
   }),
 
   graphql.mutation('SendComment', ({ variables }) => {
@@ -548,6 +682,32 @@ export const handlers = [
           dateEnvoi: new Date().toISOString(),
           lu: true,
         },
+      },
+    });
+  }),
+
+  graphql.query('GetMessages', ({ variables }) => {
+    const { missionId } = variables;
+    return HttpResponse.json({
+      data: {
+        getMessages: [
+          {
+            id: '1',
+            missionId,
+            expediteur: 'assureur',
+            contenu: 'Bonjour, pouvez-vous nous donner une estimation pour cette mission ?',
+            dateEnvoi: new Date(Date.now() - 86400000).toISOString(),
+            lu: true,
+          },
+          {
+            id: '2',
+            missionId,
+            expediteur: 'prestataire',
+            contenu: 'Bonjour, je peux être sur place demain matin pour faire l\'évaluation.',
+            dateEnvoi: new Date(Date.now() - 43200000).toISOString(),
+            lu: true,
+          }
+        ],
       },
     });
   }),

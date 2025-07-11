@@ -16,6 +16,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Textarea } from '@/components/ui/textarea'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
@@ -83,10 +84,18 @@ const regions = [
 const departements = ["01 - Ain", "13 - Bouches-du-Rhône", "31 - Haute-Garonne", "69 - Rhône", "75 - Paris"]
 
 const applyFilters = () => {
+  // Determine the location filter: prioritize departement over region
+  let locationFilter = undefined;
+  if (selectedDepartement.value !== "all") {
+    locationFilter = selectedDepartement.value;
+  } else if (selectedRegion.value !== "all") {
+    locationFilter = selectedRegion.value;
+  }
+
   assureurStore.searchPrestataires({
     name: searchTerm.value === "" ? undefined : searchTerm.value,
     specialty: selectedSecteur.value === "all" ? undefined : selectedSecteur.value,
-    location: selectedRegion.value === "all" ? undefined : selectedRegion.value,
+    location: locationFilter,
   });
 }
 

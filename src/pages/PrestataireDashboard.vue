@@ -48,8 +48,18 @@ const filteredMissions = (status: MissionStatutPrestataire) => {
 }
 
 const nouvellesMissions = computed(() => filteredMissions(MissionStatutPrestataire.Nouvelle))
-const missionsEnCours = computed(() => filteredMissions(MissionStatutPrestataire.EnCours))
-const missionsTerminees = computed(() => filteredMissions(MissionStatutPrestataire.Terminee))
+const missionsEnCours = computed(() => {
+  return missions.value.filter((mission) => 
+    mission.missionStatus === MissionStatutPrestataire.EnCours ||
+    mission.missionStatus === MissionStatutPrestataire.Acceptee
+  )
+})
+const missionsTerminees = computed(() => {
+  return missions.value.filter((mission) => 
+    mission.missionStatus === MissionStatutPrestataire.Terminee ||
+    mission.missionStatus === MissionStatutPrestataire.Refusee
+  )
+})
 
 const messages = computed(() => prestataireStore.messages)
 const selectedMission = ref<MissionPrestataire | null>(null)

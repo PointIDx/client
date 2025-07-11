@@ -64,10 +64,22 @@ export async function fetchSiretInfo(siret: string): Promise<SiretValidationResu
     const data: SiretApiResponse = await response.json()
     const { uniteLegale, adresseEtablissement, dateCreationEtablissement } = data.etablissement
 
+    // Map numeric juridical form codes to text values
+    const mapJuridicalForm = (code: string): string => {
+      const mapping: Record<string, string> = {
+        '5499': 'SAS', // Société par actions simplifiée
+        '5720': 'SARL', // Société à responsabilité limitée
+        '5710': 'SA', // Société anonyme
+        '5785': 'SASU', // Société par actions simplifiée à associé unique
+        '5498': 'EURL', // Entreprise unipersonnelle à responsabilité limitée
+      }
+      return mapping[code] || ''
+    }
+
     const companyInfo: CompanyInfo = {
       siret: siret.replace(/\s+/g, ''),
       raisonSociale: uniteLegale.denominationUniteLegale,
-      formeJuridique: uniteLegale.categorieJuridiqueUniteLegale,
+      formeJuridique: mapJuridicalForm(uniteLegale.categorieJuridiqueUniteLegale),
       adresse: `${adresseEtablissement.numeroVoieEtablissement} ${adresseEtablissement.typeVoieEtablissement} ${adresseEtablissement.libelleVoieEtablissement}`,
       codePostal: adresseEtablissement.codePostalEtablissement,
       ville: adresseEtablissement.libelleCommuneEtablissement,

@@ -69,6 +69,7 @@ const [adresse, adresseAttrs] = defineCompanyInfoField('adresse')
 const [codePostal, codePostalAttrs] = defineCompanyInfoField('codePostal')
 const [ville, villeAttrs] = defineCompanyInfoField('ville')
 const [dateCreation, dateCreationAttrs] = defineCompanyInfoField('dateCreation')
+const [pays, paysAttrs] = defineCompanyInfoField('pays')
 
 const { handleSubmit: handleDocumentsSubmit, defineField: defineDocumentsField, meta: documentsMeta, values: documentsValues, errors: documentsErrors, setErrors: setDocumentsErrors } = useForm({
   validationSchema: toTypedSchema(documentsSchema),
@@ -123,20 +124,24 @@ const [descriptionProjet, descriptionProjetAttrs] = defineSocietaireInfoField('d
 watch(() => assureurStore.companyInfo, (newVal) => {
   if (newVal) {
     raisonSociale.value = newVal.raisonSociale;
+    formeJuridique.value = newVal.formeJuridique;
     adresse.value = newVal.adresse;
     codePostal.value = newVal.codePostal;
     ville.value = newVal.ville;
     dateCreation.value = newVal.dateCreation;
+    pays.value = newVal.pays;
   }
 }, { deep: true });
 
 watch(() => prestataireStore.companyInfo, (newVal) => {
   if (newVal) {
     raisonSociale.value = newVal.raisonSociale;
+    formeJuridique.value = newVal.formeJuridique;
     adresse.value = newVal.adresse;
     codePostal.value = newVal.codePostal;
     ville.value = newVal.ville;
     dateCreation.value = newVal.dateCreation;
+    pays.value = newVal.pays;
   }
 }, { deep: true });
 
@@ -1019,6 +1024,7 @@ const handleAccountTypeSelected = (type: AccountType) => {
                 id="emailLogin"
                 type="email"
                 v-model="emailLogin"
+                data-testid="email-login-input"
               />
             </div>
 
@@ -1028,6 +1034,7 @@ const handleAccountTypeSelected = (type: AccountType) => {
                 id="password"
                 type="password"
                 v-model="password"
+                data-testid="password-input"
               />
             </div>
 
@@ -1037,6 +1044,7 @@ const handleAccountTypeSelected = (type: AccountType) => {
                 id="confirmPassword"
                 type="password"
                 v-model="confirmPassword"
+                data-testid="confirm-password-input"
               />
               <p v-if="password && confirmPassword && password !== confirmPassword" class="text-sm text-red-600 mt-1">Les mots de passe ne correspondent pas</p>
             </div>
