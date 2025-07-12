@@ -52,6 +52,12 @@ const handleNavigation = (user: any) => {
   if (user.cta === 'ACCÉDER À MON DOSSIER') {
     router.push('/login/societaire')
   }
+  if (user.cta === 'REJOINDRE COMME PRESTATAIRE') {
+    router.push('/pro-registration')
+  }
+  if (user.cta === 'REJOINDRE COMME ASSUREUR') {
+    router.push('/pro-registration')
+  }
 }
 </script>
 
