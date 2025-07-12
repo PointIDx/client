@@ -224,7 +224,7 @@ const validateStep = async (step: number) => {
       break;
     case 2:
       if (accountType.value === "societaire") {
-        isValid = societaireInfoMeta.value.valid;
+        isValid = societaireInfoMeta.value.valid; // Assuming project info is part of societaireInfoSchema
       } else {
         isValid = documentsMeta.value.valid;
       }
@@ -238,7 +238,7 @@ const validateStep = async (step: number) => {
       break;
     case 4:
       if (accountType.value === "societaire") {
-        isValid = true;
+        isValid = true; // No step 4 for societaire
       } else if (accountType.value === "prestataire") {
         isValid = providerInfoMeta.value.valid;
       } else if (accountType.value === "assureur") {
@@ -910,7 +910,7 @@ const handleAccountTypeSelected = (type: AccountType) => {
                       <input
                         type="checkbox"
                         :value="region"
-                        v-model="providerRegions"
+                        v-msecteurs-activite-inputodel="providerRegions"
                         class="rounded"
                         data-testid="provider-region-checkbox"
                       />
@@ -943,6 +943,7 @@ const handleAccountTypeSelected = (type: AccountType) => {
                 <label v-for="type in typesAssuranceOptions" :key="type" class="flex items-center space-x-2 text-sm">
                   <input
                     type="checkbox"
+                    :value="type"
                     :checked="insurerTypesAssurance?.includes(type)"
                     @change="(e) => {
                       const target = e.target as HTMLInputElement;
@@ -980,6 +981,7 @@ const handleAccountTypeSelected = (type: AccountType) => {
                 <label v-for="region in regions" :key="region" class="flex items-center space-x-2 text-sm">
                   <input
                     type="checkbox"
+                    :value="region"
                     :checked="insurerRegions?.includes(region) || false"
                     @change="(e) => {
                       const target = e.target as HTMLInputElement;
@@ -1007,8 +1009,10 @@ const handleAccountTypeSelected = (type: AccountType) => {
                 id="emailLogin"
                 type="email"
                 v-model="emailLogin"
+                v-bind="emailLoginAttrs"
                 data-testid="email-login-input"
               />
+              <ErrorMessage name="email" class="text-red-500 text-sm" data-testid="email-login-error" />
             </div>
 
             <div>
@@ -1017,8 +1021,10 @@ const handleAccountTypeSelected = (type: AccountType) => {
                 id="password"
                 type="password"
                 v-model="password"
+                v-bind="passwordAttrs"
                 data-testid="password-input"
               />
+              <ErrorMessage name="password" class="text-red-500 text-sm" data-testid="password-error" />
             </div>
 
             <div>
@@ -1027,9 +1033,10 @@ const handleAccountTypeSelected = (type: AccountType) => {
                 id="confirmPassword"
                 type="password"
                 v-model="confirmPassword"
+                v-bind="confirmPasswordAttrs"
                 data-testid="confirm-password-input"
               />
-              <p v-if="password && confirmPassword && password !== confirmPassword" class="text-sm text-red-600 mt-1">Les mots de passe ne correspondent pas</p>
+              <ErrorMessage name="confirmPassword" class="text-red-500 text-sm" data-testid="confirm-password-error" />
             </div>
           </div>
 
@@ -1076,19 +1083,20 @@ const handleAccountTypeSelected = (type: AccountType) => {
           </div>
 
           <!-- Boutons de navigation -->
-          <div v-if="(accountType === 'societaire' && currentStep < 4) || (accountType !== 'societaire' && currentStep < 5)" class="flex justify-between pt-6">
+          <div v-if="(accountType === 'societaire' && currentStep < 4) || (accountType !== 'societaire' && currentStep < 6)" class="flex justify-between pt-6">
             <Button variant="outline" @click="prevStep" :disabled="currentStep === 1" class="border-gray-400 text-gray-700 hover:bg-gray-100 hover:border-gray-500">
               Précédent
             </Button>
 
             <Button 
-              @click="(accountType === 'societaire' && currentStep < 3) || (accountType !== 'societaire' && currentStep < 4) ? nextStep() : submitRegistration()" 
+              @click="(accountType === 'societaire' && currentStep < 3) || (accountType !== 'societaire' && currentStep < 5) ? nextStep() : submitRegistration()" 
               :disabled="isLoading"
+              data-testid="next-button"
               class="bg-black text-white hover:bg-gray-800"
             >
               <Loader2 v-if="isLoading" class="mr-2 h-4 w-4 animate-spin" />
               <span>
-                {{ (accountType === 'societaire' && currentStep < 3) || (accountType !== 'societaire' && currentStep < 4) 
+                {{ (accountType === 'societaire' && currentStep < 3) || (accountType !== 'societaire' && currentStep < 5) 
                     ? 'Suivant' 
                     : 'Finaliser l\'inscription' }}
               </span>

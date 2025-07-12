@@ -22,6 +22,15 @@ import { GET_MESSAGES_QUERY } from '@/graphql/queries/get-messages'
 import type { Message } from '@/interfaces/message'
 import { MessageExpediteur } from '@/enums/message-expediteur'
 
+// Import new GraphQL operations
+import { GET_PRESTATAIRE_NOTIFICATIONS_QUERY, MARK_PRESTATAIRE_NOTIFICATION_READ_MUTATION, type PrestataireNotification } from '@/graphql/queries/get-prestataire-notifications'
+import { GET_COMMUNICATION_REQUESTS_FOR_PRESTATAIRE_QUERY, RESPOND_TO_COMMUNICATION_REQUEST_MUTATION, type CommunicationRequestForPrestataire, type CommunicationResponseInput } from '@/graphql/queries/get-communication-requests-for-prestataire'
+import { GET_PRESTATAIRE_STATISTICS_QUERY, type PrestataireStatistics } from '@/graphql/queries/get-prestataire-statistics'
+import { EXPORT_PRESTATAIRE_MISSIONS_QUERY, EXPORT_PRESTATAIRE_REPORT_QUERY, type PrestataireExportFilters, type ReportPeriod, type ExportFormat } from '@/graphql/queries/export-prestataire-missions'
+import { UPDATE_PRESTATAIRE_PROFILE_MUTATION, UPDATE_PRESTATAIRE_AVAILABILITY_MUTATION, type PrestataireProfileUpdateInput, type AvailabilityStatus } from '@/graphql/mutations/update-prestataire-profile'
+import { SEND_FILE_WITH_MESSAGE_MUTATION, UPLOAD_MISSION_DOCUMENT_MUTATION, type FileMessageInput, type MissionDocumentInput } from '@/graphql/mutations/send-file-with-message'
+import { ON_PRESTATAIRE_NOTIFICATION_SUBSCRIPTION, ON_NEW_MISSION_ASSIGNMENT_SUBSCRIPTION, ON_COMMUNICATION_REQUEST_SUBSCRIPTION } from '@/graphql/subscriptions/on-prestataire-notification'
+
 // Import new utilities
 import { fetchSiretInfo } from '@/utils/siret'
 import { handleError, handleGraphQLError, showSuccess } from '@/utils/error-handling'
@@ -36,6 +45,10 @@ export const usePrestataireStore = defineStore('prestataire', () => {
   const missions = ref<MissionPrestataire[]>([])
   const mission = ref<Mission | null>(null)
   const messages = ref<Message[]>([])
+  const notifications = ref<PrestataireNotification[]>([])
+  const communicationRequests = ref<CommunicationRequestForPrestataire[]>([])
+  const statistics = ref<PrestataireStatistics | null>(null)
+  const availabilityStatus = ref<AvailabilityStatus>('available')
 
   const { client } = useApolloClient()
 
@@ -210,6 +223,248 @@ export const usePrestataireStore = defineStore('prestataire', () => {
     }
   }
 
+  // Notifications management
+  async function fetchNotifications() {
+    try {
+      const { data } = await client.query({
+        query: GET_PRESTATAIRE_NOTIFICATIONS_QUERY,
+        fetchPolicy: 'network-only'
+      })
+      notifications.value = data.getPrestataireNotifications
+    } catch (error) {
+      handleGraphQLError(error, 'Fetch Notifications', { showToast: true })
+      throw error
+    }
+  }
+
+  async function markNotificationAsRead(notificationId: string) {
+    try {
+      await client.mutate({
+        mutation: MARK_PRESTATAIRE_NOTIFICATION_READ_MUTATION,
+        variables: { notificationId }
+      })
+      // Update local state
+      const notification = notifications.value.find(n => n.id === notificationId)
+      if (notification) {
+        notification.read = true
+      }
+    } catch (error) {
+      handleGraphQLError(error, 'Mark Notification Read', { showToast: true })
+      throw error
+    }
+  }
+
+  // Communication requests management
+  async function fetchCommunicationRequests() {
+    try {
+      const { data } = await client.query({
+        query: GET_COMMUNICATION_REQUESTS_FOR_PRESTATAIRE_QUERY,
+        fetchPolicy: 'network-only'
+      })
+      communicationRequests.value = data.getCommunicationRequestsForPrestataire
+    } catch (error) {
+      handleGraphQLError(error, 'Fetch Communication Requests', { showToast: true })
+      throw error
+    }
+  }
+
+  async function respondToCommunicationRequest(input: CommunicationResponseInput) {
+    try {
+      await client.mutate({
+        mutation: RESPOND_TO_COMMUNICATION_REQUEST_MUTATION,
+        variables: { input }
+      })
+      // Refresh communication requests
+      await fetchCommunicationRequests()
+      showSuccess('Réponse envoyée avec succès')
+    } catch (error) {
+      handleGraphQLError(error, 'Respond to Communication Request', { showToast: true })
+      throw error
+    }
+  }
+
+  // Statistics
+  async function fetchStatistics() {
+    try {
+      const { data } = await client.query({
+        query: GET_PRESTATAIRE_STATISTICS_QUERY,
+        fetchPolicy: 'network-only'
+      })
+      statistics.value = data.getPrestataireStatistics
+    } catch (error) {
+      handleGraphQLError(error, 'Fetch Statistics', { showToast: true })
+      throw error
+    }
+  }
+
+  // Export functionality
+  async function exportMissions(filters: PrestataireExportFilters, format: ExportFormat = 'pdf') {
+    try {
+      const { data } = await client.query({
+        query: EXPORT_PRESTATAIRE_MISSIONS_QUERY,
+        variables: { filters, format },
+        fetchPolicy: 'network-only'
+      })
+      
+      if (data?.exportPrestataireMissions) {
+        const { url, filename } = data.exportPrestataireMissions
+        // Download the file
+        const link = document.createElement('a')
+        link.href = url
+        link.download = filename
+        link.click()
+        showSuccess('Export généré avec succès')
+        return data.exportPrestataireMissions
+      }
+    } catch (error) {
+      handleGraphQLError(error, 'Export Missions', { showToast: true })
+      throw error
+    }
+  }
+
+  async function exportReport(period: ReportPeriod, format: ExportFormat = 'pdf') {
+    try {
+      const { data } = await client.query({
+        query: EXPORT_PRESTATAIRE_REPORT_QUERY,
+        variables: { period, format },
+        fetchPolicy: 'network-only'
+      })
+      
+      if (data?.exportPrestataireReport) {
+        const { url, filename } = data.exportPrestataireReport
+        // Download the file
+        const link = document.createElement('a')
+        link.href = url
+        link.download = filename
+        link.click()
+        showSuccess('Rapport généré avec succès')
+        return data.exportPrestataireReport
+      }
+    } catch (error) {
+      handleGraphQLError(error, 'Export Report', { showToast: true })
+      throw error
+    }
+  }
+
+  // Profile management
+  async function updateProfile(input: PrestataireProfileUpdateInput) {
+    try {
+      const { data } = await client.mutate({
+        mutation: UPDATE_PRESTATAIRE_PROFILE_MUTATION,
+        variables: { input }
+      })
+      showSuccess('Profil mis à jour avec succès')
+      return data.updatePrestataireProfile
+    } catch (error) {
+      handleGraphQLError(error, 'Update Profile', { showToast: true })
+      throw error
+    }
+  }
+
+  async function updateAvailability(status: AvailabilityStatus) {
+    try {
+      await client.mutate({
+        mutation: UPDATE_PRESTATAIRE_AVAILABILITY_MUTATION,
+        variables: { status }
+      })
+      availabilityStatus.value = status
+      showSuccess('Statut de disponibilité mis à jour')
+    } catch (error) {
+      handleGraphQLError(error, 'Update Availability', { showToast: true })
+      throw error
+    }
+  }
+
+  // Enhanced file upload
+  async function sendFileWithMessage(input: FileMessageInput) {
+    try {
+      const { data } = await client.mutate({
+        mutation: SEND_FILE_WITH_MESSAGE_MUTATION,
+        variables: { input }
+      })
+      messages.value.push(data.sendFileWithMessage)
+      showSuccess('Fichier envoyé avec succès')
+    } catch (error) {
+      handleGraphQLError(error, 'Send File with Message', { showToast: true })
+      throw error
+    }
+  }
+
+  async function uploadMissionDocument(input: MissionDocumentInput) {
+    try {
+      const { data } = await client.mutate({
+        mutation: UPLOAD_MISSION_DOCUMENT_MUTATION,
+        variables: { input }
+      })
+      showSuccess('Document uploadé avec succès')
+      return data.uploadMissionDocument
+    } catch (error) {
+      handleGraphQLError(error, 'Upload Mission Document', { showToast: true })
+      throw error
+    }
+  }
+
+  // Real-time subscriptions
+  function subscribeToNotifications() {
+    try {
+      client
+        .subscribe({
+          query: ON_PRESTATAIRE_NOTIFICATION_SUBSCRIPTION
+        })
+        .subscribe({
+          next({ data }) {
+            notifications.value.unshift(data.onPrestataireNotification)
+          },
+          error(err) {
+            console.warn('Notification subscription failed:', err)
+          }
+        })
+    } catch (error) {
+      console.warn('Failed to start notification subscription:', error)
+    }
+  }
+
+  function subscribeToNewMissions() {
+    try {
+      client
+        .subscribe({
+          query: ON_NEW_MISSION_ASSIGNMENT_SUBSCRIPTION
+        })
+        .subscribe({
+          next({ data }) {
+            missions.value.unshift(data.onNewMissionAssignment)
+            // Optionally show a notification
+            showSuccess('Nouvelle mission reçue !')
+          },
+          error(err) {
+            console.warn('Mission assignment subscription failed:', err)
+          }
+        })
+    } catch (error) {
+      console.warn('Failed to start mission assignment subscription:', error)
+    }
+  }
+
+  function subscribeToCommunicationRequests() {
+    try {
+      client
+        .subscribe({
+          query: ON_COMMUNICATION_REQUEST_SUBSCRIPTION
+        })
+        .subscribe({
+          next({ data }) {
+            communicationRequests.value.unshift(data.onCommunicationRequest)
+            showSuccess('Nouvelle demande de communication reçue')
+          },
+          error(err) {
+            console.warn('Communication request subscription failed:', err)
+          }
+        })
+    } catch (error) {
+      console.warn('Failed to start communication request subscription:', error)
+    }
+  }
+
   return {
     companyInfo,
     contact,
@@ -220,6 +475,10 @@ export const usePrestataireStore = defineStore('prestataire', () => {
     missions,
     mission,
     messages,
+    notifications,
+    communicationRequests,
+    statistics,
+    availabilityStatus,
     getSiretInfo,
     prestataireSignup,
     getMissions,
@@ -228,6 +487,20 @@ export const usePrestataireStore = defineStore('prestataire', () => {
     sendMessage,
     sendFile,
     fetchMessages,
-    subscribeToNewMessages
+    subscribeToNewMessages,
+    fetchNotifications,
+    markNotificationAsRead,
+    fetchCommunicationRequests,
+    respondToCommunicationRequest,
+    fetchStatistics,
+    exportMissions,
+    exportReport,
+    updateProfile,
+    updateAvailability,
+    sendFileWithMessage,
+    uploadMissionDocument,
+    subscribeToNotifications,
+    subscribeToNewMissions,
+    subscribeToCommunicationRequests
   }
 })

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { loginAsAssureur, mockGraphQLResponse, uploadFile, TestData } from './utils/test-utils.js';
 
 test.describe('Assureur Signup Flow', () => {
   test('should allow an assureur to register successfully', async ({ page }) => {
@@ -8,37 +9,37 @@ test.describe('Assureur Signup Flow', () => {
     await page.click('text="S\'inscrire comme Assureur"');
     await expect(page.locator('h1')).toContainText('Inscription Assureur');
 
-    // Step 1: Company Info with SIRET validation
-    await page.fill('[data-testid="siret-input"]', '12345678901234');
+
+    // Step 1:  Siret validation
+    await page.fill('[data-testid="siret-input"]', "12345678901234");
     await page.click('[data-testid="verify-siret-button"]');
-    
-    // Wait for SIRET validation to complete and auto-populate fields
-    await expect(page.locator('[data-testid="raison-sociale-input"]')).toHaveValue('ASSURANCE TEST SA', { timeout: 20000 });
-    
-    // Fill any remaining required fields
-    await page.fill('[data-testid="date-creation-input"]', '2020-01-01');
-    
-    // Wait for next button to be enabled
-    await expect(page.locator('[data-testid="next-button"]')).toBeEnabled({ timeout: 10000 });
+    await expect(page.locator('[data-testid="raison-sociale-input"]')).toHaveValue("ASSURANCE TEST SA");
+    await expect(page.locator('[data-testid="adresse-input"]')).toHaveValue("10 RUE DE LA PAIX")
+    await expect(page.locator('[data-testid="code-postal-input"]')).toHaveValue("75001")
+    await expect(page.locator('[data-testid="ville-input"]')).toHaveValue("PARIS")
+    await expect(page.locator('[data-testid="forme-juridique-trigger"]')).toHaveText("SAS");
     await page.click('[data-testid="next-button"]');
+    
 
     // Step 2: Documents (now required)
-    await page.setInputFiles('[data-testid="kbis-upload"]', 'e2e/test-kbis.pdf');
-    await page.setInputFiles('[data-testid="assurance-upload"]', 'e2e/test-assurance.pdf');
-    await page.setInputFiles('[data-testid="agrement-upload"]', 'e2e/test-agrement.pdf');
+    await uploadFile(page, '[data-testid="kbis-upload"]', 'test-kbis.pdf', 'PDF content for KBIS', 'application/pdf');
+    await uploadFile(page, '[data-testid="assurance-upload"]', 'test-assurance.pdf', 'PDF content for insurance', 'application/pdf');
+    await uploadFile(page, '[data-testid="agrement-upload"]', 'test-agrement.pdf', 'PDF content for agreement', 'application/pdf');
     await page.click('[data-testid="next-button"]');
 
-    // Step 3: Contact Info  
-    await page.fill('[data-testid="contact-prenom-input"]', 'Marie');
-    await page.fill('[data-testid="contact-nom-input"]', 'Dubois');
-    await page.fill('[data-testid="contact-email-input"]', 'marie.dubois@assurance-test.com');
+    // Step 4: Contact Info
+    await page.fill('[data-testid="contact-prenom-input"]', 'John');
+    await page.fill('[data-testid="contact-nom-input"]', 'Doe');
+    await page.fill('[data-testid="contact-email-input"]', 'john.doe@construction.com');
     await page.fill('[data-testid="contact-telephone-input"]', '0123456789');
     await page.click('[data-testid="next-button"]');
 
-    // Step 4: Insurer Info
+    // Step 4: Insurer Info // Responsabilité Civile Professionnelle
     await page.fill('[data-testid="agrement-input"]', 'AGR123456789');
-    await page.check('[data-testid="zone-couverture-checkbox"] >> text=Île-de-France');
-    await page.check('[data-testid="type-assurance-checkbox"] >> text=Habitation');
+    await page.locator('[data-testid="type-assurance-checkbox"][value="Responsabilité Civile Professionnelle"]').check();
+    await page.fill('[data-testid="garanties-proposees-input"]', 'Habitation');
+    await page.locator('[data-testid="zone-couverture-checkbox"][value="Île-de-France"]').check();
+
     await page.click('[data-testid="next-button"]');
 
     // Step 5: Account Creation
@@ -48,24 +49,11 @@ test.describe('Assureur Signup Flow', () => {
     await page.click('[data-testid="next-button"]');
 
     // Step 6: Confirmation
-    await expect(page.locator('h3')).toContainText('Inscription réussie !', { timeout: 15000 });
+    await expect(page.locator('text=Dashboard Assureur')).toBeVisible();
   });
 
   test('should allow an assureur to log in after registration', async ({ page }) => {
-    // Go to login selection
-    await page.goto('/login-selection');
-    await page.waitForLoadState('domcontentloaded');
-    
-    // Click on assureur login
-    await page.locator('button:has-text("Se connecter comme Assureur")').click();
-    await page.waitForURL('/login/assureur');
-
-    // Fill in login form with test credentials
-    await page.fill('input[type="email"]', 'assureur@test.com');
-    await page.fill('input[type="password"]', 'password123');
-    await page.click('button[type="submit"]');
-
-    await expect(page).toHaveURL('/assureur-dashboard');
+    await loginAsAssureur(page);
     await expect(page.locator('text=Dashboard Assureur')).toBeVisible();
   });
 

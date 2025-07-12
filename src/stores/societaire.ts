@@ -1,10 +1,23 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { useLazyQuery, useMutation} from '@vue/apollo-composable';
+import { useLazyQuery, useMutation, useSubscription } from '@vue/apollo-composable';
 import { SOCIETAIRE_LOGIN } from '@/graphql/mutations/societaire-login';
 import { SEND_FILE } from '@/graphql/mutations/send-file';
 import { SEND_COMMENT_MUTATION } from '@/graphql/mutations/send-comment';
 import { GET_SOCIETAIRE_DOSSIER } from '@/graphql/queries/get-societaire-dossier';
+import { GET_SOCIETAIRE_NOTIFICATIONS } from '@/graphql/queries/get-societaire-notifications';
+import { MARK_SOCIETAIRE_NOTIFICATION_READ } from '@/graphql/mutations/mark-societaire-notification-read';
+import { GET_SOCIETAIRE_MESSAGES } from '@/graphql/queries/get-societaire-messages';
+import { SEND_SOCIETAIRE_MESSAGE } from '@/graphql/mutations/send-societaire-message';
+import { UPLOAD_SOCIETAIRE_DOCUMENT } from '@/graphql/mutations/upload-societaire-document';
+import { GET_SOCIETAIRE_DOCUMENTS } from '@/graphql/queries/get-societaire-documents';
+import { UPDATE_SOCIETAIRE_CLAIM_STATUS } from '@/graphql/mutations/update-societaire-claim-status';
+import { EXPORT_SOCIETAIRE_DATA } from '@/graphql/queries/export-societaire-data';
+import { GET_SOCIETAIRE_PROFILE } from '@/graphql/queries/get-societaire-profile';
+import { UPDATE_SOCIETAIRE_PROFILE } from '@/graphql/mutations/update-societaire-profile';
+import { SEARCH_SOCIETAIRE_HISTORY } from '@/graphql/queries/search-societaire-history';
+import { ON_SOCIETAIRE_NOTIFICATION } from '@/graphql/subscriptions/on-societaire-notification';
+import { ON_SOCIETAIRE_TIMELINE_UPDATE } from '@/graphql/subscriptions/on-societaire-timeline-update';
 import type { DossierData } from '@/interfaces/dossier-data';
 import type { TimelineItem } from '@/interfaces/timeline-item';
 import type { HistoriqueItem } from '@/interfaces/historique-item';
@@ -26,18 +39,58 @@ export const useSocietaireStore = defineStore('societaire', () => {
   const timeline = ref<TimelineItem[]>([]);
   const historique = ref<HistoriqueItem[]>([]);
   const documents = ref<DocumentItem[]>([]);
+  const notifications = ref<any[]>([]);
+  const messages = ref<any[]>([]);
+  const profile = ref<any | null>(null);
+  const isLoading = ref(false);
+  const error = ref<string | null>(null);
   
   const isAuthenticated = computed(() => {
     if (!tokens.value) return false;
     return !AuthUtils.isTokenExpired(tokens.value.token);
   });
 
-  const { mutate: societaireLoginMutation } = useMutation(SOCIETAIRE_LOGIN, {});
-  const { mutate: sendFileMutation } = useMutation(SEND_FILE, {});
-  const { mutate: sendCommentMutation } = useMutation(SEND_COMMENT_MUTATION, {});
+  const unreadNotificationsCount = computed(() => {
+    return notifications.value.filter(n => !n.isRead).length;
+  });
+
+  const { mutate: societaireLoginMutation } = useMutation(SOCIETAIRE_LOGIN);
+  const { mutate: sendFileMutation } = useMutation(SEND_FILE);
+  const { mutate: sendCommentMutation } = useMutation(SEND_COMMENT_MUTATION);
+  const { mutate: markNotificationReadMutation } = useMutation(MARK_SOCIETAIRE_NOTIFICATION_READ);
+  const { mutate: sendMessageMutation } = useMutation(SEND_SOCIETAIRE_MESSAGE);
+  const { mutate: uploadDocumentMutation } = useMutation(UPLOAD_SOCIETAIRE_DOCUMENT);
+  const { mutate: updateClaimStatusMutation } = useMutation(UPDATE_SOCIETAIRE_CLAIM_STATUS);
+  const { mutate: updateProfileMutation } = useMutation(UPDATE_SOCIETAIRE_PROFILE);
+  
   const { onResult: onSocietaireDossierResult, load: loadSocietaireDossier } = useLazyQuery(GET_SOCIETAIRE_DOSSIER, () => ({
     dossierNumber: dossierNumber.value,
   }), { enabled: false });
+
+  const { onResult: onNotificationsResult, load: loadNotifications } = useLazyQuery(GET_SOCIETAIRE_NOTIFICATIONS, () => ({
+    dossierNumber: dossierNumber.value,
+  }), { enabled: false });
+
+  const { onResult: onMessagesResult, load: loadMessages } = useLazyQuery(GET_SOCIETAIRE_MESSAGES, () => ({
+    dossierNumber: dossierNumber.value,
+  }), { enabled: false });
+
+  const { onResult: onDocumentsResult, load: loadDocuments } = useLazyQuery(GET_SOCIETAIRE_DOCUMENTS, () => ({
+    dossierNumber: dossierNumber.value,
+  }), { enabled: false });
+
+  const { onResult: onProfileResult, load: loadProfile } = useLazyQuery(GET_SOCIETAIRE_PROFILE, () => ({
+    dossierNumber: dossierNumber.value,
+  }), { enabled: false });
+
+  // Subscriptions for real-time updates
+  const { onResult: onNotificationSubscription } = useSubscription(ON_SOCIETAIRE_NOTIFICATION, () => ({
+    dossierNumber: dossierNumber.value,
+  }), { enabled: computed(() => !!dossierNumber.value) });
+
+  const { onResult: onTimelineUpdateSubscription } = useSubscription(ON_SOCIETAIRE_TIMELINE_UPDATE, () => ({
+    dossierNumber: dossierNumber.value,
+  }), { enabled: computed(() => !!dossierNumber.value) });
 
   onSocietaireDossierResult((result) => {
     if (result.data?.societaireDossier) {
@@ -45,6 +98,46 @@ export const useSocietaireStore = defineStore('societaire', () => {
       timeline.value = result.data.societaireDossier.timeline;
       historique.value = result.data.societaireDossier.historique;
       documents.value = result.data.societaireDossier.documents;
+    }
+  });
+
+  onNotificationsResult((result) => {
+    if (result.data?.getSocietaireNotifications) {
+      notifications.value = result.data.getSocietaireNotifications;
+    }
+  });
+
+  onMessagesResult((result) => {
+    if (result.data?.getSocietaireMessages) {
+      messages.value = result.data.getSocietaireMessages.messages;
+    }
+  });
+
+  onDocumentsResult((result) => {
+    if (result.data?.getSocietaireDocuments) {
+      documents.value = result.data.getSocietaireDocuments.documents;
+    }
+  });
+
+  onProfileResult((result) => {
+    if (result.data?.getSocietaireProfile) {
+      profile.value = result.data.getSocietaireProfile;
+    }
+  });
+
+  // Handle real-time notifications
+  onNotificationSubscription((result) => {
+    if (result.data?.onSocietaireNotification) {
+      const newNotification = result.data.onSocietaireNotification;
+      notifications.value.unshift(newNotification);
+    }
+  });
+
+  // Handle real-time timeline updates
+  onTimelineUpdateSubscription((result) => {
+    if (result.data?.onSocietaireTimelineUpdate) {
+      const update = result.data.onSocietaireTimelineUpdate;
+      timeline.value = update.timeline;
     }
   });
 
@@ -189,6 +282,214 @@ export const useSocietaireStore = defineStore('societaire', () => {
     }
   };
 
+  // Notifications Management
+  const fetchNotifications = async () => {
+    if (!dossierNumber.value) return false;
+    try {
+      isLoading.value = true;
+      await loadNotifications();
+      return true;
+    } catch (err) {
+      console.error('Failed to fetch notifications:', err);
+      error.value = 'Failed to fetch notifications';
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  const markNotificationAsRead = async (notificationId: string) => {
+    try {
+      const result = await markNotificationReadMutation({ notificationId });
+      if (result?.data?.markSocietaireNotificationRead) {
+        const notification = notifications.value.find(n => n.id === notificationId);
+        if (notification) {
+          notification.isRead = true;
+          notification.readAt = result.data.markSocietaireNotificationRead.readAt;
+        }
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+      return false;
+    }
+  };
+
+  // Enhanced Communication System
+  const fetchMessages = async () => {
+    if (!dossierNumber.value) return false;
+    try {
+      isLoading.value = true;
+      await loadMessages();
+      return true;
+    } catch (err) {
+      console.error('Failed to fetch messages:', err);
+      error.value = 'Failed to fetch messages';
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  const sendMessage = async (input: any) => {
+    if (!dossierNumber.value) return false;
+    try {
+      const result = await sendMessageMutation({ 
+        input: { 
+          ...input, 
+          dossierNumber: dossierNumber.value 
+        } 
+      });
+      if (result?.data?.sendSocietaireMessage) {
+        messages.value.push(result.data.sendSocietaireMessage);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      return false;
+    }
+  };
+
+  // Enhanced Document Management
+  const uploadDocument = async (input: any) => {
+    if (!dossierNumber.value) return false;
+    try {
+      const result = await uploadDocumentMutation({ 
+        input: { 
+          ...input, 
+          dossierNumber: dossierNumber.value 
+        } 
+      });
+      if (result?.data?.uploadSocietaireDocument) {
+        documents.value.push(result.data.uploadSocietaireDocument);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Failed to upload document:', error);
+      return false;
+    }
+  };
+
+  const fetchDocuments = async (category?: string) => {
+    if (!dossierNumber.value) return false;
+    try {
+      isLoading.value = true;
+      await loadDocuments();
+      return true;
+    } catch (err) {
+      console.error('Failed to fetch documents:', err);
+      error.value = 'Failed to fetch documents';
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  // Claim Status Management
+  const updateClaimStatus = async (input: any) => {
+    if (!dossierNumber.value) return false;
+    try {
+      const result = await updateClaimStatusMutation({ 
+        input: { 
+          ...input, 
+          dossierNumber: dossierNumber.value 
+        } 
+      });
+      if (result?.data?.updateSocietaireClaimStatus) {
+        // Update local timeline with new status
+        timeline.value = result.data.updateSocietaireClaimStatus.timeline;
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Failed to update claim status:', error);
+      return false;
+    }
+  };
+
+  // Export Functionality
+  const exportData = async (input: any) => {
+    if (!dossierNumber.value) return null;
+    try {
+      // For now, return a mock export object
+      // This would be replaced with actual GraphQL query execution
+      return {
+        url: `/exports/societaire-export-${Date.now()}.pdf`,
+        filename: `societaire-export-${dossierNumber.value}-${new Date().toISOString().split('T')[0]}.pdf`,
+        contentType: 'application/pdf',
+        size: 1024000,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+      };
+    } catch (error) {
+      console.error('Failed to export data:', error);
+      return null;
+    }
+  };
+
+  // Profile Management
+  const fetchProfile = async () => {
+    if (!dossierNumber.value) return false;
+    try {
+      isLoading.value = true;
+      await loadProfile();
+      return true;
+    } catch (err) {
+      console.error('Failed to fetch profile:', err);
+      error.value = 'Failed to fetch profile';
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  const updateProfile = async (input: any) => {
+    if (!dossierNumber.value) return false;
+    try {
+      const result = await updateProfileMutation({ 
+        input: { 
+          ...input, 
+          dossierNumber: dossierNumber.value 
+        } 
+      });
+      if (result?.data?.updateSocietaireProfile) {
+        profile.value = result.data.updateSocietaireProfile;
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      return false;
+    }
+  };
+
+  // Search and History
+  const searchHistory = async (input: any) => {
+    if (!dossierNumber.value) return null;
+    try {
+      // For now, return mock search results
+      // This would be replaced with actual GraphQL query execution
+      return {
+        results: historique.value.filter(item => 
+          input.searchTerm ? item.message.toLowerCase().includes(input.searchTerm.toLowerCase()) : true
+        ),
+        totalCount: historique.value.length,
+        hasMore: false,
+        filters: {
+          categories: ['Client', 'Prestataire', 'Assureur'],
+          authors: Array.from(new Set(historique.value.map(h => h.auteur))),
+          dateRange: { min: '2024-01-01', max: new Date().toISOString().split('T')[0] },
+          tags: []
+        }
+      };
+    } catch (error) {
+      console.error('Failed to search history:', error);
+      return null;
+    }
+  };
+
   // Initialize from localStorage on app start
   const initAuth = () => {
     const storedTokens = AuthUtils.getTokens();
@@ -205,6 +506,9 @@ export const useSocietaireStore = defineStore('societaire', () => {
           timeline.value = data.timeline || [];
           historique.value = data.historique || [];
           documents.value = data.documents || [];
+          notifications.value = data.notifications || [];
+          messages.value = data.messages || [];
+          profile.value = data.profile || null;
         } else {
           // Clear expired data
           logout();
@@ -224,12 +528,36 @@ export const useSocietaireStore = defineStore('societaire', () => {
     timeline,
     historique,
     documents,
+    notifications,
+    messages,
+    profile,
+    isLoading,
+    error,
     isAuthenticated,
+    unreadNotificationsCount,
     login,
     logout,
     sendFile,
     sendComment,
     fetchSocietaireDossier,
     initAuth,
+    // Notifications Management
+    fetchNotifications,
+    markNotificationAsRead,
+    // Enhanced Communication
+    fetchMessages,
+    sendMessage,
+    // Document Management
+    uploadDocument,
+    fetchDocuments,
+    // Claim Status Management
+    updateClaimStatus,
+    // Export Functionality
+    exportData,
+    // Profile Management
+    fetchProfile,
+    updateProfile,
+    // Search and History
+    searchHistory,
   };
 });

@@ -1,17 +1,9 @@
 import { test, expect } from '@playwright/test';
+import { loginAsAssureur, mockGraphQLResponse, uploadFile, TestData } from './utils/test-utils.js';
 
 test.describe('Assureur Dashboard', () => {
   test.beforeEach(async ({ page }) => {
-    // Login as assureur first
-    await page.goto('/login-selection');
-    await page.waitForLoadState('domcontentloaded');
-    await page.locator('button:has-text("Se connecter comme Assureur")').click();
-    await page.waitForURL('/login/assureur');
-    await page.fill('input[type="email"]', 'assureur@test.com');
-    await page.fill('input[type="password"]', 'password123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/assureur-dashboard');
-    await page.waitForLoadState('networkidle');
+    await loginAsAssureur(page);
   });
 
   test('should display search filters and results', async ({ page }) => {

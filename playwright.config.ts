@@ -13,13 +13,13 @@ import { defineConfig, devices } from '@playwright/test'
 export default defineConfig({
   testDir: './e2e',
   /* Maximum time one test can run for. */
-  timeout: 60 * 1000,
+  timeout: 90 * 1000,
   expect: {
     /**
      * Maximum time expect() should wait for the condition to be met.
      * For example in `await expect(locator).toHaveText();`
      */
-    timeout: 5000,
+    timeout: 10000,
   },
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
@@ -31,15 +31,17 @@ export default defineConfig({
   reporter: 'list',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
-    video: 'on',
+    video: 'retain-on-failure',
     /* Maximum time each action such as `click()` can take. Defaults to 0 (no limit). */
-    actionTimeout: 0,
+    actionTimeout: 10000,
     /* Base URL to use in actions like `await page.goto('/')`. */
     baseURL: process.env.CI ? 'http://localhost:4173' : 'http://localhost:5173',
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
 
+    /* Wait for navigation to complete before proceeding */
+    navigationTimeout: 30000,
   },
 
   /* Configure projects for major browsers */

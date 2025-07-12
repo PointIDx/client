@@ -1,17 +1,9 @@
 import { test, expect } from '@playwright/test';
+import { loginAsPrestataire, mockGraphQLResponse, uploadFile, TestData } from './utils/test-utils.js';
 
 test.describe('Prestataire Dashboard', () => {
   test.beforeEach(async ({ page }) => {
-    // Login as prestataire first
-    await page.goto('/login-selection');
-    await page.waitForLoadState('domcontentloaded');
-    await page.locator('button:has-text("Se connecter comme Prestataire")').click();
-    await page.waitForURL('/login/prestataire');
-    await page.fill('input[type="email"]', 'prestataire@test.com');
-    await page.fill('input[type="password"]', 'password123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/prestataire-dashboard');
-    await page.waitForLoadState('networkidle');
+    await loginAsPrestataire(page);
   });
 
   test('should display the dashboard with missions', async ({ page }) => {

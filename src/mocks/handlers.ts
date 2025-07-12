@@ -838,4 +838,876 @@ export const handlers = [
       },
     });
   }),
+
+  // Mock communication requests
+  graphql.mutation('SendCommunicationRequest', ({ variables }) => {
+    const { input } = variables;
+    return HttpResponse.json({
+      data: {
+        sendCommunicationRequest: {
+          id: `comm-${Math.random().toString(36).substring(7)}`,
+          prestataireId: input.prestataireId,
+          message: input.message,
+          statut: 'en_attente',
+          dateEnvoi: new Date().toISOString(),
+        },
+      },
+    });
+  }),
+
+  graphql.query('GetCommunicationRequests', () => {
+    return HttpResponse.json({
+      data: {
+        getCommunicationRequests: [
+          {
+            id: 'comm-1',
+            prestataire: {
+              id: '1',
+              nom: 'Jean Dubois',
+              raisonSociale: 'DUBOIS MAÇONNERIE SARL',
+              ville: 'Paris',
+              telephone: '0142123456',
+              email: 'contact@dubois-maconnerie.fr',
+            },
+            message: 'Bonjour, nous avons une mission urgente de réparation de fissures. Êtes-vous disponible cette semaine ?',
+            statut: 'acceptee',
+            dateEnvoi: '2024-01-15T10:00:00Z',
+            dateReponse: '2024-01-15T14:30:00Z',
+            reponseMessage: 'Bonjour, je suis disponible. Je peux me déplacer dès demain pour un devis.',
+          },
+          {
+            id: 'comm-2',
+            prestataire: {
+              id: '2',
+              nom: 'Marie Moreau',
+              raisonSociale: 'MOREAU PLOMBERIE',
+              ville: 'Marseille',
+              telephone: '0143234567',
+              email: 'contact@moreau-plomberie.fr',
+            },
+            message: 'Nous cherchons un plombier pour une intervention urgente de dégât des eaux.',
+            statut: 'en_attente',
+            dateEnvoi: '2024-01-16T11:00:00Z',
+          },
+          {
+            id: 'comm-3',
+            prestataire: {
+              id: '3',
+              nom: 'Pierre Leroy',
+              raisonSociale: 'LEROY ÉLECTRICITÉ',
+              ville: 'Toulouse',
+              telephone: '0144345678',
+              email: 'contact@leroy-electricite.fr',
+            },
+            message: 'Pourriez-vous nous faire un devis pour une remise aux normes électriques ?',
+            statut: 'refusee',
+            dateEnvoi: '2024-01-14T09:00:00Z',
+            dateReponse: '2024-01-14T16:00:00Z',
+            reponseMessage: 'Désolé, je suis complet jusqu\'à la fin du mois. Merci de votre compréhension.',
+          },
+        ],
+      },
+    });
+  }),
+
+  // Mock notifications
+  graphql.query('GetNotifications', () => {
+    return HttpResponse.json({
+      data: {
+        getNotifications: [
+          {
+            id: 'notif-1',
+            type: 'mission_accepted',
+            title: 'Mission acceptée',
+            message: 'La mission REF-002 a été acceptée par Marie Moreau',
+            date: '2024-01-16T15:30:00Z',
+            read: false,
+            data: { missionId: 'mission-2' },
+          },
+          {
+            id: 'notif-2',
+            type: 'communication_response',
+            title: 'Réponse reçue',
+            message: 'Jean Dubois a répondu à votre demande de communication',
+            date: '2024-01-15T14:30:00Z',
+            read: false,
+            data: { communicationId: 'comm-1' },
+          },
+          {
+            id: 'notif-3',
+            type: 'new_message',
+            title: 'Nouveau message',
+            message: 'Nouveau message reçu pour la mission REF-001',
+            date: '2024-01-15T10:15:00Z',
+            read: true,
+            data: { missionId: 'mission-1' },
+          },
+          {
+            id: 'notif-4',
+            type: 'mission_rejected',
+            title: 'Mission refusée',
+            message: 'La mission REF-003 a été refusée par Pierre Leroy',
+            date: '2024-01-14T16:00:00Z',
+            read: true,
+            data: { missionId: 'mission-3' },
+          },
+        ],
+      },
+    });
+  }),
+
+  graphql.mutation('MarkNotificationRead', ({ variables }) => {
+    const { notificationId } = variables;
+    return HttpResponse.json({
+      data: {
+        markNotificationRead: {
+          id: notificationId,
+          read: true,
+        },
+      },
+    });
+  }),
+
+  // Mock export functionality
+  graphql.query('ExportMissions', ({ variables }) => {
+    const { filters, format } = variables;
+    const timestamp = new Date().toISOString().split('T')[0];
+    const filename = `missions-export-${timestamp}.${format}`;
+    
+    return HttpResponse.json({
+      data: {
+        exportMissions: {
+          url: `/exports/${filename}`,
+          filename: filename,
+          contentType: format === 'pdf' ? 'application/pdf' : 
+                      format === 'excel' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' :
+                      'text/csv',
+        },
+      },
+    });
+  }),
+
+  graphql.query('ExportMissionDetails', ({ variables }) => {
+    const { missionId, format } = variables;
+    const timestamp = new Date().toISOString().split('T')[0];
+    const filename = `mission-${missionId}-${timestamp}.${format}`;
+    
+    return HttpResponse.json({
+      data: {
+        exportMissionDetails: {
+          url: `/exports/${filename}`,
+          filename: filename,
+          contentType: format === 'pdf' ? 'application/pdf' : 
+                      format === 'excel' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' :
+                      'text/csv',
+        },
+      },
+    });
+  }),
+
+  // Prestataire notifications
+  graphql.query('GetPrestataireNotifications', () => {
+    return HttpResponse.json({
+      data: {
+        getPrestataireNotifications: [
+          {
+            id: 'notif-p1',
+            type: 'new_mission',
+            title: 'Nouvelle mission',
+            message: 'Une nouvelle mission vous a été assignée: Réparation plomberie',
+            date: '2024-01-16T10:30:00Z',
+            read: false,
+            data: { missionId: 'mission-1' },
+          },
+          {
+            id: 'notif-p2',
+            type: 'communication_request',
+            title: 'Demande de communication',
+            message: 'Assurance Alpha souhaite vous contacter',
+            date: '2024-01-15T16:00:00Z',
+            read: false,
+            data: { assureurId: 'assureur-1' },
+          },
+          {
+            id: 'notif-p3',
+            type: 'payment_received',
+            title: 'Paiement reçu',
+            message: 'Paiement de 850€ reçu pour la mission REF-001',
+            date: '2024-01-14T12:00:00Z',
+            read: true,
+            data: { missionId: 'mission-1', amount: 850 },
+          },
+          {
+            id: 'notif-p4',
+            type: 'review_received',
+            title: 'Nouvel avis',
+            message: 'Vous avez reçu une note de 5/5 étoiles',
+            date: '2024-01-13T14:20:00Z',
+            read: true,
+            data: { rating: 5, comment: 'Excellent travail, très professionnel' },
+          },
+        ],
+      },
+    });
+  }),
+
+  graphql.mutation('MarkPrestataireNotificationRead', ({ variables }) => {
+    const { notificationId } = variables;
+    return HttpResponse.json({
+      data: {
+        markPrestataireNotificationRead: {
+          id: notificationId,
+          read: true,
+        },
+      },
+    });
+  }),
+
+  // Communication requests for prestataire
+  graphql.query('GetCommunicationRequestsForPrestataire', () => {
+    return HttpResponse.json({
+      data: {
+        getCommunicationRequestsForPrestataire: [
+          {
+            id: 'comm-p1',
+            assureur: {
+              id: 'assureur-1',
+              companyName: 'Assurance Alpha',
+              email: 'contact@alpha-assurance.fr',
+              phone: '01 42 12 34 56',
+            },
+            message: 'Nous avons une mission urgente de plomberie. Êtes-vous disponible cette semaine pour un dépannage ?',
+            statut: 'en_attente',
+            dateEnvoi: '2024-01-16T09:00:00Z',
+          },
+          {
+            id: 'comm-p2',
+            assureur: {
+              id: 'assureur-2',
+              companyName: 'Assurance Beta',
+              email: 'contact@beta-assurance.fr',
+              phone: '01 43 23 45 67',
+            },
+            message: 'Pouvez-vous nous envoyer un devis pour la rénovation d\'une salle de bain suite à dégât des eaux ?',
+            statut: 'acceptee',
+            dateEnvoi: '2024-01-15T14:30:00Z',
+            dateReponse: '2024-01-15T16:00:00Z',
+            reponseMessage: 'Bonjour, je suis disponible. Je peux faire le déplacement demain pour établir un devis détaillé.',
+          },
+          {
+            id: 'comm-p3',
+            assureur: {
+              id: 'assureur-3',
+              companyName: 'Assurance Gamma',
+              email: 'contact@gamma-assurance.fr',
+              phone: '01 44 34 56 78',
+            },
+            message: 'Nous cherchons un plombier pour des interventions régulières. Quel est votre secteur d\'intervention ?',
+            statut: 'refusee',
+            dateEnvoi: '2024-01-12T11:00:00Z',
+            dateReponse: '2024-01-12T15:30:00Z',
+            reponseMessage: 'Merci pour votre demande. Malheureusement, votre secteur est trop éloigné de ma zone d\'intervention.',
+          },
+        ],
+      },
+    });
+  }),
+
+  graphql.mutation('RespondToCommunicationRequest', ({ variables }) => {
+    const { input } = variables;
+    return HttpResponse.json({
+      data: {
+        respondToCommunicationRequest: {
+          id: input.requestId,
+          statut: input.statut,
+          dateReponse: new Date().toISOString(),
+          reponseMessage: input.reponseMessage,
+        },
+      },
+    });
+  }),
+
+  // Prestataire statistics
+  graphql.query('GetPrestataireStatistics', () => {
+    return HttpResponse.json({
+      data: {
+        getPrestataireStatistics: {
+          totalMissions: 47,
+          completedMissions: 42,
+          pendingMissions: 3,
+          acceptanceRate: 0.89,
+          averageRating: 4.6,
+          totalEarnings: 23450,
+          monthlyEarnings: 3200,
+          missionsThisMonth: 8,
+          missionsThisWeek: 2,
+          upcomingMissions: 3,
+          overduePayments: 1,
+        },
+      },
+    });
+  }),
+
+  // Export functionality for prestataire
+  graphql.query('ExportPrestataireMissions', ({ variables }) => {
+    const { filters, format } = variables;
+    const timestamp = new Date().toISOString().split('T')[0];
+    const filename = `prestataire-missions-${timestamp}.${format}`;
+    
+    return HttpResponse.json({
+      data: {
+        exportPrestataireMissions: {
+          url: `/exports/${filename}`,
+          filename: filename,
+          contentType: format === 'pdf' ? 'application/pdf' : 
+                      format === 'excel' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' :
+                      'text/csv',
+        },
+      },
+    });
+  }),
+
+  graphql.query('ExportPrestataireReport', ({ variables }) => {
+    const { period, format } = variables;
+    const timestamp = new Date().toISOString().split('T')[0];
+    const filename = `prestataire-report-${period}-${timestamp}.${format}`;
+    
+    return HttpResponse.json({
+      data: {
+        exportPrestataireReport: {
+          url: `/exports/${filename}`,
+          filename: filename,
+          contentType: format === 'pdf' ? 'application/pdf' : 
+                      format === 'excel' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' :
+                      'text/csv',
+        },
+      },
+    });
+  }),
+
+  // Profile management
+  graphql.mutation('UpdatePrestataireProfile', ({ variables }) => {
+    const { input } = variables;
+    return HttpResponse.json({
+      data: {
+        updatePrestataireProfile: {
+          id: 'prestataire-123',
+          companyInfo: {
+            raisonSociale: 'MOREAU PLOMBERIE SARL',
+            siret: '12345678901234',
+            adresse: input.companyInfo?.adresse || '456 Avenue des Champs',
+            codePostal: input.companyInfo?.codePostal || '13001',
+            ville: input.companyInfo?.ville || 'Marseille',
+            telephone: input.companyInfo?.telephone || '04 91 23 45 67',
+            email: input.companyInfo?.email || 'contact@moreau-plomberie.fr',
+          },
+          sectors: input.sectors || ['Plomberie', 'Chauffage'],
+          specialties: input.specialties || ['Sanitaires', 'Réparations', 'Installation chauffage'],
+          description: input.description || 'Plombier professionnel disponible 7j/7 pour urgences.',
+          serviceRadius: input.serviceRadius || 50,
+          hourlyRate: input.hourlyRate || 45,
+          availabilityStatus: 'available',
+        },
+      },
+    });
+  }),
+
+  graphql.mutation('UpdatePrestataireAvailability', ({ variables }) => {
+    const { status } = variables;
+    return HttpResponse.json({
+      data: {
+        updatePrestataireAvailability: {
+          id: 'prestataire-123',
+          availabilityStatus: status,
+        },
+      },
+    });
+  }),
+
+  // Enhanced file upload
+  graphql.mutation('SendFileWithMessage', ({ variables }) => {
+    const { input } = variables;
+    return HttpResponse.json({
+      data: {
+        sendFileWithMessage: {
+          id: `msg-${Math.random().toString(36).substring(7)}`,
+          missionId: input.missionId,
+          expediteur: 'prestataire',
+          contenu: input.contenu || 'Fichier envoyé',
+          dateEnvoi: new Date().toISOString(),
+          fichiers: input.files.map((file: any, index: number) => ({
+            id: `file-${index}`,
+            fileName: file.name,
+            url: `/uploads/${file.name}`,
+            contentType: file.type,
+            size: file.size,
+          })),
+          lu: false,
+        },
+      },
+    });
+  }),
+
+  graphql.mutation('UploadMissionDocument', ({ variables }) => {
+    const { input } = variables;
+    return HttpResponse.json({
+      data: {
+        uploadMissionDocument: {
+          id: `doc-${Math.random().toString(36).substring(7)}`,
+          fileName: input.file.name,
+          url: `/uploads/mission-docs/${input.file.name}`,
+          contentType: input.file.type,
+          size: input.file.size,
+          uploadDate: new Date().toISOString(),
+          description: input.description,
+          category: input.category,
+        },
+      },
+    });
+  }),
+
+  // ===== SOCIETAIRE NEW FUNCTIONALITY =====
+
+  // Societaire Notifications
+  graphql.query('GetSocietaireNotifications', ({ variables }) => {
+    return HttpResponse.json({
+      data: {
+        getSocietaireNotifications: [
+          {
+            id: 'notif-soc-1',
+            type: 'timeline_update',
+            title: 'Mise à jour de votre dossier',
+            message: 'L\'expertise a été réalisée. Rapport disponible dans vos documents.',
+            relatedEntityId: 'DOS-2024-001',
+            relatedEntityType: 'dossier',
+            priority: 'high',
+            isRead: false,
+            createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+            expiresAt: null,
+            actionUrl: '/societaire-dashboard',
+            metadata: []
+          },
+          {
+            id: 'notif-soc-2',
+            type: 'message',
+            title: 'Nouveau message',
+            message: 'Votre prestataire a ajouté un commentaire sur votre dossier.',
+            relatedEntityId: 'DOS-2024-001',
+            relatedEntityType: 'dossier',
+            priority: 'medium',
+            isRead: false,
+            createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+            expiresAt: null,
+            actionUrl: '/societaire-dashboard',
+            metadata: []
+          },
+          {
+            id: 'notif-soc-3',
+            type: 'document',
+            title: 'Nouveau document',
+            message: 'Un nouveau document a été ajouté à votre dossier.',
+            relatedEntityId: 'DOS-2024-001',
+            relatedEntityType: 'dossier',
+            priority: 'low',
+            isRead: true,
+            createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+            expiresAt: null,
+            actionUrl: '/societaire-dashboard',
+            metadata: []
+          }
+        ]
+      }
+    });
+  }),
+
+  // Mark Societaire Notification Read
+  graphql.mutation('MarkSocietaireNotificationRead', ({ variables }) => {
+    return HttpResponse.json({
+      data: {
+        markSocietaireNotificationRead: {
+          id: variables.notificationId,
+          isRead: true,
+          readAt: new Date().toISOString()
+        }
+      }
+    });
+  }),
+
+  // Societaire Messages
+  graphql.query('GetSocietaireMessages', ({ variables }) => {
+    return HttpResponse.json({
+      data: {
+        getSocietaireMessages: {
+          messages: [
+            {
+              id: 'msg-soc-1',
+              dossierNumber: 'DOS-2024-001',
+              expediteur: 'assureur',
+              destinataire: 'societaire',
+              contenu: 'Bonjour, nous avons bien reçu votre déclaration. Un expert sera mandaté rapidement.',
+              dateEnvoi: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+              lu: true,
+              type: 'text',
+              fichiers: [],
+              metadata: []
+            },
+            {
+              id: 'msg-soc-2',
+              dossierNumber: 'DOS-2024-001',
+              expediteur: 'societaire',
+              destinataire: 'prestataire',
+              contenu: 'Voici les photos complémentaires demandées.',
+              dateEnvoi: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+              lu: true,
+              type: 'text',
+              fichiers: [
+                {
+                  id: 'file-soc-1',
+                  fileName: 'photo_degats_detail.jpg',
+                  url: '/uploads/societaire/photo_degats_detail.jpg',
+                  contentType: 'image/jpeg',
+                  size: 1024000
+                }
+              ],
+              metadata: []
+            },
+            {
+              id: 'msg-soc-3',
+              dossierNumber: 'DOS-2024-001',
+              expediteur: 'prestataire',
+              destinataire: 'societaire',
+              contenu: 'Expertise terminée. Le rapport détaillé sera disponible sous 48h.',
+              dateEnvoi: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
+              lu: false,
+              type: 'text',
+              fichiers: [],
+              metadata: []
+            }
+          ],
+          totalCount: 3,
+          hasMore: false
+        }
+      }
+    });
+  }),
+
+  // Send Societaire Message
+  graphql.mutation('SendSocietaireMessage', ({ variables }) => {
+    const { input } = variables;
+    return HttpResponse.json({
+      data: {
+        sendSocietaireMessage: {
+          id: `msg-soc-${Math.random().toString(36).substring(7)}`,
+          dossierNumber: input.dossierNumber,
+          expediteur: 'societaire',
+          destinataire: input.destinataire || 'prestataire',
+          contenu: input.contenu,
+          dateEnvoi: new Date().toISOString(),
+          lu: false,
+          type: input.type || 'text',
+          fichiers: input.fichiers || [],
+          metadata: input.metadata || []
+        }
+      }
+    });
+  }),
+
+  // Upload Societaire Document
+  graphql.mutation('UploadSocietaireDocument', ({ variables }) => {
+    const { input } = variables;
+    return HttpResponse.json({
+      data: {
+        uploadSocietaireDocument: {
+          id: `doc-soc-${Math.random().toString(36).substring(7)}`,
+          dossierNumber: input.dossierNumber,
+          fileName: `uploaded_${Date.now()}.pdf`,
+          originalName: input.originalName || 'document.pdf',
+          url: `/uploads/societaire/uploaded_${Date.now()}.pdf`,
+          contentType: input.contentType || 'application/pdf',
+          size: input.size || 1024000,
+          category: input.category || 'evidence',
+          description: input.description || 'Document uploadé par le sociétaire',
+          uploadDate: new Date().toISOString(),
+          uploadedBy: 'societaire',
+          status: 'active',
+          metadata: input.metadata || []
+        }
+      }
+    });
+  }),
+
+  // Get Societaire Documents
+  graphql.query('GetSocietaireDocuments', ({ variables }) => {
+    return HttpResponse.json({
+      data: {
+        getSocietaireDocuments: {
+          documents: [
+            {
+              id: 'doc-soc-1',
+              dossierNumber: variables.dossierNumber,
+              fileName: 'rapport_expertise.pdf',
+              originalName: 'rapport_expertise.pdf',
+              url: '/uploads/societaire/rapport_expertise.pdf',
+              contentType: 'application/pdf',
+              size: 2048000,
+              category: 'report',
+              description: 'Rapport d\'expertise officiel',
+              uploadDate: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+              uploadedBy: 'expert',
+              status: 'active',
+              downloadCount: 2,
+              lastDownloadDate: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+              metadata: []
+            },
+            {
+              id: 'doc-soc-2',
+              dossierNumber: variables.dossierNumber,
+              fileName: 'devis_reparation.pdf',
+              originalName: 'devis_reparation.pdf',
+              url: '/uploads/societaire/devis_reparation.pdf',
+              contentType: 'application/pdf',
+              size: 512000,
+              category: 'quote',
+              description: 'Devis de réparation du prestataire',
+              uploadDate: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
+              uploadedBy: 'prestataire',
+              status: 'active',
+              downloadCount: 1,
+              lastDownloadDate: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+              metadata: []
+            }
+          ],
+          totalCount: 2,
+          hasMore: false,
+          categories: ['report', 'quote', 'evidence', 'correspondence']
+        }
+      }
+    });
+  }),
+
+  // Update Societaire Claim Status
+  graphql.mutation('UpdateSocietaireClaimStatus', ({ variables }) => {
+    const { input } = variables;
+    return HttpResponse.json({
+      data: {
+        updateSocietaireClaimStatus: {
+          id: `status-update-${Math.random().toString(36).substring(7)}`,
+          dossierNumber: input.dossierNumber,
+          newStatus: input.newStatus,
+          previousStatus: input.previousStatus || 'En attente',
+          comment: input.comment || 'Statut mis à jour',
+          updatedBy: 'societaire',
+          updatedAt: new Date().toISOString(),
+          timeline: [
+            {
+              id: 'timeline-1',
+              date: '15/01/2024',
+              status: 'Terminé',
+              description: 'Déclaration du sinistre',
+              updatedBy: 'societaire',
+              comment: null
+            },
+            {
+              id: 'timeline-2',
+              date: '16/01/2024',
+              status: 'Terminé',
+              description: 'Assignation d\'un expert',
+              updatedBy: 'assureur',
+              comment: null
+            },
+            {
+              id: 'timeline-3',
+              date: '17/01/2024',
+              status: input.newStatus,
+              description: 'Visite d\'expertise',
+              updatedBy: 'expert',
+              comment: input.comment || 'Statut mis à jour'
+            }
+          ]
+        }
+      }
+    });
+  }),
+
+  // Export Societaire Data
+  graphql.query('ExportSocietaireData', ({ variables }) => {
+    const { input } = variables;
+    return HttpResponse.json({
+      data: {
+        exportSocietaireData: {
+          url: `/exports/societaire-export-${input.dossierNumber}.pdf`,
+          filename: `dossier-${input.dossierNumber}-export.pdf`,
+          contentType: 'application/pdf',
+          size: 1024000,
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          downloadCount: 0,
+          maxDownloads: 5
+        }
+      }
+    });
+  }),
+
+  // Get Societaire Profile
+  graphql.query('GetSocietaireProfile', ({ variables }) => {
+    return HttpResponse.json({
+      data: {
+        getSocietaireProfile: {
+          id: 'societaire-1',
+          email: 'jean.dupont@email.com',
+          dossierNumber: variables.dossierNumber,
+          personalInfo: {
+            firstName: 'Jean',
+            lastName: 'Dupont',
+            dateOfBirth: '1985-03-15',
+            address: {
+              street: '123 Rue de la République',
+              city: 'Paris',
+              postalCode: '75011',
+              country: 'France'
+            },
+            phone: '06 12 34 56 78',
+            emergencyContact: {
+              name: 'Marie Dupont',
+              phone: '06 98 76 54 32',
+              relationship: 'Épouse'
+            }
+          },
+          preferences: {
+            language: 'fr',
+            timezone: 'Europe/Paris',
+            notificationSettings: {
+              email: true,
+              sms: false,
+              push: true,
+              categories: ['timeline_update', 'message', 'document']
+            },
+            communicationPreferences: {
+              preferredMethod: 'email',
+              availableHours: '09:00-18:00'
+            }
+          },
+          policyInfo: {
+            policyNumber: 'POL-2023-789',
+            coverageType: 'Habitation',
+            startDate: '2023-01-01',
+            endDate: '2024-01-01',
+            deductible: 150,
+            coverageLimit: 100000
+          },
+          accountStatus: 'active',
+          lastLoginDate: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+          createdAt: '2023-01-01T00:00:00Z',
+          updatedAt: new Date().toISOString()
+        }
+      }
+    });
+  }),
+
+  // Update Societaire Profile
+  graphql.mutation('UpdateSocietaireProfile', ({ variables }) => {
+    const { input } = variables;
+    return HttpResponse.json({
+      data: {
+        updateSocietaireProfile: {
+          id: 'societaire-1',
+          email: input.email || 'jean.dupont@email.com',
+          dossierNumber: input.dossierNumber,
+          personalInfo: input.personalInfo || {
+            firstName: 'Jean',
+            lastName: 'Dupont',
+            dateOfBirth: '1985-03-15',
+            address: {
+              street: '123 Rue de la République',
+              city: 'Paris',
+              postalCode: '75011',
+              country: 'France'
+            },
+            phone: '06 12 34 56 78',
+            emergencyContact: {
+              name: 'Marie Dupont',
+              phone: '06 98 76 54 32',
+              relationship: 'Épouse'
+            }
+          },
+          preferences: input.preferences || {
+            language: 'fr',
+            timezone: 'Europe/Paris',
+            notificationSettings: {
+              email: true,
+              sms: false,
+              push: true,
+              categories: ['timeline_update', 'message', 'document']
+            },
+            communicationPreferences: {
+              preferredMethod: 'email',
+              availableHours: '09:00-18:00'
+            }
+          },
+          accountStatus: 'active',
+          updatedAt: new Date().toISOString()
+        }
+      }
+    });
+  }),
+
+  // Search Societaire History
+  graphql.query('SearchSocietaireHistory', ({ variables }) => {
+    const { input } = variables;
+    return HttpResponse.json({
+      data: {
+        searchSocietaireHistory: {
+          results: [
+            {
+              id: 'history-1',
+              dossierNumber: input.dossierNumber,
+              type: 'message',
+              title: 'Message de l\'assureur',
+              description: 'Confirmation de prise en charge du dossier',
+              date: '15/01/2024',
+              author: 'Sophie Durand',
+              category: 'communication',
+              tags: ['prise-en-charge', 'confirmation'],
+              relatedEntities: [],
+              attachments: [],
+              metadata: []
+            },
+            {
+              id: 'history-2',
+              dossierNumber: input.dossierNumber,
+              type: 'document',
+              title: 'Rapport d\'expertise',
+              description: 'Document ajouté par l\'expert',
+              date: '17/01/2024',
+              author: 'Expert BERNARD',
+              category: 'expertise',
+              tags: ['rapport', 'expertise'],
+              relatedEntities: [],
+              attachments: [
+                {
+                  id: 'attach-1',
+                  fileName: 'rapport_expertise.pdf',
+                  url: '/uploads/rapport_expertise.pdf',
+                  contentType: 'application/pdf'
+                }
+              ],
+              metadata: []
+            }
+          ],
+          totalCount: 2,
+          hasMore: false,
+          filters: {
+            categories: ['communication', 'expertise', 'travaux'],
+            authors: ['Sophie Durand', 'Expert BERNARD', 'Jean Dupont'],
+            dateRange: {
+              min: '2024-01-01',
+              max: '2024-01-31'
+            },
+            tags: ['prise-en-charge', 'confirmation', 'rapport', 'expertise']
+          },
+          searchTerm: input.searchTerm || '',
+          appliedFilters: input.filters || {}
+        }
+      }
+    });
+  }),
 ];
