@@ -45,8 +45,11 @@ import type { DemandeComm } from '@/interfaces/demande-comm'
 import type { IMission } from '@/interfaces/IMission'
 import { DemandeCommStatut } from '@/enums/demande-comm-statut'
 import { useAssureurStore } from '@/stores/assureur'
+import { useGraphQL } from '@/composables/useGraphQL'
+import { DOWNLOAD_DOCUMENT_QUERY } from '@/graphql/queries/download-document'
 
 const assureurStore = useAssureurStore()
+const { executeQuery } = useGraphQL()
 
 const searchTerm = ref("")
 const selectedSecteur = ref("all")
@@ -164,15 +167,30 @@ const handleCreateMission = (missionData: IMission) => {
   setTimeout(() => (showMissionSuccess.value = false), 5000)
 }
 
-const telechargerDocument = (documentName: string) => {
-  // Mock document download - replace with actual implementation
-  const link = document.createElement('a')
-  link.href = `/api/documents/${documentName}`
-  link.download = documentName
-  link.click()
-  
-  // Show success message
-  console.log(`Téléchargement de ${documentName} initié`)
+const telechargerDocument = async (documentName: string) => {
+  try {
+    const result = await executeQuery<{ downloadDocument: { url: string, filename: string, contentType: string } }>(
+      DOWNLOAD_DOCUMENT_QUERY,
+      { documentName },
+      {
+        context: 'Download Document',
+        showErrorToast: true
+      }
+    )
+    
+    if (result?.downloadDocument?.url) {
+      const link = document.createElement('a')
+      link.href = result.downloadDocument.url
+      link.download = result.downloadDocument.filename || documentName
+      link.click()
+      
+      console.log(`Téléchargement de ${documentName} initié`)
+    } else {
+      throw new Error('URL de téléchargement non disponible')
+    }
+  } catch (error) {
+    console.error('Erreur lors du téléchargement:', error)
+  }
 }
 
 const handleContactClick = (prestataire: Prestataire) => {

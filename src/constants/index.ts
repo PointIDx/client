@@ -29,7 +29,7 @@ export const TIMEOUT_DURATIONS = {
 
 // API endpoints
 export const API_ENDPOINTS = {
-  SIRET: '/api/siret',
+  SIRET: 'https://api.insee.fr/entreprises/sirene/V3/siret',
   GRAPHQL: '/graphql',
   UPLOADS: '/uploads',
 } as const

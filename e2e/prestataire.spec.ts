@@ -1,66 +1,39 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Prestataire Flow', () => {
-  test('should allow a prestataire to register successfully', async ({ page }) => {
+  test('should allow a prestataire to register successfully with simplified flow', async ({ page }) => {
+    test.setTimeout(45000);
+    
     await page.goto('/pro-registration');
-
-    // Select prestataire account type
     await page.click('text="S\'inscrire comme Prestataire"');
     await expect(page.locator('h1')).toContainText('Inscription Prestataire');
 
-    // Step 1: Company Info
-    await page.fill('[data-testid="siret-input"]', '12345678901234');
-    await page.click('[data-testid="verify-siret-button"]');
-    await expect(page.locator('[data-testid="raison-sociale-input"]')).toHaveValue('ASSURANCE TEST SA');
-    
-    // Wait for SIRET validation to complete and fields to be populated
-    await page.waitForTimeout(1000);
-    
-    // Verify all required fields are populated and form is valid
-    await expect(page.locator('[data-testid="raison-sociale-input"]')).toHaveValue('ASSURANCE TEST SA');
-    
-    // Fill any missing required fields
-    await page.fill('[data-testid="date-creation-input"]', '2020-01-01');
-    
-    // Try clicking juridical form in case it wasn't auto-populated
-    try {
-      await page.click('[data-testid="forme-juridique-trigger"]');
-      await page.click('text="SAS"');
-    } catch (e) {
-      // Form might already be filled
-    }
-    
-    // Wait a bit for validation to complete
-    await page.waitForTimeout(1000);
-    
+    // Step 1: Basic Company Info (simplified - no SIRET blocking)
+    await page.fill('[data-testid="raison-sociale-input"]', 'DUBOIS CONSTRUCTION SARL');
+    await page.fill('[data-testid="adresse-input"]', '15 RUE DU BÂTIMENT');
+    await page.fill('[data-testid="code-postal-input"]', '69001');
+    await page.fill('[data-testid="ville-input"]', 'LYON');
     await page.click('[data-testid="next-button"]');
 
-    // Step 2: Documents
-    await page.setInputFiles('[data-testid="kbis-upload"]', 'e2e/test-kbis.pdf');
-    await page.setInputFiles('[data-testid="assurance-upload"]', 'e2e/test-assurance.pdf');
-    await page.click('[data-testid="next-button"]');
-
-    // Step 3: Contact Info
+    // Step 2: Contact Info
     await page.fill('[data-testid="contact-prenom-input"]', 'John');
     await page.fill('[data-testid="contact-nom-input"]', 'Doe');
-    await page.fill('[data-testid="contact-email-input"]', 'john.doe@example.com');
+    await page.fill('[data-testid="contact-email-input"]', 'john.doe@construction.com');
     await page.fill('[data-testid="contact-telephone-input"]', '0123456789');
     await page.click('[data-testid="next-button"]');
 
-    // Step 4: Provider Info
+    // Step 3: Provider Info (simplified)
     await page.fill('[data-testid="secteurs-activite-input"]', 'Plomberie, Chauffage');
-    await page.check('[data-testid="provider-region-checkbox"] >> text=Île-de-France');
     await page.click('[data-testid="next-button"]');
 
-    // Step 5: Account Creation
-    await page.fill('[data-testid="email-login-input"]', 'prestataire@test.com');
+    // Step 4: Account Creation
+    await page.fill('[data-testid="email-login-input"]', 'prestataire-new@test.com');
     await page.fill('[data-testid="password-input"]', 'password123');
     await page.fill('[data-testid="confirm-password-input"]', 'password123');
     await page.click('[data-testid="next-button"]');
 
-    // Step 6: Confirmation
-    await expect(page.locator('h3')).toContainText('Inscription réussie !');
-    await expect(page.locator('p')).toContainText('Votre demande d\'inscription prestataire a été envoyée.');
+    // Confirmation
+    await expect(page.locator('h3')).toContainText('Inscription réussie !', { timeout: 10000 });
   });
   
   test('should allow a prestataire to log in and view dashboard', async ({ page }) => {

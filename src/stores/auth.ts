@@ -4,10 +4,12 @@ import { LOGIN_MUTATION } from '@/graphql/mutations/login';
 import { SIGNUP_MUTATION } from '@/graphql/mutations/signup';
 import type { User, JWTTokens, AuthResponse } from '@/interfaces/auth';
 import { AuthUtils } from '@/utils/auth';
+import { useGraphQL } from '@/composables/useGraphQL';
 
 export const useAuthStore = defineStore('auth', () => {
   const tokens = ref<JWTTokens | null>(AuthUtils.getTokens());
   const user = ref<User | null>(AuthUtils.getUser());
+  const { executeMutation } = useGraphQL();
   
   const isAuthenticated = computed(() => {
     if (!tokens.value) return false;
@@ -18,75 +20,24 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       console.log('Attempting login with:', email, password);
       
-      // For testing purposes, simulate successful login with mock data
-      if (email === 'assureur@test.com' && password === 'password123') {
-        const mockTokens: JWTTokens = {
-          token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkFzc3VyZXVyIFRlc3QiLCJpYXQiOjE1MTYyMzkwMjIsImV4cCI6OTk5OTk5OTk5OX0.Twj8hZhS7ZX6vJl9NwJdJKQlQcH3KnM0hFkB1sP4aZw',
-          refreshToken: 'refresh_token_assureur_123',
-          expiresIn: 3600
-        };
-        const mockUser: User = {
-          id: '1',
-          email: email,
-          type: 'assureur',
-          profile: {
-            companyName: 'Test Insurance Company',
-            agreementNumber: 'AGR123456',
-            regions: ['Île-de-France', 'Provence-Alpes-Côte d\'Azur']
-          }
-        };
-        
-        tokens.value = mockTokens;
-        user.value = mockUser;
-        AuthUtils.saveTokens(mockTokens);
-        AuthUtils.saveUser(mockUser);
-        return true;
-      }
-      
-      if (email === 'prestataire@test.com' && password === 'password123') {
-        const mockTokens: JWTTokens = {
-          token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwOTg3NjU0MzIxIiwibmFtZSI6IlByZXN0YXRhaXJlIFRlc3QiLCJpYXQiOjE1MTYyMzkwMjIsImV4cCI6OTk5OTk5OTk5OX0.abc123def456ghi789jkl012mno345pqr678stu901vwx234yz',
-          refreshToken: 'refresh_token_prestataire_456',
-          expiresIn: 3600
-        };
-        const mockUser: User = {
-          id: '2',
-          email: email,
-          type: 'prestataire',
-          profile: {
-            companyName: 'Test Construction SARL',
-            siret: '12345678901234',
-            sectors: ['Plomberie', 'Chauffage'],
-            regions: ['Île-de-France']
-          }
-        };
-        
-        tokens.value = mockTokens;
-        user.value = mockUser;
-        AuthUtils.saveTokens(mockTokens);
-        AuthUtils.saveUser(mockUser);
-        return true;
-      }
-      
-      // For other cases, try real API call
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
+      // Use GraphQL API call
+      const result = await executeMutation<{ login: AuthResponse }>(
+        LOGIN_MUTATION,
+        { email, password },
+        {
+          context: 'User Login',
+          showErrorToast: false
+        }
+      );
 
-      if (!response.ok) {
+      if (!result?.login) {
         throw new Error('Login failed');
       }
 
-      const result: AuthResponse = await response.json();
-      
-      tokens.value = result.tokens;
-      user.value = result.user;
-      AuthUtils.saveTokens(result.tokens);
-      AuthUtils.saveUser(result.user);
+      tokens.value = result.login.tokens;
+      user.value = result.login.user;
+      AuthUtils.saveTokens(result.login.tokens);
+      AuthUtils.saveUser(result.login.user);
       return true;
       
     } catch (error) {
@@ -99,24 +50,23 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       console.log('Attempting signup with:', email, password);
 
-      const response = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
+      const result = await executeMutation<{ signup: AuthResponse }>(
+        SIGNUP_MUTATION,
+        { email, password },
+        {
+          context: 'User Signup',
+          showErrorToast: false
+        }
+      );
 
-      if (!response.ok) {
+      if (!result?.signup) {
         throw new Error('Signup failed');
       }
 
-      const result: AuthResponse = await response.json();
-      
-      tokens.value = result.tokens;
-      user.value = result.user;
-      AuthUtils.saveTokens(result.tokens);
-      AuthUtils.saveUser(result.user);
+      tokens.value = result.signup.tokens;
+      user.value = result.signup.user;
+      AuthUtils.saveTokens(result.signup.tokens);
+      AuthUtils.saveUser(result.signup.user);
       return true;
       
     } catch (error) {

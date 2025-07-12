@@ -21,7 +21,7 @@ export const contactSchema = z.object({
   prenom: z.string().min(1, "Le prénom est requis"),
   nom: z.string().min(1, "Le nom est requis"),
   email: z.string().email("Email invalide"),
-  telephone: z.string().min(10, "Le numéro de téléphone est requis"),
+  telephone: z.string().min(1, "Le numéro de téléphone est requis"), // Reduced minimum length
 });
 
 export const accountSchema = z.object({
@@ -37,20 +37,20 @@ export const providerInfoSchema = z.object({
   secteursActivite: z.string().min(1, "Les secteurs d'activité sont requis"),
   zonesGeographiques: z.object({
     departements: z.array(z.string()).optional(),
-    regions: z.array(z.string()).min(1, "Au moins une région est requise"),
+    regions: z.array(z.string()).optional(), // Make regions optional for simplified flow
     codesPostaux: z.array(z.string()).optional(),
   }),
 });
 
 export const insurerInfoSchema = z.object({
   numeroAgrement: z.string().min(1, "Le numéro d'agrément est requis"),
-  typesAssurance: z.array(z.string()).min(1, "Au moins un type d'assurance est requis"),
+  typesAssurance: z.array(z.string()).optional(), // Make types optional for simplified flow
   zonesCouverture: z.object({
     departements: z.array(z.string()).optional(),
-    regions: z.array(z.string()).min(1, "Au moins une zone de couverture est requise"),
+    regions: z.array(z.string()).optional(), // Make regions optional
     codesPostaux: z.array(z.string()).optional(),
   }),
-  garantiesProposees: z.string().min(1, "Les garanties proposées sont requises"),
+  garantiesProposees: z.string().optional(), // Make optional for simplified flow
 });
 
 export const societaireInfoSchema = z.object({

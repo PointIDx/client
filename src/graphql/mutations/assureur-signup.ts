@@ -2,69 +2,32 @@ import { gql } from 'graphql-tag';
 
 export const ASSUREUR_SIGNUP_MUTATION = gql`
   mutation AssureurSignup(
-    $companyInfo: CompanyInfoInput!,
-    $documents: DocumentsInput!,
-    $contact: ContactInput!,
-    $insurerInfo: InsurerInfoInput!,
-    $account: AccountInput!
+    $companyInfo: CompanyInfoInput!
+    $contactInfo: ContactInfoInput!
+    $accountInfo: AccountInfoInput!
+    $kbisFile: Upload
+    $insuranceFile: Upload
+    $agreementFile: Upload
   ) {
     assureurSignup(
-      companyInfo: $companyInfo,
-      documents: $documents,
-      contact: $contact,
-      insurerInfo: $insurerInfo,
-      account: $account
+      companyInfo: $companyInfo
+      contactInfo: $contactInfo
+      accountInfo: $accountInfo
+      kbisFile: $kbisFile
+      insuranceFile: $insuranceFile
+      agreementFile: $agreementFile
     ) {
-      token
-      expiresIn
-      refreshToken
+      tokens {
+        token
+        refreshToken
+        expiresIn
+      }
       user {
         id
         email
-        accountType
+        type
+        profile
       }
     }
-  }
-
-  input CompanyInfoInput {
-    raisonSociale: String!
-    siret: String!
-    formeJuridique: String!
-    adresse: String!
-    codePostal: String!
-    ville: String!
-    pays: String!
-    dateCreation: String!
-  }
-
-  input DocumentsInput {
-    kbis: Upload!
-    assurance: Upload!
-    agrement: Upload!
-  }
-
-  input ContactInput {
-    prenom: String!
-    nom: String!
-    email: String!
-    telephone: String!
-  }
-
-  input InsurerInfoInput {
-    numeroAgrement: String!
-    typesAssurance: [String!]!
-    zonesCouverture: ZoneCouvertureInput!
-    garantiesProposees: String!
-  }
-
-  input ZoneCouvertureInput {
-    departements: [String!]
-    regions: [String!]
-    codesPostaux: [String!]
-  }
-
-  input AccountInput {
-    email: String!
-    password: String!
   }
 `;

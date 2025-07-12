@@ -57,7 +57,7 @@ let mockMissions = [
 
 export const handlers = [
   // Mock SIRET API
-  http.get('/api/siret/:siret', ({ params }) => {
+  http.get('https://api.insee.fr/entreprises/sirene/V3/siret/:siret', ({ params }) => {
     const { siret } = params;
     if (siret === '12345678901234') {
       return HttpResponse.json({
@@ -101,14 +101,69 @@ export const handlers = [
   graphql.mutation<{}>('Login', (req) => {
     const { email, password } = req.variables;
 
-    if (email === 'test@example.com' && password === 'password123') {
+    // Assureur login
+    if (email === 'assureur@test.com' && password === 'password123') {
       return HttpResponse.json({
         data: {
           login: {
-            token: 'mock-jwt-token',
+            tokens: {
+              token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkFzc3VyZXVyIFRlc3QiLCJpYXQiOjE1MTYyMzkwMjIsImV4cCI6OTk5OTk5OTk5OX0.Twj8hZhS7ZX6vJl9NwJdJKQlQcH3KnM0hFkB1sP4aZw',
+              refreshToken: 'refresh_token_assureur_123',
+              expiresIn: 3600
+            },
+            user: {
+              id: '1',
+              email: email,
+              type: 'assureur',
+              profile: {
+                companyName: 'Test Insurance Company',
+                agreementNumber: 'AGR123456',
+                regions: ['Île-de-France', 'Provence-Alpes-Côte d\'Azur']
+              }
+            }
+          },
+        },
+      });
+    }
+    // Prestataire login
+    else if (email === 'prestataire@test.com' && password === 'password123') {
+      return HttpResponse.json({
+        data: {
+          login: {
+            tokens: {
+              token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwOTg3NjU0MzIxIiwibmFtZSI6IlByZXN0YXRhaXJlIFRlc3QiLCJpYXQiOjE1MTYyMzkwMjIsImV4cCI6OTk5OTk5OTk5OX0.abc123def456ghi789jkl012mno345pqr678stu901vwx234yz',
+              refreshToken: 'refresh_token_prestataire_456',
+              expiresIn: 3600
+            },
+            user: {
+              id: '2',
+              email: email,
+              type: 'prestataire',
+              profile: {
+                companyName: 'Test Construction SARL',
+                siret: '12345678901234',
+                sectors: ['Plomberie', 'Chauffage'],
+                regions: ['Île-de-France']
+              }
+            }
+          },
+        },
+      });
+    }
+    // General test user
+    else if (email === 'test@example.com' && password === 'password123') {
+      return HttpResponse.json({
+        data: {
+          login: {
+            tokens: {
+              token: 'mock-jwt-token',
+              refreshToken: 'mock-refresh-token',
+              expiresIn: 3600
+            },
             user: {
               id: 'user-123',
               email: 'test@example.com',
+              type: 'general'
             },
           },
         },
@@ -135,10 +190,15 @@ export const handlers = [
       return HttpResponse.json({
         data: {
           signup: {
-            token: 'mock-jwt-token-new-user',
+            tokens: {
+              token: 'mock-jwt-token-new-user',
+              refreshToken: 'mock-refresh-token-new-user',
+              expiresIn: 3600
+            },
             user: {
               id: 'new-user-456',
               email: email,
+              type: 'general'
             },
           },
         },
@@ -157,21 +217,61 @@ export const handlers = [
     }
   }),
 
+  // Intercept "RefreshToken" GraphQL mutation.
+  graphql.mutation('RefreshToken', (req) => {
+    const { refreshToken } = req.variables;
+
+    if (refreshToken && (
+      refreshToken === 'refresh_token_assureur_123' ||
+      refreshToken === 'refresh_token_prestataire_456' ||
+      refreshToken === 'mock-refresh-token' ||
+      refreshToken === 'mock-refresh-token-new-user'
+    )) {
+      return HttpResponse.json({
+        data: {
+          refreshToken: {
+            token: 'new-mock-jwt-token',
+            refreshToken: 'new-mock-refresh-token',
+            expiresIn: 3600
+          },
+        },
+      });
+    } else {
+      return HttpResponse.json({
+        errors: [
+          {
+            message: 'Invalid refresh token',
+            extensions: {
+              code: 'UNAUTHENTICATED',
+            },
+          },
+        ],
+      }, { status: 401 });
+    }
+  }),
+
   // Intercept "AssureurSignup" GraphQL mutation.
   graphql.mutation('AssureurSignup', (req) => {
-    const { companyInfo, documents, contact, insurerInfo, account } = req.variables;
+    const { companyInfo, contactInfo, accountInfo, kbisFile, insuranceFile, agreementFile } = req.variables;
 
-    if (companyInfo && documents && contact && insurerInfo && account) {
+    if (companyInfo && contactInfo && accountInfo) {
       return HttpResponse.json({
         data: {
           assureurSignup: {
-            token: 'mock-assureur-jwt-token',
-            expiresIn: 3600,
-            refreshToken: 'mock-assureur-refresh-token',
+            tokens: {
+              token: 'mock-assureur-jwt-token',
+              refreshToken: 'mock-assureur-refresh-token',
+              expiresIn: 3600
+            },
             user: {
               id: 'assureur-789',
-              email: account.email,
-              accountType: 'assureur',
+              email: accountInfo.email,
+              type: 'assureur',
+              profile: {
+                companyName: companyInfo.raisonSociale,
+                agreementNumber: 'AGR789456',
+                regions: ['Île-de-France']
+              }
             },
           },
         },
@@ -222,7 +322,7 @@ export const handlers = [
   graphql.mutation('SocietaireLogin', (req) => {
     const { email, dossierNumber } = req.variables;
 
-    if (email === 'societaire@example.com' && dossierNumber === 'DOSSIER123') {
+    if (email === 'jean.dupont@email.com' && dossierNumber === 'DOS2024001') {
       return HttpResponse.json({
         data: {
           societaireLogin: {
@@ -368,14 +468,14 @@ export const handlers = [
     }
   }),
 
-  // Intercept "SendComment" GraphQL mutation.
-  graphql.mutation('SendComment', (req) => {
+  // Intercept "SendSocietaireComment" GraphQL mutation.
+  graphql.mutation('SendSocietaireComment', (req) => {
     const { dossierNumber, comment } = req.variables;
 
     if (dossierNumber && comment) {
       return HttpResponse.json({
         data: {
-          sendComment: {
+          sendSocietaireComment: {
             success: true,
             message: 'Comment sent successfully',
             historiqueItem: {
@@ -722,4 +822,20 @@ export const handlers = [
   //   });
   //   return HttpResponse.json({ data: stream });
   // }),
+
+  // Intercept "DownloadDocument" GraphQL query.
+  graphql.query('DownloadDocument', ({ variables }) => {
+    const { documentName } = variables;
+    return HttpResponse.json({
+      data: {
+        downloadDocument: {
+          url: `/uploads/${documentName}`,
+          filename: documentName,
+          contentType: documentName.endsWith('.pdf') ? 'application/pdf' : 
+                      documentName.endsWith('.jpg') || documentName.endsWith('.jpeg') ? 'image/jpeg' :
+                      documentName.endsWith('.png') ? 'image/png' : 'application/octet-stream'
+        },
+      },
+    });
+  }),
 ];

@@ -52,6 +52,8 @@ export async function fetchSiretInfo(siret: string): Promise<SiretValidationResu
     }
 
     const response = await fetch(`${API_ENDPOINTS.SIRET}/${siret}`)
+
+    console.log(response)
     
     if (!response.ok) {
       const errorData = await response.json()

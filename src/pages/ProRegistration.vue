@@ -32,6 +32,7 @@ import {
   societaireInfoSchema,
 } from "@/schemas/registration-schemas"
 import { ASSUREUR_SIGNUP_MUTATION } from "@/graphql/mutations/assureur-signup"
+import { useGraphQL } from "@/composables/useGraphQL"
 
 // Import new utilities and constants
 import { 
@@ -52,6 +53,7 @@ const router = useRouter()
 const assureurStore = useAssureurStore()
 const prestataireStore = usePrestataireStore()
 const authStore = useAuthStore()
+const { executeMutation } = useGraphQL()
 
 const accountType = ref<AccountType | null>(null)
 const currentStep = ref(1)
@@ -185,10 +187,8 @@ const handleSiretValidation = async () => {
     } else if (accountType.value === 'prestataire') {
       await prestataireStore.getSiretInfo(siret.value as string);
     }
-    // Success message is now handled by the store utilities
   } catch (err: any) {
     setCompanyInfoErrors({ siret: err.message });
-    // Error handling is now handled by the store utilities
   } finally {
     isLoading.value = false;
   }
@@ -224,7 +224,7 @@ const validateStep = async (step: number) => {
       break;
     case 2:
       if (accountType.value === "societaire") {
-        isValid = societaireInfoMeta.value.valid; // Assuming project info is part of societaireInfoSchema
+        isValid = societaireInfoMeta.value.valid;
       } else {
         isValid = documentsMeta.value.valid;
       }
@@ -238,7 +238,7 @@ const validateStep = async (step: number) => {
       break;
     case 4:
       if (accountType.value === "societaire") {
-        isValid = true; // No step 4 for societaire
+        isValid = true;
       } else if (accountType.value === "prestataire") {
         isValid = providerInfoMeta.value.valid;
       } else if (accountType.value === "assureur") {
@@ -305,48 +305,34 @@ const submitRegistration = async () => {
       const insurerInfoData = insurerInfoValues;
       const accountData = accountValues;
 
-      // Prepare files for upload (if using a multipart form or similar)
-      const formData = new FormData();
-      formData.append('operations', JSON.stringify({
-        query: ASSUREUR_SIGNUP_MUTATION.loc?.source.body,
-        variables: {
-          companyInfo: companyInfoData,
-          documents: {
-            kbis: null, // Placeholder, actual file will be appended
-            assurance: null,
-            agrement: null,
-          },
-          contact: contactData,
-          insurerInfo: insurerInfoData,
-          account: accountData,
-        },
-      }));
-      formData.append('map', JSON.stringify({
-        "0": ["variables.documents.kbis"],
-        "1": ["variables.documents.assurance"],
-        "2": ["variables.documents.agrement"],
-      }));
-      formData.append('0', documentsData.kbis);
-      formData.append('1', documentsData.assurance);
-      formData.append('2', documentsData.agrement);
-
       try {
-        const response = await fetch('/graphql', {
-          method: 'POST',
-          body: formData,
-        });
-        const result = await response.json();
+        const result = await executeMutation<{ assureurSignup: { tokens: any, user: any } }>(
+          ASSUREUR_SIGNUP_MUTATION,
+          {
+            companyInfo: companyInfoData,
+            contactInfo: contactData,
+            accountInfo: accountData,
+            kbisFile: documentsData.kbis,
+            insuranceFile: documentsData.assurance,
+            agreementFile: documentsData.agrement,
+          },
+          {
+            context: 'Assureur Signup',
+            showSuccessMessage: false,
+            showErrorToast: false
+          }
+        );
 
-        if (result.data && result.data.assureurSignup) {
-          // Save token and redirect
-          localStorage.setItem('token', result.data.assureurSignup.token);
-          localStorage.setItem('expiresIn', result.data.assureurSignup.expiresIn);
-          localStorage.setItem('refreshToken', result.data.assureurSignup.refreshToken);
-          authStore.user = result.data.assureurSignup.user;
+        if (result?.assureurSignup) {
+          // Use AuthUtils to save tokens properly
+          const { tokens, user } = result.assureurSignup;
+          authStore.tokens = tokens;
+          authStore.user = user;
+          
           success = true;
           router.push("/assureur-dashboard");
         } else {
-          throw new Error(result.errors?.[0]?.message || "Erreur lors de l'inscription de l'assureur.");
+          throw new Error("Erreur lors de l'inscription de l'assureur.");
         }
       } catch (graphQLError: any) {
         throw new Error(graphQLError.message || "Erreur de communication avec le serveur GraphQL.");
@@ -401,7 +387,6 @@ const handleAccountTypeSelected = (type: AccountType) => {
   accountType.value = type;
 };
 </script>
-
 
 <template>
   <div v-if="!accountType">
@@ -535,7 +520,6 @@ const handleAccountTypeSelected = (type: AccountType) => {
                   type="date"
                   v-model="dateCreation"
                   v-bind="dateCreationAttrs"
-                  :disabled="(accountType === 'assureur' && !assureurStore.siretValidated) || (accountType === 'prestataire' && !prestataireStore.siretValidated)"
                   data-testid="date-creation-input"
                 />
                 <ErrorMessage name="dateCreation" class="text-red-500 text-sm" data-testid="date-creation-error" />
@@ -547,7 +531,6 @@ const handleAccountTypeSelected = (type: AccountType) => {
                   id="adresse"
                   v-model="adresse"
                   v-bind="adresseAttrs"
-                  :disabled="(accountType === 'assureur' && !assureurStore.siretValidated) || (accountType === 'prestataire' && !prestataireStore.siretValidated)"
                   data-testid="adresse-input"
                 />
                 <ErrorMessage name="adresse" class="text-red-500 text-sm" data-testid="adresse-error" />
@@ -559,7 +542,6 @@ const handleAccountTypeSelected = (type: AccountType) => {
                   id="codePostal"
                   v-model="codePostal"
                   v-bind="codePostalAttrs"
-                  :disabled="(accountType === 'assureur' && !assureurStore.siretValidated) || (accountType === 'prestataire' && !prestataireStore.siretValidated)"
                   data-testid="code-postal-input"
                 />
                 <ErrorMessage name="codePostal" class="text-red-500 text-sm" data-testid="code-postal-error" />
@@ -571,7 +553,6 @@ const handleAccountTypeSelected = (type: AccountType) => {
                   id="ville"
                   v-model="ville"
                   v-bind="villeAttrs"
-                  :disabled="(accountType === 'assureur' && !assureurStore.siretValidated) || (accountType === 'prestataire' && !prestataireStore.siretValidated)"
                   data-testid="ville-input"
                 />
                 <ErrorMessage name="ville" class="text-red-500 text-sm" data-testid="ville-error" />
@@ -675,79 +656,81 @@ const handleAccountTypeSelected = (type: AccountType) => {
             </div>
           </div>
 
-          <!-- Étape 2: Documents -->
+          <!-- Étape 2: Documents (non-Sociétaire) -->
           <div v-else-if="currentStep === 2 && accountType !== 'societaire'" class="space-y-6">
-            <div>
-              <Label for="kbis">Kbis (moins de 6 mois) *</Label>
-              <div class="mt-2 border-2 border-dashed border-gray-400 rounded-lg p-6 text-center bg-gray-50 hover:bg-gray-100 transition-colors">
-                <Upload class="mx-auto h-12 w-12 text-gray-600" />
-                <div class="mt-4">
-                  <label for="kbis" class="cursor-pointer">
-                    <span class="mt-2 block text-sm font-medium text-black">
-                      {{ kbis ? kbis.name : "Cliquez pour télécharger votre Kbis" }}
-                    </span>
-                    <span class="mt-1 block text-xs text-gray-700">PDF, max 5MB</span>
-                  </label>
-                  <input
-                    id="kbis"
-                    type="file"
-                    class="hidden"
-                    accept=".pdf"
-                    @change="(e: any) => handleFileUpload('kbis', e.target.files?.[0])"
-                    data-testid="kbis-upload"
-                  />
+            <div class="grid grid-cols-1 gap-4">
+              <div>
+                <Label for="kbis">Extrait Kbis *</Label>
+                <div class="mt-2 border-2 border-dashed border-gray-400 rounded-lg p-6 text-center bg-gray-50 hover:bg-gray-100 transition-colors">
+                  <Upload class="mx-auto h-12 w-12 text-gray-600" />
+                  <div class="mt-4">
+                    <label for="kbis" class="cursor-pointer">
+                      <span class="mt-2 block text-sm font-medium text-black">
+                        {{ kbis ? kbis.name : "Cliquez pour télécharger votre Kbis" }}
+                      </span>
+                      <span class="mt-1 block text-xs text-gray-700">PDF, max 5MB</span>
+                    </label>
+                    <input
+                      id="kbis"
+                      type="file"
+                      class="hidden"
+                      accept=".pdf"
+                      @change="(e: any) => handleFileUpload('kbis', e.target.files?.[0])"
+                      data-testid="kbis-upload"
+                    />
+                  </div>
                 </div>
+                <ErrorMessage name="kbis" class="text-red-500 text-sm" data-testid="kbis-error" />
               </div>
-              <ErrorMessage name="kbis" class="text-red-500 text-sm" data-testid="kbis-error" />
-            </div>
 
-            <div>
-              <Label for="assurance">Attestation d'assurance responsabilité civile / décennale *</Label>
-              <div class="mt-2 border-2 border-dashed border-gray-400 rounded-lg p-6 text-center bg-gray-50 hover:bg-gray-100 transition-colors">
-                <Upload class="mx-auto h-12 w-12 text-gray-600" />
-                <div class="mt-4">
-                  <label for="assurance" class="cursor-pointer">
-                    <span class="mt-2 block text-sm font-medium text-black">
-                      {{ assurance ? assurance.name : "Cliquez pour télécharger votre attestation" }}
-                    </span>
-                    <span class="mt-1 block text-xs text-gray-700">PDF, max 5MB</span>
-                  </label>
-                  <input
-                    id="assurance"
-                    type="file"
-                    class="hidden"
-                    accept=".pdf"
-                    @change="(e: any) => handleFileUpload('assurance', e.target.files?.[0])"
-                    data-testid="assurance-upload"
-                  />
+              <div>
+                <Label for="assurance">Attestation d'assurance *</Label>
+                <div class="mt-2 border-2 border-dashed border-gray-400 rounded-lg p-6 text-center bg-gray-50 hover:bg-gray-100 transition-colors">
+                  <Upload class="mx-auto h-12 w-12 text-gray-600" />
+                  <div class="mt-4">
+                    <label for="assurance" class="cursor-pointer">
+                      <span class="mt-2 block text-sm font-medium text-black">
+                        {{ assurance ? assurance.name : "Cliquez pour télécharger votre attestation" }}
+                      </span>
+                      <span class="mt-1 block text-xs text-gray-700">PDF, max 5MB</span>
+                    </label>
+                    <input
+                      id="assurance"
+                      type="file"
+                      class="hidden"
+                      accept=".pdf"
+                      @change="(e: any) => handleFileUpload('assurance', e.target.files?.[0])"
+                      data-testid="assurance-upload"
+                    />
+                  </div>
                 </div>
+                <ErrorMessage name="assurance" class="text-red-500 text-sm" data-testid="assurance-error" />
               </div>
-              <ErrorMessage name="assurance" class="text-red-500 text-sm" data-testid="assurance-error" />
-            </div>
 
-            <!-- Document spécifique aux assureurs -->
-            <div v-if="accountType === 'assureur'">
-              <Label for="agrement">Agrément ACPR / Autorisation d'exercer *</Label>
-              <div class="mt-2 border-2 border-dashed border-gray-400 rounded-lg p-6 text-center bg-gray-50 hover:bg-gray-100 transition-colors">
-                <Upload class="mx-auto h-12 w-12 text-gray-600" />
-                <div class="mt-4">
-                  <label for="agrement" class="cursor-pointer">
-                    <span class="mt-2 block text-sm font-medium text-black">
-                      {{ agrement ? agrement.name : "Cliquez pour télécharger votre agrément" }}
-                    </span>
-                    <span class="mt-1 block text-xs text-gray-700">PDF, max 5MB</span>
-                  </label>
-                  <input
-                    id="agrement"
-                    type="file"
-                    class="hidden"
-                    accept=".pdf"
-                    @change="(e: any) => handleFileUpload('agrement', e.target.files?.[0])"
-                    data-testid="agrement-upload"
-                  />
+              <!-- Document spécifique aux assureurs -->
+              <div v-if="accountType === 'assureur'">
+                <Label for="agrement">Agrément ACPR *</Label>
+                <div class="mt-2 border-2 border-dashed border-gray-400 rounded-lg p-6 text-center bg-gray-50 hover:bg-gray-100 transition-colors">
+                  <Upload class="mx-auto h-12 w-12 text-gray-600" />
+                  <div class="mt-4">
+                    <label for="agrement" class="cursor-pointer">
+                      <span class="mt-2 block text-sm font-medium text-black">
+                        {{ agrement ? agrement.name : "Cliquez pour télécharger votre agrément" }}
+                      </span>
+                      <span class="mt-1 block text-xs text-gray-700">PDF, max 5MB</span>
+                    </label>
+                    <input
+                      id="agrement"
+                      type="file"
+                      class="hidden"
+                      accept=".pdf"
+                      @change="(e: any) => handleFileUpload('agrement', e.target.files?.[0])"
+                      data-testid="agrement-upload"
+                    />
+                  </div>
                 </div>
+                <ErrorMessage name="agrement" class="text-red-500 text-sm" data-testid="agrement-error" />
               </div>
-              <ErrorMessage name="agrement" class="text-red-500 text-sm" data-testid="agrement-error" />
             </div>
           </div>
 
@@ -1093,30 +1076,22 @@ const handleAccountTypeSelected = (type: AccountType) => {
           </div>
 
           <!-- Boutons de navigation -->
-          <div v-if="(accountType === 'societaire' && currentStep < 4) || (accountType !== 'societaire' && currentStep < 6)" class="flex justify-between pt-6">
+          <div v-if="(accountType === 'societaire' && currentStep < 4) || (accountType !== 'societaire' && currentStep < 5)" class="flex justify-between pt-6">
             <Button variant="outline" @click="prevStep" :disabled="currentStep === 1" class="border-gray-400 text-gray-700 hover:bg-gray-100 hover:border-gray-500">
               Précédent
             </Button>
 
-            <Button @click="(accountType === 'societaire' && currentStep < 3) || (accountType !== 'societaire' && currentStep < 5) ? nextStep() : submitRegistration()" :disabled="
-              (accountType === 'societaire' && !societaireInfoMeta.valid) ||
-              (accountType === 'prestataire' && currentStep === 1 && !companyInfoMeta.valid) ||
-              (accountType === 'prestataire' && currentStep === 2 && !documentsMeta.valid) ||
-              (accountType === 'prestataire' && currentStep === 3 && !contactMeta.valid) ||
-              (accountType === 'prestataire' && currentStep === 4 && !providerInfoMeta.valid) ||
-              (accountType === 'prestataire' && currentStep === 5 && !accountMeta.valid) ||
-              (accountType === 'assureur' && currentStep === 1 && !companyInfoMeta.valid) ||
-              (accountType === 'assureur' && currentStep === 2 && !documentsMeta.valid) ||
-              (accountType === 'assureur' && currentStep === 3 && !contactMeta.valid) ||
-              (accountType === 'assureur' && currentStep === 4 && !insurerInfoMeta.valid) ||
-              (accountType === 'assureur' && currentStep === 5 && !accountMeta.valid) ||
-              isLoading
-            "
-            data-testid="next-button"
-            class="bg-black text-white hover:bg-gray-800">
-              <Loader2 v-if="isLoading && ((accountType === 'societaire' && currentStep >= 3) || (accountType !== 'societaire' && currentStep >= 5))" class="mr-2 h-4 w-4 animate-spin" />
-              <span v-if="(accountType === 'societaire' && currentStep < 3) || (accountType !== 'societaire' && currentStep < 5)">Suivant</span>
-              <span v-else>Finaliser l'inscription</span>
+            <Button 
+              @click="(accountType === 'societaire' && currentStep < 3) || (accountType !== 'societaire' && currentStep < 4) ? nextStep() : submitRegistration()" 
+              :disabled="isLoading"
+              class="bg-black text-white hover:bg-gray-800"
+            >
+              <Loader2 v-if="isLoading" class="mr-2 h-4 w-4 animate-spin" />
+              <span>
+                {{ (accountType === 'societaire' && currentStep < 3) || (accountType !== 'societaire' && currentStep < 4) 
+                    ? 'Suivant' 
+                    : 'Finaliser l\'inscription' }}
+              </span>
             </Button>
           </div>
         </CardContent>

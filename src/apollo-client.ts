@@ -3,12 +3,16 @@ import { setContext } from '@apollo/client/link/context'
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions'
 import { getMainDefinition } from '@apollo/client/utilities'
 import { createClient } from 'graphql-ws'
+import { AuthUtils } from '@/utils/auth'
 
 const wsLink = new GraphQLWsLink(
   createClient({
     url: import.meta.env.VITE_SERVER_GRAPHQL_WS_URL || 'ws://localhost:4000/ws',
-    connectionParams: {
-      authorization: 'Bearer ' + localStorage.getItem('token')
+    connectionParams: () => {
+      const tokens = AuthUtils.getTokens()
+      return {
+        authorization: tokens?.token ? `Bearer ${tokens.token}` : ''
+      }
     },
     lazy: true,
     keepAlive: 1
@@ -21,11 +25,11 @@ const httpLink = createHttpLink({
 })
 
 const authLink = setContext(async (_, { headers }) => {
-  const token = localStorage.getItem('token')
+  const tokens = AuthUtils.getTokens()
   return {
     headers: {
       ...headers,
-      authorization: token ? `Bearer ${token}` : ''
+      authorization: tokens?.token ? `Bearer ${tokens.token}` : ''
     }
   }
 })

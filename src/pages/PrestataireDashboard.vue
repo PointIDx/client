@@ -28,7 +28,7 @@ import {
 } from "lucide-vue-next"
 
 import { usePrestataireStore } from '@/stores/prestataire'
-import { onMounted, computed, ref, watch } from 'vue'
+import { onMounted, computed, ref, watch, nextTick } from 'vue'
 import { MissionStatutPrestataire } from '@/enums/mission-statut-prestataire'
 import { MessageExpediteur } from '@/enums/message-expediteur'
 import type { MissionPrestataire } from '@/interfaces/mission-prestataire'
@@ -96,6 +96,8 @@ const getStatutBadge = getPrestataireMissionStatusBadge
 const changerStatutMission = async (missionId: string, nouveauStatut: MissionStatutPrestataire) => {
   try {
     await prestataireStore.updateMissionStatus(missionId, nouveauStatut)
+    // Ensure the UI updates
+    await nextTick()
     successMessage.value = `Statut de la mission mis à jour: ${nouveauStatut}`
     showSuccess.value = true
     setTimeout(() => (showSuccess.value = false), 3000)

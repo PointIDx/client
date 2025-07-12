@@ -1,4 +1,6 @@
 import type { JWTTokens } from '@/interfaces/auth'
+import apolloClient from '@/apollo-client'
+import { REFRESH_TOKEN_MUTATION } from '@/graphql/mutations/refresh-token'
 
 const TOKEN_KEY = 'pointid_tokens'
 const USER_KEY = 'pointid_user'
@@ -51,20 +53,16 @@ export class AuthUtils {
 
   static async refreshTokens(refreshToken: string): Promise<JWTTokens | null> {
     try {
-      const response = await fetch('/api/auth/refresh', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ refreshToken }),
+      const { data } = await apolloClient.mutate({
+        mutation: REFRESH_TOKEN_MUTATION,
+        variables: { refreshToken },
       })
 
-      if (!response.ok) {
+      if (!data?.refreshToken) {
         throw new Error('Failed to refresh token')
       }
 
-      const data = await response.json()
-      return data.tokens
+      return data.refreshToken
     } catch (error) {
       console.error('Token refresh failed:', error)
       return null
@@ -80,7 +78,10 @@ export class AuthUtils {
     }
   }
 
-  static async makeAuthenticatedRequest(url: string, options: RequestInit = {}): Promise<Response> {
+  static async makeAuthenticatedGraphQLRequest<T>(
+    mutation: any,
+    variables?: Record<string, any>
+  ): Promise<T | null> {
     let tokens = this.getTokens()
     
     if (!tokens) {
@@ -98,15 +99,15 @@ export class AuthUtils {
       this.saveTokens(tokens)
     }
 
-    const authHeaders = this.getAuthHeaders()
-    const requestOptions: RequestInit = {
-      ...options,
-      headers: {
-        ...authHeaders,
-        ...options.headers,
-      },
+    try {
+      const { data } = await apolloClient.mutate({
+        mutation,
+        variables,
+      })
+      return data as T
+    } catch (error) {
+      console.error('Authenticated GraphQL request failed:', error)
+      throw error
     }
-
-    return fetch(url, requestOptions)
   }
 }

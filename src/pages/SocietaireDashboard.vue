@@ -30,8 +30,11 @@ import { useSocietaireStore } from "@/stores/societaire"
 import { TimelineStatut } from "@/enums/timeline-statut"
 import { HistoriqueType } from "@/enums/historique-type"
 import { DocumentType } from "@/enums/document-type"
+import { useGraphQL } from '@/composables/useGraphQL'
+import { DOWNLOAD_DOCUMENT_QUERY } from '@/graphql/queries/download-document'
 
 const societaireStore = useSocietaireStore()
+const { executeQuery } = useGraphQL()
 
 const emit = defineEmits(["logout"])
 
@@ -100,15 +103,30 @@ const onLogout = () => {
   emit("logout")
 }
 
-const telechargerDocument = (doc: any) => {
-  // Mock document download - replace with actual implementation
-  const link = document.createElement('a')
-  link.href = `/api/documents/${doc.nom}`
-  link.download = doc.nom
-  link.click()
-  
-  // Show success message
-  console.log(`Téléchargement de ${doc.nom} initié`)
+const telechargerDocument = async (doc: any) => {
+  try {
+    const result = await executeQuery<{ downloadDocument: { url: string, filename: string, contentType: string } }>(
+      DOWNLOAD_DOCUMENT_QUERY,
+      { documentName: doc.nom },
+      {
+        context: 'Download Document',
+        showErrorToast: true
+      }
+    )
+    
+    if (result?.downloadDocument?.url) {
+      const link = document.createElement('a')
+      link.href = result.downloadDocument.url
+      link.download = result.downloadDocument.filename || doc.nom
+      link.click()
+      
+      console.log(`Téléchargement de ${doc.nom} initié`)
+    } else {
+      throw new Error('URL de téléchargement non disponible')
+    }
+  } catch (error) {
+    console.error('Erreur lors du téléchargement:', error)
+  }
 }
 
 onMounted(() => {

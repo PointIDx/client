@@ -18,6 +18,7 @@ import { MissionStatutPrestataire } from '@/enums/mission-statut-prestataire'
 import { SEND_COMMENT_MUTATION } from '@/graphql/mutations/send-comment'
 import { SEND_FILE } from '@/graphql/mutations/send-file'
 import { ON_NEW_MESSAGE_SUBSCRIPTION } from '@/graphql/subscriptions/on-new-message'
+import { GET_MESSAGES_QUERY } from '@/graphql/queries/get-messages'
 import type { Message } from '@/interfaces/message'
 import { MessageExpediteur } from '@/enums/message-expediteur'
 
@@ -126,12 +127,9 @@ export const usePrestataireStore = defineStore('prestataire', () => {
           status
         }
       })
-      // Update the mission in the local store
-      const updatedMission = data.updateMissionStatus
-      const index = missions.value.findIndex((m) => m.id === updatedMission.id)
-      if (index !== -1) {
-        missions.value[index].missionStatus = updatedMission.missionStatus
-      }
+      
+      // Refresh missions from server to ensure consistency
+      await getMissions()
       
       showSuccess('Statut de la mission mis à jour avec succès')
     } catch (error) {
@@ -173,26 +171,26 @@ export const usePrestataireStore = defineStore('prestataire', () => {
     }
   }
 
-  function subscribeToNewMessages(missionId: string) {
-    // Initialize with some mock messages for the chat to work
-    messages.value = [
-      {
-        id: '1',
-        missionId,
-        expediteur: MessageExpediteur.Assureur,
-        contenu: 'Bonjour, pouvez-vous nous donner une estimation pour cette mission ?',
-        dateEnvoi: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-      },
-      {
-        id: '2', 
-        missionId,
-        expediteur: MessageExpediteur.Prestataire,
-        contenu: 'Bonjour, je peux être sur place demain matin pour faire l\'évaluation.',
-        dateEnvoi: new Date(Date.now() - 43200000).toISOString(), // 12 hours ago
+  async function fetchMessages(missionId: string) {
+    try {
+      const { data } = await client.query({
+        query: GET_MESSAGES_QUERY,
+        variables: { missionId }
+      });
+      
+      if (data?.getMessages) {
+        messages.value = data.getMessages;
       }
-    ]
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+    }
+  }
+
+  function subscribeToNewMessages(missionId: string) {
+    // Fetch messages using GraphQL
+    fetchMessages(missionId);
     
-    // Skip subscription for now since it causes issues in tests
+    // Setup subscription for real-time updates
     try {
       client
         .subscribe({
@@ -229,6 +227,7 @@ export const usePrestataireStore = defineStore('prestataire', () => {
     updateMissionStatus,
     sendMessage,
     sendFile,
+    fetchMessages,
     subscribeToNewMessages
   }
 })
