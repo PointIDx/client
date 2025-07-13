@@ -31,8 +31,8 @@ test.describe('Assureur Missions Management', () => {
     // Fill in client information
     await page.locator('button:has-text("Sélectionnez")').first().click();
     await page.getByRole('option').filter({ hasText: 'Monsieur' }).click();
-    await page.getByLabel('Nom *').fill('Dupont');
-    await page.getByLabel('Prénom *').fill('Jean');
+    await page.locator('#nom').fill('Dupont');
+    await page.locator('#prenom').fill('Jean');
     await page.getByLabel('Téléphone *').fill('0123456789');
     
     // Go to next tab
@@ -131,10 +131,10 @@ test.describe('Assureur Missions Management', () => {
     await page.getByRole('tab').filter({ hasText: 'Mes Missions' }).click();
     
     // Should see different status badges
-    await expect(page.getByText('En cours')).toBeVisible();
-    await expect(page.getByText('Acceptée')).toBeVisible();
-    await expect(page.getByText('Envoyée')).toBeVisible();
-    await expect(page.getByText('Terminée')).toBeVisible();
+    await expect(page.getByText('En cours').first()).toBeVisible();
+    await expect(page.getByText('Acceptée').first()).toBeVisible();
+    await expect(page.getByText('Envoyée').first()).toBeVisible();
+    await expect(page.getByText('Terminée').first()).toBeVisible();
   });
 
   test('should display urgency badges correctly', async ({ page }) => {

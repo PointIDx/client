@@ -41,7 +41,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import MissionCreationDialog from '@/components/MissionCreationDialog.vue'
 import MissionsList from '@/components/MissionsList.vue'
 import type { Prestataire } from '@/interfaces/prestataire'
-import type { DemandeComm } from '@/interfaces/demande-comm'
+import type { CommunicationRequestResponse } from '@/graphql/queries/get-communication-requests'
 import type { IMission } from '@/interfaces/IMission'
 import { DemandeCommStatut } from '@/enums/demande-comm-statut'
 import { useAssureurStore } from '@/stores/assureur'
@@ -58,14 +58,16 @@ const selectedDepartement = ref("all")
 const selectedPrestataire = ref<Prestataire | null>(null)
 const showCommDialog = ref(false)
 const messageComm = ref("")
-const demandes = ref<DemandeComm[]>([])
 const showSuccess = ref(false)
 
 const showMissionDialog = ref(false)
 const selectedPrestataireForMission = ref<Prestataire | null>(null)
-const missions = ref<IMission[]>([])
 const showMissionSuccess = ref(false)
-const notifications = ref<any[]>([])  // Add notifications array
+
+// Use data from the store
+const demandes = computed(() => assureurStore.communicationRequests)
+const missions = computed(() => assureurStore.missions)
+const notifications = computed(() => assureurStore.notifications.filter(n => !n.read))
 
 const secteurs = ["Maçonnerie", "Plomberie", "Électricité", "Chauffage", "Couverture", "Menuiserie", "Peinture"]
 const regions = [
@@ -102,8 +104,12 @@ const applyFilters = () => {
   });
 }
 
-onMounted(() => {
+onMounted(async () => {
   applyFilters();
+  // Load communication requests and missions from the store
+  await assureurStore.fetchCommunicationRequests();
+  await assureurStore.fetchMissions();
+  await assureurStore.fetchNotifications();
 });
 
 const resetFilters = () => {
@@ -114,25 +120,25 @@ const resetFilters = () => {
   applyFilters();
 }
 
-const envoyerDemandeComm = () => {
+const envoyerDemandeComm = async () => {
   if (!selectedPrestataire.value || !messageComm.value.trim()) return
 
-  const nouvelleDemande: DemandeComm = {
-    id: Date.now().toString(),
-    prestataire: selectedPrestataire.value,
-    message: messageComm.value,
-    statut: DemandeCommStatut.EnAttente,
-    dateEnvoi: new Date().toISOString(),
-  }
+  try {
+    await assureurStore.sendCommRequest({
+      prestataireId: selectedPrestataire.value.id,
+      message: messageComm.value
+    })
 
-  demandes.value.push(nouvelleDemande)
-  messageComm.value = ""
-  showCommDialog.value = false
-  showSuccess.value = true
-  setTimeout(() => (showSuccess.value = false), 3000)
+    messageComm.value = ""
+    showCommDialog.value = false
+    showSuccess.value = true
+    setTimeout(() => (showSuccess.value = false), 3000)
+  } catch (error) {
+    console.error('Erreur lors de l\'envoi de la demande:', error)
+  }
 }
 
-const getStatutBadge = (statut: DemandeComm["statut"]) => {
+const getStatutBadge = (statut: CommunicationRequestResponse["statut"]) => {
   switch (statut) {
     case "en_attente":
       return {
@@ -161,10 +167,16 @@ const getStatutBadge = (statut: DemandeComm["statut"]) => {
   }
 }
 
-const handleCreateMission = (missionData: IMission) => {
-  missions.value.push(missionData)
-  showMissionSuccess.value = true
-  setTimeout(() => (showMissionSuccess.value = false), 5000)
+const handleCreateMission = async (missionData: any) => {
+  try {
+    await assureurStore.createMission(missionData)
+    // Refresh missions list
+    await assureurStore.fetchMissions()
+    showMissionSuccess.value = true
+    setTimeout(() => (showMissionSuccess.value = false), 5000)
+  } catch (error) {
+    console.error('Erreur lors de la création de la mission:', error)
+  }
 }
 
 const telechargerDocument = async (documentName: string) => {
@@ -266,8 +278,8 @@ import placeholderImage from '@/assets/placeholder.svg'
       <Tabs default-value="recherche" class="space-y-6">
         <TabsList>
           <TabsTrigger value="recherche">Recherche Prestataires</TabsTrigger>
-          <TabsTrigger value="demandes">Mes Demandes ({{ demandes.length }})</TabsTrigger>
-          <TabsTrigger value="missions">Mes Missions ({{ missions.length }})</TabsTrigger>
+          <TabsTrigger value="demandes" @click="assureurStore.fetchCommunicationRequests()">Mes Demandes ({{ demandes.length }})</TabsTrigger>
+          <TabsTrigger value="missions" @click="assureurStore.fetchMissions()">Mes Missions ({{ missions.length }})</TabsTrigger>
         </TabsList>
 
         <!-- Onglet Recherche -->
@@ -597,6 +609,12 @@ import placeholderImage from '@/assets/placeholder.svg'
                             <strong>Message:</strong>
                           </p>
                           <p class="text-sm text-gray-700 bg-gray-50 p-2 rounded mt-1">{{ demande.message }}</p>
+                        </div>
+                        <div v-if="demande.reponseMessage" class="mt-2">
+                          <p class="text-sm">
+                            <strong>Réponse:</strong>
+                          </p>
+                          <p class="text-sm text-gray-700 bg-blue-50 p-2 rounded mt-1">{{ demande.reponseMessage }}</p>
                         </div>
                       </div>
                     </div>

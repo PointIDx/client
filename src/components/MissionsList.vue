@@ -42,8 +42,20 @@ import {
   Briefcase,
 } from 'lucide-vue-next'
 import type { IMission } from '@/interfaces/IMission'
+import { useAssureurStore } from '@/stores/assureur'
 
-// Données mockées pour la démonstration
+const assureurStore = useAssureurStore()
+
+// Props
+interface Props {
+  missions?: IMission[]
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  missions: () => []
+})
+
+// Données mockées pour la démonstration (utilisées si pas de props)
 const mockMissions: IMission[] = [
   {
     id: "1",
@@ -321,7 +333,7 @@ const mockMissions: IMission[] = [
 type SortField = "dateCreation" | "prestataire" | "client" | "statut" | "urgence" | "budget"
 type SortDirection = "asc" | "desc"
 
-const missions = ref<IMission[]>(mockMissions)
+const missions = computed(() => props.missions.length > 0 ? props.missions : mockMissions)
 const searchTerm = ref("")
 const selectedStatut = ref("all")
 const selectedPrestataire = ref("all")
@@ -557,6 +569,32 @@ const getSortIcon = (field: SortField) => {
   if (sortField.value !== field) return ArrowUpDown
   return sortDirection.value === "asc" ? ArrowUp : ArrowDown
 }
+
+const handleExport = async () => {
+  try {
+    const filters = {
+      statut: selectedStatut.value !== 'all' ? selectedStatut.value : undefined,
+      urgence: selectedUrgence.value !== 'all' ? selectedUrgence.value : undefined,
+      prestataireId: selectedPrestataire.value !== 'all' ? selectedPrestataire.value : undefined,
+      type: selectedType.value !== 'all' ? selectedType.value : undefined,
+      dateDebut: dateDebut.value || undefined,
+      dateFin: dateFin.value || undefined,
+      searchTerm: searchTerm.value || undefined
+    }
+    
+    await assureurStore.exportMissions(filters)
+  } catch (error) {
+    console.error('Erreur lors de l\'export:', error)
+  }
+}
+
+const handleExportMissionDetails = async (missionId: string) => {
+  try {
+    await assureurStore.exportMissionDetails(missionId)
+  } catch (error) {
+    console.error('Erreur lors de l\'export de la mission:', error)
+  }
+}
 </script>
 
 <template>
@@ -715,7 +753,7 @@ const getSortIcon = (field: SortField) => {
                 <RefreshCw class="w-4 h-4 mr-2" />
                 Réinitialiser
               </Button>
-              <Button variant="outline">
+              <Button variant="outline" @click="handleExport">
                 <Download class="w-4 h-4 mr-2" />
                 Exporter
               </Button>
@@ -838,7 +876,7 @@ const getSortIcon = (field: SortField) => {
                         <Eye class="w-4 h-4 mr-2" />
                         Voir détails
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
+                      <DropdownMenuItem @click="handleExportMissionDetails(mission.id)">
                         <Download class="w-4 h-4 mr-2" />
                         Télécharger
                       </DropdownMenuItem>

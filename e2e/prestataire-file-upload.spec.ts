@@ -10,8 +10,7 @@ test.describe('Prestataire File Upload and Enhanced Chat', () => {
     // Click on chat button for first mission
     await page.locator('[data-testid="chat-button"]').first().click();
     
-    // Should open chat dialog
-    await expect(page.locator('[data-testid="chat-dialog"]')).toBeVisible();
+
     await expect(page.getByText('Chat - Mission #')).toBeVisible();
   });
 

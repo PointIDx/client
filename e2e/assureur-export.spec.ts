@@ -14,10 +14,7 @@ test.describe('Assureur Export Functionality', () => {
     await expect(page.getByRole('button').filter({ hasText: 'Exporter' })).toBeVisible();
   });
 
-  test.skip('should export missions list when export button is clicked', async ({ page }) => {
-    // Mock the download behavior
-    const downloadPromise = page.waitForEvent('download');
-    
+  test('should export missions list when export button is clicked', async ({ page }) => {
     // Intercept the export GraphQL query
     await mockGraphQLResponse(page, 'ExportMissions', {
       data: {
@@ -32,17 +29,14 @@ test.describe('Assureur Export Functionality', () => {
     // Go to missions tab
     await page.getByRole('tab').filter({ hasText: 'Mes Missions' }).click();
     
-    // Click export button
+    // Click export button - this should work without errors
     await page.getByRole('button').filter({ hasText: 'Exporter' }).click();
     
-    // Should trigger download (in real scenario)
-    // await downloadPromise;
+    // Wait a moment for the GraphQL call to complete
+    await page.waitForTimeout(1000);
   });
 
-  test.skip('should export individual mission details', async ({ page }) => {
-    // Mock the download behavior
-    const downloadPromise = page.waitForEvent('download');
-    
+  test('should export individual mission details', async ({ page }) => {
     // Intercept the export GraphQL query
     await mockGraphQLResponse(page, 'ExportMissionDetails', {
       data: {
@@ -63,11 +57,11 @@ test.describe('Assureur Export Functionality', () => {
     // Click download option
     await page.getByRole('menuitem').filter({ hasText: 'Télécharger' }).click();
     
-    // Should trigger download (in real scenario)
-    // await downloadPromise;
+    // Wait a moment for the GraphQL call to complete
+    await page.waitForTimeout(1000);
   });
 
-  test.skip('should export with applied filters', async ({ page }) => {
+  test('should export with applied filters', async ({ page }) => {
     // Go to missions tab
     await page.getByRole('tab').filter({ hasText: 'Mes Missions' }).click();
     
@@ -92,8 +86,8 @@ test.describe('Assureur Export Functionality', () => {
     // Click export button
     await page.getByRole('button').filter({ hasText: 'Exporter' }).click();
     
-    // Verify that filters were passed to the export query
-    // (In real implementation, this would be handled by the store)
+    // Wait a moment for the GraphQL call to complete
+    await page.waitForTimeout(1000);
   });
 
   test('should handle export errors gracefully', async ({ page }) => {

@@ -7,8 +7,69 @@ test.describe('Assureur Communication Management', () => {
   });
 
   test('should display communication requests tab with data', async ({ page }) => {
+    // Mock the GraphQL response directly
+    await mockGraphQLResponse(page, 'GetCommunicationRequests', {
+      data: {
+        getCommunicationRequests: [
+          {
+            id: 'comm-1',
+            prestataire: {
+              id: '1',
+              nom: 'Jean Dubois',
+              raisonSociale: 'DUBOIS MAÇONNERIE SARL',
+              ville: 'Paris',
+              telephone: '0142123456',
+              email: 'contact@dubois-maconnerie.fr',
+            },
+            message: 'Bonjour, nous avons une mission urgente.',
+            statut: 'acceptee',
+            dateEnvoi: '2024-01-15T10:00:00Z',
+            dateReponse: '2024-01-15T14:30:00Z',
+            reponseMessage: 'Bonjour, je suis disponible. Je peux me déplacer dès demain pour un devis.',
+          },
+          {
+            id: 'comm-2',
+            prestataire: {
+              id: '2',
+              nom: 'Marie Moreau',
+              raisonSociale: 'MOREAU PLOMBERIE',
+              ville: 'Marseille',
+              telephone: '0143234567',
+              email: 'contact@moreau-plomberie.fr',
+            },
+            message: 'Nous cherchons un plombier pour une intervention urgente.',
+            statut: 'en_attente',
+            dateEnvoi: '2024-01-16T11:00:00Z',
+          },
+          {
+            id: 'comm-3',
+            prestataire: {
+              id: '3',
+              nom: 'Pierre Leroy',
+              raisonSociale: 'LEROY ÉLECTRICITÉ',
+              ville: 'Toulouse',
+              telephone: '0144345678',
+              email: 'contact@leroy-electricite.fr',
+            },
+            message: 'Pourriez-vous nous faire un devis ?',
+            statut: 'refusee',
+            dateEnvoi: '2024-01-14T09:00:00Z',
+            dateReponse: '2024-01-14T16:00:00Z',
+            reponseMessage: 'Désolé, je suis complet jusqu\'à la fin du mois',
+          },
+        ],
+      },
+    });
+    
+    // Reload the page to ensure mock data is used
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+    
     // Click on the Demandes tab
     await page.getByRole('tab').filter({ hasText: 'Mes Demandes' }).click();
+    
+    // Wait for the tab content to load
+    await page.waitForTimeout(1000);
     
     // Should show communication requests
     await expect(page.getByText('Mes demandes de communication')).toBeVisible();

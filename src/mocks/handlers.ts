@@ -507,21 +507,222 @@ export const handlers = [
       data: {
         missions: [
           {
-            id: 'mission-1',
-            reference: 'REF-001',
-            status: 'En attente de prestataire',
-            societaire: { id: 'soc-1', name: 'Jean Dupont', address: '123 Rue A' },
-            prestataire: null,
-            dateDeCreation: '2024-01-15T10:00:00Z',
+            id: 'M240001',
+            numeroMission: 'M240001',
+            statut: 'en_cours',
+            dateCreation: '2024-01-15T10:00:00Z',
+            dateEnvoi: '2024-01-15T11:00:00Z',
+            dateReponse: '2024-01-16T09:15:00Z',
+            dateFinPrevue: '2024-02-15T17:00:00Z',
+            prestataire: { 
+              id: 'prest-1', 
+              nom: 'Marie',
+              prenom: 'Moreau',
+              raisonSociale: 'MOREAU PLOMBERIE',
+              ville: 'Paris',
+              telephone: '0143234567',
+              email: 'contact@moreau-plomberie.fr'
+            },
+            client: { 
+              civilite: 'Monsieur',
+              nom: 'Dupont', 
+              prenom: 'Jean',
+              telephone: '0123456789',
+              email: 'jean.dupont@email.com',
+              adresse: '123 Rue de la Paix',
+              codePostal: '75001',
+              ville: 'Paris'
+            },
+            chantier: {
+              adresse: '123 Rue de la Paix',
+              codePostal: '75001',
+              ville: 'Paris',
+              typeAcces: 'Libre',
+              etage: 'RDC',
+              contraintes: 'Aucune'
+            },
+            sinistre: {
+              type: 'Dégât des eaux',
+              description: 'Fuite importante dans la salle de bain',
+              urgence: 'elevee',
+              dateSinistre: '2024-01-10',
+              dateIntervention: '2024-01-15',
+              numeroSinistre: 'SIN2024001'
+            },
+            mission: {
+              titre: 'Réparation fuite salle de bain',
+              description: 'Réparation urgente de la fuite dans la salle de bain',
+              budgetEstime: '1250',
+              delaiSouhaite: '2 semaines',
+              horaires: '8h-17h',
+              materiaux: 'Fournis par le prestataire',
+              normes: 'Normes DTU',
+              conditionsParticulieres: 'Accès facile'
+            },
+            documents: []
           },
           {
-            id: 'mission-2',
-            reference: 'REF-002',
-            status: 'En cours',
-            societaire: { id: 'soc-2', name: 'Marie Durand', address: '456 Avenue B' },
-            prestataire: { id: 'prest-1', companyName: 'Plomberie Express' },
-            dateDeCreation: '2024-01-16T11:00:00Z',
+            id: 'M240002',
+            numeroMission: 'M240002',
+            statut: 'acceptee',
+            dateCreation: '2024-01-16T11:00:00Z',
+            dateEnvoi: '2024-01-16T11:30:00Z',
+            dateReponse: '2024-01-16T14:15:00Z',
+            prestataire: { 
+              id: 'prest-2', 
+              nom: 'Pierre',
+              prenom: 'Leroy',
+              raisonSociale: 'LEROY ÉLECTRICITÉ',
+              ville: 'Lyon',
+              telephone: '0144345678',
+              email: 'contact@leroy-electricite.fr'
+            },
+            client: { 
+              civilite: 'Madame',
+              nom: 'Durand', 
+              prenom: 'Marie',
+              telephone: '0987654321',
+              email: 'marie.durand@email.com',
+              adresse: '456 Avenue B',
+              codePostal: '69001',
+              ville: 'Lyon'
+            },
+            chantier: {
+              adresse: '456 Avenue B',
+              codePostal: '69001',
+              ville: 'Lyon',
+              typeAcces: 'Clés chez gardien',
+              etage: '3ème',
+              contraintes: 'Prévenir le gardien'
+            },
+            sinistre: {
+              type: 'Problème électrique',
+              description: 'Court-circuit dans le tableau électrique',
+              urgence: 'moyenne',
+              dateSinistre: '2024-01-15',
+              dateIntervention: '2024-01-17',
+              numeroSinistre: 'SIN2024002'
+            },
+            mission: {
+              titre: 'Réparation électrique',
+              description: 'Réparation du tableau électrique suite à court-circuit',
+              budgetEstime: '850',
+              delaiSouhaite: '3 jours',
+              horaires: '9h-17h',
+              materiaux: 'Fournis par le prestataire',
+              normes: 'Normes NFC 15-100',
+              conditionsParticulieres: 'Coupure électrique à prévoir'
+            },
+            documents: []
           },
+          {
+            id: 'M240003',
+            numeroMission: 'M240003',
+            statut: 'envoyee',
+            dateCreation: '2024-01-17T09:00:00Z',
+            dateEnvoi: '2024-01-17T09:15:00Z',
+            prestataire: { 
+              id: 'prest-3', 
+              nom: 'Sophie',
+              prenom: 'Bernard',
+              raisonSociale: 'BERNARD COUVERTURE',
+              ville: 'Marseille',
+              telephone: '0145456789',
+              email: 'contact@bernard-couverture.fr'
+            },
+            client: { 
+              civilite: 'Monsieur',
+              nom: 'Martin', 
+              prenom: 'Paul',
+              telephone: '0567891234',
+              email: 'paul.martin@email.com',
+              adresse: '789 Boulevard C',
+              codePostal: '13001',
+              ville: 'Marseille'
+            },
+            chantier: {
+              adresse: '789 Boulevard C',
+              codePostal: '13001',
+              ville: 'Marseille',
+              typeAcces: 'Libre',
+              etage: 'RDC',
+              contraintes: 'Accès par l\'extérieur'
+            },
+            sinistre: {
+              type: 'Dégât tempête',
+              description: 'Tuiles endommagées par la tempête',
+              urgence: 'faible',
+              dateSinistre: '2024-01-15',
+              dateIntervention: '2024-01-20',
+              numeroSinistre: 'SIN2024003'
+            },
+            mission: {
+              titre: 'Réparation toiture',
+              description: 'Réparation de la toiture suite aux dégâts de tempête',
+              budgetEstime: '2100',
+              delaiSouhaite: '1 semaine',
+              horaires: '8h-17h',
+              materiaux: 'Fournis par le prestataire',
+              normes: 'Normes DTU',
+              conditionsParticulieres: 'Accès par l\'extérieur'
+            },
+            documents: []
+          },
+          {
+            id: 'M240004',
+            numeroMission: 'M240004',
+            statut: 'terminee',
+            dateCreation: '2024-01-12T08:00:00Z',
+            dateEnvoi: '2024-01-12T08:30:00Z',
+            dateReponse: '2024-01-12T10:20:00Z',
+            dateFinPrevue: '2024-01-14T16:00:00Z',
+            prestataire: { 
+              id: 'prest-4', 
+              nom: 'Marc',
+              prenom: 'Rousseau',
+              raisonSociale: 'ROUSSEAU SERRURERIE',
+              ville: 'Toulouse',
+              telephone: '0156567890',
+              email: 'contact@rousseau-serrurerie.fr'
+            },
+            client: { 
+              civilite: 'Madame',
+              nom: 'Petit', 
+              prenom: 'Julie',
+              telephone: '0678912345',
+              email: 'julie.petit@email.com',
+              adresse: '321 Rue D',
+              codePostal: '31000',
+              ville: 'Toulouse'
+            },
+            chantier: {
+              adresse: '321 Rue D',
+              codePostal: '31000',
+              ville: 'Toulouse',
+              typeAcces: 'Libre',
+              etage: 'RDC',
+              contraintes: 'Aucune'
+            },
+            sinistre: {
+              type: 'Effraction',
+              description: 'Porte d\'entrée forcée suite à cambriolage',
+              urgence: 'elevee',
+              dateSinistre: '2024-01-10',
+              dateIntervention: '2024-01-12',
+              numeroSinistre: 'SIN2024004'
+            },
+            mission: {
+              titre: 'Réparation serrurerie',
+              description: 'Remplacement de la serrure et réparation de la porte',
+              budgetEstime: '320',
+              delaiSouhaite: '1 jour',
+              horaires: 'Urgence',
+              materiaux: 'Fournis par le prestataire',
+              normes: 'Normes serrurerie',
+              conditionsParticulieres: 'Intervention urgente'
+            },
+            documents: []
+          }
         ],
       },
     });
@@ -533,35 +734,130 @@ export const handlers = [
       data: {
         mission: {
           id: missionId,
-          reference: 'REF-001',
-          status: 'En attente de prestataire',
-          dateDeCreation: '2024-01-15T10:00:00Z',
-          urgence: 'Haute',
-          description: 'Grosse fuite d\'eau dans la salle de bain.',
+          reference: 'M240001',
+          titre: 'Réparation fuite salle de bain',
+          status: 'En cours',
+          statut: 'en_cours',
+          dateCreation: '2024-01-15T10:00:00Z',
+          dateModification: '2024-01-16T14:30:00Z',
+          urgence: 'Élevée',
+          budget: 1250,
+          description: 'Réparation urgente de la fuite dans la salle de bain',
           societaire: {
             id: 'soc-1',
-            name: 'Jean Dupont',
-            address: '123 Rue A, 75001 Paris',
-            phone: '0123456789',
+            nom: 'Jean Dupont',
+            prenom: 'Jean',
+            civilite: 'Monsieur',
+            telephone: '0123456789',
             email: 'jean.dupont@email.com',
+            adresse: '123 Rue de la Paix, 75001 Paris'
           },
-          prestataire: null,
-          documents: [{ id: 'doc-1', fileName: 'photo_fuite.jpg', url: '/uploads/photo_fuite.jpg' }],
-          historique: [{ id: 'hist-1', date: '2024-01-15T10:00:00Z', user: 'Assureur', action: 'Création de la mission' }],
-          commentaires: [],
+          prestataire: {
+            id: 'prest-1',
+            nom: 'Marie Moreau',
+            raisonSociale: 'MOREAU PLOMBERIE',
+            companyName: 'MOREAU PLOMBERIE',
+            ville: 'Paris',
+            telephone: '0143234567',
+            email: 'contact@moreau-plomberie.fr'
+          },
+          chantier: {
+            adresse: '123 Rue de la Paix',
+            codePostal: '75001',
+            ville: 'Paris'
+          },
+          sinistre: {
+            type: 'Dégât des eaux',
+            description: 'Fuite importante dans la salle de bain'
+          },
+          lieuIntervention: '123 Rue de la Paix, 75001 Paris',
+          documents: [
+            { 
+              id: 'doc-1', 
+              fileName: 'photo_fuite.jpg', 
+              url: '/uploads/photo_fuite.jpg',
+              type: 'image',
+              size: '2.1 MB',
+              uploadDate: '2024-01-15T10:30:00Z'
+            },
+            { 
+              id: 'doc-2', 
+              fileName: 'devis_reparation.pdf', 
+              url: '/uploads/devis_reparation.pdf',
+              type: 'document',
+              size: '156 KB',
+              uploadDate: '2024-01-16T09:00:00Z'
+            }
+          ],
+          historique: [
+            { 
+              id: 'hist-1', 
+              date: '2024-01-15T10:00:00Z', 
+              user: 'Assureur', 
+              action: 'Création de la mission',
+              description: 'Mission créée et assignée au prestataire'
+            },
+            { 
+              id: 'hist-2', 
+              date: '2024-01-16T11:30:00Z', 
+              user: 'Prestataire', 
+              action: 'Mission acceptée',
+              description: 'Prise en charge confirmée par le prestataire'
+            }
+          ],
+          commentaires: [
+            {
+              id: 'comm-1',
+              auteur: 'Prestataire',
+              message: 'Je peux intervenir dès demain matin. Merci de libérer l\'accès à la salle de bain.',
+              date: '2024-01-16T12:00:00Z',
+              type: 'prestataire'
+            }
+          ],
+          messagesCount: 5,
+          documentsCount: 2
         },
       },
     });
   }),
 
-  graphql.mutation('CreateMission', () => {
+  graphql.mutation('CreateMission', ({ variables }) => {
+    const { input } = variables;
+    const newId = `M24${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`;
+    
     return HttpResponse.json({
       data: {
         createMission: {
-          id: `mission-${Math.random().toString(36).substring(7)}`,
-          reference: `REF-${Math.random().toString(36).substring(7)}`,
-          status: 'En attente de prestataire',
-          dateDeCreation: new Date().toISOString(),
+          id: newId,
+          reference: newId,
+          titre: input?.mission?.titre || 'Nouvelle mission',
+          status: 'Envoyée',
+          statut: 'envoyee',
+          urgence: input?.mission?.urgence || 'Moyenne',
+          dateCreation: new Date().toISOString(),
+          dateModification: new Date().toISOString(),
+          budget: input?.mission?.budget || 0,
+          societaire: input?.client || {
+            civilite: 'Monsieur',
+            nom: 'Nouveau',
+            prenom: 'Client',
+            telephone: '0123456789'
+          },
+          prestataire: input?.prestataire || null,
+          chantier: input?.chantier || {
+            adresse: '',
+            codePostal: '',
+            ville: ''
+          },
+          sinistre: input?.sinistre || {
+            type: 'Autre',
+            description: ''
+          },
+          description: input?.mission?.description || 'Nouvelle mission créée',
+          lieuIntervention: `${input?.chantier?.adresse || ''}, ${input?.chantier?.codePostal || ''} ${input?.chantier?.ville || ''}`.trim(),
+          documentsCount: 0,
+          messagesCount: 0,
+          lastUpdate: new Date().toISOString()
         },
       },
     });
@@ -855,7 +1151,18 @@ export const handlers = [
     });
   }),
 
-  graphql.query('GetCommunicationRequests', () => {
+  graphql.query('GetCommunicationRequests', ({ request }) => {
+    // Check if this is a test request asking for empty state
+    const isEmptyStateTest = request.url().includes('empty') || request.headers()['x-test-empty-state'] === 'true';
+    
+    if (isEmptyStateTest) {
+      return HttpResponse.json({
+        data: {
+          getCommunicationRequests: []
+        }
+      });
+    }
+    
     return HttpResponse.json({
       data: {
         getCommunicationRequests: [
@@ -1707,6 +2014,27 @@ export const handlers = [
           searchTerm: input.searchTerm || '',
           appliedFilters: input.filters || {}
         }
+      }
+    });
+  }),
+
+  // Additional handlers for missing test functionality
+  
+  // Handle file upload simulation for tests  
+  http.post('/uploads/*', () => {
+    return HttpResponse.json({
+      success: true,
+      filename: 'test-file.pdf',
+      url: '/uploads/test-file.pdf'
+    });
+  }),
+
+  // Handle download simulation for tests
+  http.get('/exports/*', () => {
+    return new HttpResponse(new Blob(['Mock PDF content'], { type: 'application/pdf' }), {
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': 'attachment; filename="export.pdf"'
       }
     });
   }),

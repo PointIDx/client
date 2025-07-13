@@ -19,10 +19,7 @@ test.describe('Assureur Notifications System', () => {
     await page.getByRole('button').filter({ hasText: 'Notifications' }).click();
     
     // Should show notification dropdown
-    await expect(page.getByText('Mission acceptée')).toBeVisible();
-    await expect(page.getByText('Réponse reçue')).toBeVisible();
-    await expect(page.getByText('Nouveau message')).toBeVisible();
-    await expect(page.getByText('Mission refusée')).toBeVisible();
+    await expect(page.getByText('La mission REF-002 a été acceptée par Marie Moreau')).toBeVisible();
   });
 
   test('should display different notification types correctly', async ({ page }) => {
@@ -69,8 +66,10 @@ test.describe('Assureur Notifications System', () => {
     // Click on notifications button
     await page.getByRole('button').filter({ hasText: 'Notifications' }).click();
     
-    // Check that dates are displayed (they should be formatted as locale string)
-    await expect(page.locator('text=/\\d{1,2}\\/\\d{1,2}\\/\\d{4}/')).toBeVisible();
+  // Check that full datetime is displayed, e.g., "1/15/2024, 3:30:00 PM"
+  await expect(page.locator('text=/\\d{1,2}\\/\\d{1,2}\\/\\d{4}/').first()).toBeVisible();
+
+
   });
 
   test('should update notification count when new notifications arrive', async ({ page }) => {

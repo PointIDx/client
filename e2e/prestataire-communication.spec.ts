@@ -119,7 +119,7 @@ test.describe('Prestataire Communication Management', () => {
     await page.getByRole('button').filter({ hasText: 'Notifications' }).click();
     
     // Check that dates are displayed in notifications
-    await expect(page.locator('text=/\\d{1,2}\\/\\d{1,2}\\/\\d{4}/')).toBeVisible();
+    await expect(page.locator('text=/\\d{1,2}\\/\\d{1,2}\\/\\d{4}/').first()).toBeVisible();
   });
 
   test('should validate response message before sending', async ({ page }) => {

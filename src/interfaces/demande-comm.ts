@@ -8,4 +8,5 @@ export interface DemandeComm {
   statut: DemandeCommStatut
   dateEnvoi: string
   dateReponse?: string
+  reponseMessage?: string
 }

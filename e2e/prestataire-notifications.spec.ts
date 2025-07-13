@@ -18,22 +18,20 @@ test.describe('Prestataire Notifications System', () => {
     // Click on notifications button
     await page.getByRole('button').filter({ hasText: 'Notifications' }).click();
     
-    // Should show notification dropdown
-    await expect(page.getByText('Nouvelle mission')).toBeVisible();
-    await expect(page.getByText('Demande de communication')).toBeVisible();
-    await expect(page.getByText('Paiement reçu')).toBeVisible();
-    await expect(page.getByText('Nouvel avis')).toBeVisible();
+    // Should show notification dropdown (only unread notifications)
+    await expect(page.getByText('Une nouvelle mission vous a été assignée: Réparation plomberie')).toBeVisible();
+    await expect(page.getByText('Assurance Alpha souhaite vous contacter')).toBeVisible();
+    // Note: Paiement reçu and Nouvel avis are marked as read in mock data, so they won't appear
   });
 
   test('should display different notification types correctly', async ({ page }) => {
     // Click on notifications button
     await page.getByRole('button').filter({ hasText: 'Notifications' }).click();
     
-    // Check for different notification types
+    // Check for different notification types (only unread notifications are shown)
     await expect(page.getByText('Une nouvelle mission vous a été assignée: Réparation plomberie')).toBeVisible();
     await expect(page.getByText('Assurance Alpha souhaite vous contacter')).toBeVisible();
-    await expect(page.getByText('Paiement de 850€ reçu pour la mission REF-001')).toBeVisible();
-    await expect(page.getByText('Vous avez reçu une note de 5/5 étoiles')).toBeVisible();
+    // Note: Payment and review notifications are marked as read in mock data, so they won't appear
   });
 
   test('should show notification timestamps', async ({ page }) => {
@@ -41,7 +39,7 @@ test.describe('Prestataire Notifications System', () => {
     await page.getByRole('button').filter({ hasText: 'Notifications' }).click();
     
     // Check that dates are displayed (they should be formatted as locale string)
-    await expect(page.locator('text=/\\d{1,2}\\/\\d{1,2}\\/\\d{4}/')).toBeVisible();
+    await expect(page.locator('text=/\\d{1,2}\\/\\d{1,2}\\/\\d{4}/').first()).toBeVisible();
   });
 
   test('should handle empty notifications state', async ({ page }) => {

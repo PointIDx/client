@@ -39,6 +39,7 @@ const prestataireStore = usePrestataireStore()
 
 onMounted(() => {
   prestataireStore.getMissions()
+  prestataireStore.fetchNotifications()
 })
 
 const missions = computed(() => prestataireStore.missions)
@@ -67,7 +68,7 @@ const showChat = ref(false)
 const newMessage = ref('')
 const showSuccess = ref(false)
 const successMessage = ref('')
-const notifications = ref<any[]>([])
+const notifications = computed(() => prestataireStore.notifications.filter(n => !n.read))
 const getMessagesForMission = (missionId: string) => {
   return messages.value
     .filter((msg) => msg.missionId === missionId)
@@ -129,6 +130,9 @@ const changerStatutMission = async (missionId: string, nouveauStatut: MissionSta
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" class="w-80">
+                <DropdownMenuItem v-if="notifications.length === 0" class="text-gray-500 text-center">
+                  Aucune notification
+                </DropdownMenuItem>
                 <DropdownMenuItem v-for="notif in notifications" :key="notif.id" class="flex-col items-start p-3">
                   <p class="text-sm font-medium">{{ notif.message }}</p>
                   <p class="text-xs text-gray-500">{{ new Date(notif.date).toLocaleString() }}</p>
