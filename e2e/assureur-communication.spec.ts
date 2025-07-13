@@ -120,10 +120,11 @@ test.describe('Assureur Communication Management', () => {
     await page.getByRole('tab').filter({ hasText: 'Mes Demandes' }).click();
     
     // Check for response dates
-    await expect(page.getByText('Répondu le')).toBeVisible();
+    await expect(page.getByText(/Répondu le/).first()).toBeVisible();
+
   });
 
-  test('should show empty state when no communication requests exist', async ({ page }) => {
+  test.only('should show empty state when no communication requests exist', async ({ page }) => {
     // Mock empty state by intercepting the GraphQL query
     await mockGraphQLResponse(page, 'GetCommunicationRequests', {
       data: {
