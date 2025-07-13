@@ -51,10 +51,14 @@ test.describe('Assureur Export Functionality', () => {
     // Go to missions tab
     await page.getByRole('tab').filter({ hasText: 'Mes Missions' }).click();
     
-    // Open mission actions dropdown
-    await page.locator('button[aria-haspopup="menu"]').first().click();
+    // Wait for missions to load
+    await page.waitForTimeout(1000);
     
-    // Click download option
+    // Open mission actions dropdown (target the three-dots menu button)
+    await page.locator('table tbody tr').first().locator('button:has(svg)').last().click();
+    
+    // Wait for dropdown to appear and click download option
+    await page.waitForSelector('[role="menuitem"]', { state: 'visible' });
     await page.getByRole('menuitem').filter({ hasText: 'Télécharger' }).click();
     
     // Wait a moment for the GraphQL call to complete
@@ -65,11 +69,14 @@ test.describe('Assureur Export Functionality', () => {
     // Go to missions tab
     await page.getByRole('tab').filter({ hasText: 'Mes Missions' }).click();
     
-    // Apply some filters
-    await page.getByLabel('Statut').click();
+    // Wait for missions to load
+    await page.waitForTimeout(1000);
+    
+    // Apply some filters using the correct selectors
+    await page.locator('div:has(> label:has-text("Statut")) button[role="combobox"]').click();
     await page.getByRole('option').filter({ hasText: 'En cours' }).click();
     
-    await page.getByLabel('Urgence').click();
+    await page.locator('div:has(> label:has-text("Urgence")) button[role="combobox"]').click();
     await page.getByRole('option').filter({ hasText: 'Élevée' }).click();
     
     // Intercept the export GraphQL query to verify filters are passed

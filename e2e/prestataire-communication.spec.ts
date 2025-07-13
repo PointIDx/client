@@ -91,11 +91,20 @@ test.describe('Prestataire Communication Management', () => {
   });
 
   test('should show communication request notifications', async ({ page }) => {
+    // Wait for notifications to load
+    await page.waitForTimeout(1000);
+    
     // Check that communication request notifications appear in the notifications dropdown
     await page.getByRole('button').filter({ hasText: 'Notifications' }).click();
     
-    // Should show communication request notification
-    await expect(page.getByText('Demande de communication')).toBeVisible();
+    // Wait for dropdown to appear
+    await page.waitForSelector('[role="menuitem"]', { state: 'visible' });
+    
+    // Check if we have notifications (should have 2 from mock data)
+    const notificationItems = page.locator('[role="menuitem"]');
+    await expect(notificationItems).toHaveCount(2);
+    
+    // Should show communication request notification (check for the message text)
     await expect(page.getByText('Assurance Alpha souhaite vous contacter')).toBeVisible();
   });
 
