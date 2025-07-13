@@ -1153,7 +1153,7 @@ export const handlers = [
 
   graphql.query('GetCommunicationRequests', ({ request }) => {
     // Check if this is a test request asking for empty state
-    const isEmptyStateTest = request.url().includes('empty') || request.headers()['x-test-empty-state'] === 'true';
+    const isEmptyStateTest = request.url.includes('empty') || request.headers.get('x-test-empty-state') === 'true';
     
     if (isEmptyStateTest) {
       return HttpResponse.json({

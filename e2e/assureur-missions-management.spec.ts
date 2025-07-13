@@ -47,8 +47,9 @@ test.describe('Assureur Missions Management', () => {
     await page.getByRole('button').filter({ hasText: 'Suivant' }).click();
     
     // Fill in sinistre information
-    await page.getByLabel('Type de sinistre').click();
-    await page.getByRole('option').filter({ hasText: 'Dégât des eaux' }).click();
+    await page.getByText('Sélectionnez le type').click();
+    await page.getByRole('option', { name: 'Dégât des eaux' }).click();
+
     await page.getByLabel('Description détaillée *').fill('Fuite importante dans la salle de bain');
     
     // Continue to mission tab

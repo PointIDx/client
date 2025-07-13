@@ -383,6 +383,49 @@ const maxSteps = computed(() => {
 });
 const progressValue = computed(() => (currentStep.value / maxSteps.value) * 100);
 
+const isNextButtonDisabled = computed(() => {
+  if (isLoading.value) return true;
+  
+  switch (currentStep.value) {
+    case 1:
+      if (accountType.value === "societaire") {
+        return !societaireInfoMeta.value.valid;
+      } else if (accountType.value === "assureur") {
+        return !companyInfoMeta.value.valid || !assureurStore.siretValidated;
+      } else if (accountType.value === "prestataire") {
+        return !companyInfoMeta.value.valid || !prestataireStore.siretValidated;
+      }
+      break;
+    case 2:
+      if (accountType.value === "societaire") {
+        return !societaireInfoMeta.value.valid;
+      } else {
+        return !documentsMeta.value.valid;
+      }
+      break;
+    case 3:
+      if (accountType.value === "societaire") {
+        return !accountMeta.value.valid;
+      } else {
+        return !contactMeta.value.valid;
+      }
+      break;
+    case 4:
+      if (accountType.value === "assureur") {
+        return !insurerInfoMeta.value.valid;
+      } else if (accountType.value === "prestataire") {
+        return !providerInfoMeta.value.valid;
+      }
+      break;
+    case 5:
+      return !accountMeta.value.valid;
+      break;
+    default:
+      return false;
+  }
+  return false;
+});
+
 const handleAccountTypeSelected = (type: AccountType) => {
   accountType.value = type;
 };
@@ -1090,7 +1133,7 @@ const handleAccountTypeSelected = (type: AccountType) => {
 
             <Button 
               @click="(accountType === 'societaire' && currentStep < 3) || (accountType !== 'societaire' && currentStep < 5) ? nextStep() : submitRegistration()" 
-              :disabled="isLoading"
+              :disabled="isNextButtonDisabled"
               data-testid="next-button"
               class="bg-black text-white hover:bg-gray-800"
             >
