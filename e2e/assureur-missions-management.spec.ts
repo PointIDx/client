@@ -73,20 +73,23 @@ test.describe('Assureur Missions Management', () => {
     // Go to missions tab
     await page.getByRole('tab').filter({ hasText: 'Mes Missions' }).click();
     
+    // Wait for missions to load
+    await page.waitForTimeout(1000);
+    
     // Test search filter
     await page.getByPlaceholder('Rechercher par numéro, prestataire, client, titre...').fill('M240001');
     
-    // Test status filter
-    await page.getByLabel('Statut').click();
+    // Test status filter - click on the select trigger instead of label
+    await page.locator('div:has(> label:has-text("Statut")) button[role="combobox"]').click();
     await page.getByRole('option').filter({ hasText: 'En cours' }).click();
     
-    // Test urgence filter
-    await page.getByLabel('Urgence').click();
+    // Test urgence filter - click on the select trigger instead of label  
+    await page.locator('div:has(> label:has-text("Urgence")) button[role="combobox"]').click();
     await page.getByRole('option').filter({ hasText: 'Élevée' }).click();
     
-    // Test date filters
-    await page.getByLabel('Date début').fill('2024-01-01');
-    await page.getByLabel('Date fin').fill('2024-01-31');
+    // Test date filters - target input elements directly
+    await page.locator('div:has(> label:has-text("Date début")) input[type="date"]').fill('2024-01-01');
+    await page.locator('div:has(> label:has-text("Date fin")) input[type="date"]').fill('2024-01-31');
     
     // Reset filters
     await page.getByRole('button').filter({ hasText: 'Réinitialiser' }).click();
@@ -167,11 +170,11 @@ test.describe('Assureur Missions Management', () => {
       }
     });
     
-    await page.reload();
-    await page.waitForLoadState('networkidle');
-    
-    // Go to missions tab
+    // Go to missions tab to trigger the query
     await page.getByRole('tab').filter({ hasText: 'Mes Missions' }).click();
+    
+    // Wait for the query to complete
+    await page.waitForTimeout(2000);
     
     // Should show empty state
     await expect(page.getByText('Aucune mission trouvée avec ces critères')).toBeVisible();
