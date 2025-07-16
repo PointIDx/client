@@ -148,44 +148,7 @@ function getGraphQLErrorMessage(error: any): string {
   return 'Une erreur GraphQL est survenue'
 }
 
-/**
- * Handles async operations with error handling
- */
-export async function withErrorHandling<T>(
-  operation: () => Promise<T>,
-  context: string,
-  options: ErrorHandlerOptions = {}
-): Promise<T | null> {
-  try {
-    return await operation()
-  } catch (error) {
-    handleError(error, context, options)
-    return null
-  }
-}
 
-/**
- * Handles form validation errors
- */
-export function handleValidationError(
-  error: any,
-  setErrors: (errors: Record<string, string>) => void,
-  options: ErrorHandlerOptions = {}
-): void {
-  if (error?.response?.data?.errors) {
-    const validationErrors: Record<string, string> = {}
-    
-    error.response.data.errors.forEach((err: any) => {
-      if (err.field) {
-        validationErrors[err.field] = err.message
-      }
-    })
-    
-    setErrors(validationErrors)
-  } else {
-    handleError(error, 'Form Validation', options)
-  }
-}
 
 /**
  * Shows success message with toast
@@ -205,11 +168,3 @@ export function showInfo(message: string, duration?: number): void {
   })
 }
 
-/**
- * Shows warning message with toast
- */
-export function showWarning(message: string, duration?: number): void {
-  toast.warning(message, {
-    duration: duration || TIMEOUT_DURATIONS.SUCCESS_MESSAGE
-  })
-}

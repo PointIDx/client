@@ -12,10 +12,8 @@ import { SEND_SOCIETAIRE_MESSAGE } from '@/graphql/mutations/send-societaire-mes
 import { UPLOAD_SOCIETAIRE_DOCUMENT } from '@/graphql/mutations/upload-societaire-document';
 import { GET_SOCIETAIRE_DOCUMENTS } from '@/graphql/queries/get-societaire-documents';
 import { UPDATE_SOCIETAIRE_CLAIM_STATUS } from '@/graphql/mutations/update-societaire-claim-status';
-import { EXPORT_SOCIETAIRE_DATA } from '@/graphql/queries/export-societaire-data';
 import { GET_SOCIETAIRE_PROFILE } from '@/graphql/queries/get-societaire-profile';
 import { UPDATE_SOCIETAIRE_PROFILE } from '@/graphql/mutations/update-societaire-profile';
-import { SEARCH_SOCIETAIRE_HISTORY } from '@/graphql/queries/search-societaire-history';
 import { ON_SOCIETAIRE_NOTIFICATION } from '@/graphql/subscriptions/on-societaire-notification';
 import { ON_SOCIETAIRE_TIMELINE_UPDATE } from '@/graphql/subscriptions/on-societaire-timeline-update';
 import type { DossierData } from '@/interfaces/dossier-data';
@@ -27,7 +25,6 @@ import { AuthUtils } from '@/utils/auth';
 import { TimelineStatut } from '@/enums/timeline-statut';
 import { HistoriqueType } from '@/enums/historique-type';
 import { DocumentType } from '@/enums/document-type';
-import { CheckCircle, Clock } from 'lucide-vue-next';
 
 const SOCIETAIRE_STORAGE_KEY = 'pointid_societaire';
 

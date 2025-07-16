@@ -1,5 +1,7 @@
-import { API_ENDPOINTS, VALIDATION_RULES, VALIDATION_MESSAGES, DEFAULT_VALUES } from '@/constants'
+import { VALIDATION_RULES, VALIDATION_MESSAGES } from '@/constants'
 import type { CompanyInfo } from '@/interfaces/company-info'
+import apolloClient from '@/apollo-client'
+import { VALIDATE_SIRET } from '@/graphql/queries/validate-siret'
 
 export interface SiretApiResponse {
   etablissement: {
@@ -40,7 +42,7 @@ export function validateSiretFormat(siret: string): boolean {
 }
 
 /**
- * Fetches company information from SIRET API
+ * Fetches company information from SIRET via GraphQL backend
  */
 export async function fetchSiretInfo(siret: string): Promise<SiretValidationResult> {
   try {
@@ -51,47 +53,24 @@ export async function fetchSiretInfo(siret: string): Promise<SiretValidationResu
       }
     }
 
-    const response = await fetch(`${API_ENDPOINTS.SIRET}/${siret}`)
+    const { data } = await apolloClient.query({
+      query: VALIDATE_SIRET,
+      variables: { siret: siret.replace(/\s+/g, '') },
+      fetchPolicy: 'network-only'
+    })
 
-    console.log(response)
-    
-    if (!response.ok) {
-      const errorData = await response.json()
+    const result = data.validateSiret
+
+    if (!result.isValid) {
       return {
         isValid: false,
-        error: errorData.message || VALIDATION_MESSAGES.SIRET_NOT_FOUND
+        error: result.error || VALIDATION_MESSAGES.SIRET_NOT_FOUND
       }
-    }
-
-    const data: SiretApiResponse = await response.json()
-    const { uniteLegale, adresseEtablissement, dateCreationEtablissement } = data.etablissement
-
-    // Map numeric juridical form codes to text values
-    const mapJuridicalForm = (code: string): string => {
-      const mapping: Record<string, string> = {
-        '5499': 'SAS', // Société par actions simplifiée
-        '5720': 'SARL', // Société à responsabilité limitée
-        '5710': 'SA', // Société anonyme
-        '5785': 'SASU', // Société par actions simplifiée à associé unique
-        '5498': 'EURL', // Entreprise unipersonnelle à responsabilité limitée
-      }
-      return mapping[code] || ''
-    }
-
-    const companyInfo: CompanyInfo = {
-      siret: siret.replace(/\s+/g, ''),
-      raisonSociale: uniteLegale.denominationUniteLegale,
-      formeJuridique: mapJuridicalForm(uniteLegale.categorieJuridiqueUniteLegale),
-      adresse: `${adresseEtablissement.numeroVoieEtablissement} ${adresseEtablissement.typeVoieEtablissement} ${adresseEtablissement.libelleVoieEtablissement}`,
-      codePostal: adresseEtablissement.codePostalEtablissement,
-      ville: adresseEtablissement.libelleCommuneEtablissement,
-      pays: DEFAULT_VALUES.COUNTRY,
-      dateCreation: dateCreationEtablissement
     }
 
     return {
       isValid: true,
-      companyInfo
+      companyInfo: result.companyInfo
     }
   } catch (error) {
     console.error('Error fetching SIRET info:', error)
@@ -102,26 +81,4 @@ export async function fetchSiretInfo(siret: string): Promise<SiretValidationResu
   }
 }
 
-/**
- * Formats SIRET number for display (adds spaces for readability)
- */
-export function formatSiret(siret: string): string {
-  if (!siret) return ''
-  
-  const cleanSiret = siret.replace(/\s+/g, '')
-  
-  if (cleanSiret.length !== VALIDATION_RULES.SIRET_LENGTH) {
-    return cleanSiret
-  }
-  
-  // Format as XXX XXX XXX XXXXX
-  return cleanSiret.replace(/(\d{3})(\d{3})(\d{3})(\d{5})/, '$1 $2 $3 $4')
-}
 
-/**
- * Cleans SIRET number (removes spaces and special characters)
- */
-export function cleanSiret(siret: string): string {
-  if (!siret) return ''
-  return siret.replace(/\s+/g, '')
-}

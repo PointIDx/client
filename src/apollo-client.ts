@@ -7,7 +7,7 @@ import { AuthUtils } from '@/utils/auth'
 
 const wsLink = new GraphQLWsLink(
   createClient({
-    url: import.meta.env.VITE_SERVER_GRAPHQL_WS_URL || 'ws://localhost:4000/ws',
+    url: import.meta.env.VITE_SERVER_GRAPHQL_WS_URL || 'ws://localhost:3000/graphql/ws',
     connectionParams: () => {
       const tokens = AuthUtils.getTokens()
       return {
@@ -21,7 +21,7 @@ const wsLink = new GraphQLWsLink(
 
 // HTTP connection to the API
 const httpLink = createHttpLink({
-  uri: import.meta.env.VITE_APP_SERVER_GRAPHQL_URL || 'http://localhost:4000/graphql'
+  uri: import.meta.env.VITE_APP_SERVER_GRAPHQL_URL || '/graphql'
 })
 
 const authLink = setContext(async (_, { headers }) => {

@@ -3,7 +3,7 @@ export interface IMission {
   prestataire: {
     id: string;
     nom: string;
-    prenom: string;
+    prenom?: string;
     email: string;
     telephone: string;
     raisonSociale: string;
@@ -33,7 +33,7 @@ export interface IMission {
     urgence: string;
     dateSinistre: string;
     dateIntervention: string;
-    numeroSinistre: string;
+    numeroSinistre?: string;
   };
   mission: {
     titre: string;
@@ -43,7 +43,7 @@ export interface IMission {
     horaires: string;
     materiaux: string;
     normes: string;
-    conditionsParticulieres: string;
+    conditionsParticulieres?: string;
   };
   documents: File[];
   statut: string;
