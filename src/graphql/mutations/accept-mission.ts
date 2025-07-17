@@ -1,9 +1,8 @@
+import { gql } from 'graphql-tag';
 
-import { gql } from 'graphql-tag'
-
-export const CREATE_MISSION_MUTATION = gql`
-  mutation CreateMission($input: MissionCreateInput!) {
-    createMission(input: $input) {
+export const ACCEPT_MISSION_MUTATION = gql`
+  mutation AcceptMission($missionId: UUID!) {
+    acceptMission(missionId: $missionId) {
       id
       reference
       assureurId
@@ -26,4 +25,4 @@ export const CREATE_MISSION_MUTATION = gql`
       actualCost
     }
   }
-`
+`;

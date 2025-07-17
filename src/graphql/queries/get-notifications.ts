@@ -1,34 +1,49 @@
 import { gql } from '@apollo/client/core'
 
 export const GET_NOTIFICATIONS_QUERY = gql`
-  query GetNotifications {
-    getNotifications {
+  query GetUserNotifications($unreadOnly: Boolean, $notificationType: String, $limit: Int, $offset: Int) {
+    getUserNotifications(unreadOnly: $unreadOnly, notificationType: $notificationType, limit: $limit, offset: $offset) {
       id
-      type
+      userId
+      notificationType
       title
       message
-      date
-      read
-      data
+      relatedEntityId
+      relatedEntityType
+      priority
+      isRead
+      createdAt
+      expiresAt
+      actionUrl
+      metadata {
+        key
+        value
+      }
     }
   }
 `
 
 export const MARK_NOTIFICATION_READ_MUTATION = gql`
-  mutation MarkNotificationRead($notificationId: String!) {
-    markNotificationRead(notificationId: $notificationId) {
-      id
-      read
-    }
+  mutation MarkNotificationRead($notificationId: UUID!) {
+    markNotificationRead(notificationId: $notificationId)
   }
 `
 
 export interface Notification {
   id: string
-  type: 'mission_created' | 'mission_accepted' | 'mission_rejected' | 'new_message' | 'communication_response'
+  userId: string
+  notificationType: string
   title: string
   message: string
-  date: string
-  read: boolean
-  data?: any
+  relatedEntityId?: string
+  relatedEntityType?: string
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
+  isRead: boolean
+  createdAt: string
+  expiresAt?: string
+  actionUrl?: string
+  metadata: Array<{
+    key: string
+    value: string
+  }>
 }

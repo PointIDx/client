@@ -1,9 +1,8 @@
+import { gql } from 'graphql-tag';
 
-import { gql } from 'graphql-tag'
-
-export const CREATE_MISSION_MUTATION = gql`
-  mutation CreateMission($input: MissionCreateInput!) {
-    createMission(input: $input) {
+export const ON_ASSUREUR_MISSION_UPDATE = gql`
+  subscription OnAssureurMissionUpdate($assureurId: UUID!) {
+    onAssureurMissionUpdate(assureurId: $assureurId) {
       id
       reference
       assureurId
@@ -26,4 +25,4 @@ export const CREATE_MISSION_MUTATION = gql`
       actualCost
     }
   }
-`
+`;

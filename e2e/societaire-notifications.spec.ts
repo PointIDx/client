@@ -13,19 +13,31 @@ test.describe('Societaire Notifications Management', () => {
         getSocietaireNotifications: [
           TestData.generateNotification({
             id: 'notif-soc-1',
-            type: 'timeline_update',
+            userId: 'user-societaire-1',
+            notificationType: 'timeline_update',
             title: 'Mise à jour de votre dossier',
             message: 'L\'expertise a été réalisée. Rapport disponible dans vos documents.',
-            priority: 'high',
-            createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
+            priority: 'HIGH',
+            isRead: false,
+            createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+            relatedEntityId: 'DOS-2024-001',
+            relatedEntityType: 'dossier',
+            actionUrl: '/societaire-dashboard',
+            metadata: []
           }),
           TestData.generateNotification({
             id: 'notif-soc-2',
-            type: 'message',
+            userId: 'user-societaire-1',
+            notificationType: 'message',
             title: 'Nouveau message',
             message: 'Votre prestataire a ajouté un commentaire sur votre dossier.',
-            priority: 'medium',
-            createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString()
+            priority: 'MEDIUM',
+            isRead: false,
+            createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+            relatedEntityId: 'mission-123',
+            relatedEntityType: 'mission',
+            actionUrl: '/societaire-dashboard/missions/123',
+            metadata: []
           })
         ]
       }

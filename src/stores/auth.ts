@@ -16,14 +16,20 @@ export const useAuthStore = defineStore('auth', () => {
     return !AuthUtils.isTokenExpired(tokens.value.token);
   });
 
-  async function login(email: string, password: string): Promise<boolean> {
+  async function login(email: string, password: string, accountType: 'ASSUREUR' | 'PRESTATAIRE'): Promise<boolean> {
     try {
-      console.log('Attempting login with:', email, password);
+      console.log('Attempting login with:', email, password, accountType);
       
       // Use GraphQL API call
       const result = await executeMutation<{ login: AuthResponse }>(
         LOGIN_MUTATION,
-        { email, password },
+        { 
+          input: {
+            email, 
+            password, 
+            accountType 
+          }
+        },
         {
           context: 'User Login',
           showErrorToast: false

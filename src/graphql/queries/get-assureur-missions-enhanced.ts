@@ -1,9 +1,8 @@
+import { gql } from 'graphql-tag';
 
-import { gql } from 'graphql-tag'
-
-export const GET_MISSION_DETAILS_QUERY = gql`
-  query GetMissionDetails($missionId: UUID!) {
-    getMissionDetails(missionId: $missionId) {
+export const GET_ASSUREUR_MISSIONS_ENHANCED = gql`
+  query GetAssureurMissionsEnhanced {
+    getAssureurMissionsEnhanced {
       id
       reference
       status
@@ -68,4 +67,4 @@ export const GET_MISSION_DETAILS_QUERY = gql`
       deadline
     }
   }
-`
+`;

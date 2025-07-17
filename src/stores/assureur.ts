@@ -154,8 +154,8 @@ export const useAssureurStore = defineStore('assureur', () => {
         fetchPolicy: 'network-only'
       });
       
-      if (result?.data?.getNotifications) {
-        notifications.value = result.data.getNotifications;
+      if (result?.data?.getUserNotifications) {
+        notifications.value = result.data.getUserNotifications;
       }
     } catch (error) {
       console.error('Error fetching notifications:', error);
@@ -169,7 +169,7 @@ export const useAssureurStore = defineStore('assureur', () => {
       // Update local state
       const notification = notifications.value.find(n => n.id === notificationId);
       if (notification) {
-        notification.read = true;
+        notification.isRead = true;
       }
     } catch (error) {
       handleGraphQLError(error, 'Mark Notification Read', { showToast: true });

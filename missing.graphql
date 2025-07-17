@@ -1,0 +1,30 @@
+# Missing GraphQL Operations for Server Implementation
+# This file documents GraphQL operations that the frontend expects but are not present in the main schema
+
+# Query: Get user notifications with filtering
+# Used by: Assureur dashboard, notification system
+# Current implementation: Uses getUserNotifications from main schema
+query GetUserNotifications($unreadOnly: Boolean, $notificationType: String, $limit: Int, $offset: Int) {
+  getUserNotifications(unreadOnly: $unreadOnly, notificationType: $notificationType, limit: $limit, offset: $offset) {
+    id
+    userId
+    notificationType
+    title
+    message
+    relatedEntityId
+    relatedEntityType
+    priority
+    isRead
+    createdAt
+    expiresAt
+    actionUrl
+    metadata {
+      key
+      value
+    }
+  }
+}
+
+# Note: The getUserNotifications query is already defined in the main schema (line 1003)
+# This file is kept for reference but no additional operations are needed.
+# All GraphQL operations used by the frontend are covered by the main schema.

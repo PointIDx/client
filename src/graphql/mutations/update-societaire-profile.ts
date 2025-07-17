@@ -4,24 +4,22 @@ export const UPDATE_SOCIETAIRE_PROFILE = gql`
   mutation UpdateSocietaireProfile($input: SocietaireProfileUpdateInput!) {
     updateSocietaireProfile(input: $input) {
       id
-      email
+      userId
       dossierNumber
-      personalInfo {
-        firstName
-        lastName
-        dateOfBirth
-        address {
-          street
-          city
-          postalCode
-          country
-        }
+      firstName
+      lastName
+      dateOfBirth
+      phone
+      address {
+        street
+        city
+        postalCode
+        country
+      }
+      emergencyContact {
+        name
         phone
-        emergencyContact {
-          name
-          phone
-          relationship
-        }
+        relationship
       }
       preferences {
         language
@@ -38,7 +36,6 @@ export const UPDATE_SOCIETAIRE_PROFILE = gql`
         }
       }
       accountStatus
-      updatedAt
     }
   }
 `;

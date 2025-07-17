@@ -246,7 +246,7 @@ export const usePrestataireStore = defineStore('prestataire', () => {
       // Update local state
       const notification = notifications.value.find(n => n.id === notificationId)
       if (notification) {
-        notification.read = true
+        notification.isRead = true
       }
     } catch (error) {
       handleGraphQLError(error, 'Mark Notification Read', { showToast: true })

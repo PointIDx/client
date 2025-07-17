@@ -4,12 +4,21 @@ export const GET_PRESTATAIRE_NOTIFICATIONS_QUERY = gql`
   query GetPrestataireNotifications {
     getPrestataireNotifications {
       id
-      type
+      userId
+      notificationType
       title
       message
-      date
-      read
-      data
+      relatedEntityId
+      relatedEntityType
+      priority
+      isRead
+      createdAt
+      expiresAt
+      actionUrl
+      metadata {
+        key
+        value
+      }
     }
   }
 `
@@ -25,10 +34,19 @@ export const MARK_PRESTATAIRE_NOTIFICATION_READ_MUTATION = gql`
 
 export interface PrestataireNotification {
   id: string
-  type: 'new_mission' | 'mission_updated' | 'communication_request' | 'payment_received' | 'review_received'
+  userId: string
+  notificationType: 'new_mission' | 'mission_updated' | 'communication_request' | 'payment_received' | 'review_received'
   title: string
   message: string
-  date: string
-  read: boolean
-  data?: any
+  relatedEntityId?: string
+  relatedEntityType?: string
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
+  isRead: boolean
+  createdAt: string
+  expiresAt?: string
+  actionUrl?: string
+  metadata: Array<{
+    key: string
+    value: string
+  }>
 }

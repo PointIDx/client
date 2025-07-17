@@ -10,6 +10,7 @@ import { MARK_SOCIETAIRE_NOTIFICATION_READ } from '@/graphql/mutations/mark-soci
 import { GET_SOCIETAIRE_MESSAGES } from '@/graphql/queries/get-societaire-messages';
 import { SEND_SOCIETAIRE_MESSAGE } from '@/graphql/mutations/send-societaire-message';
 import { UPLOAD_SOCIETAIRE_DOCUMENT } from '@/graphql/mutations/upload-societaire-document';
+import { UPLOAD_SOCIETAIRE_FILE_MUTATION } from '@/graphql/mutations/upload-file';
 import { GET_SOCIETAIRE_DOCUMENTS } from '@/graphql/queries/get-societaire-documents';
 import { UPDATE_SOCIETAIRE_CLAIM_STATUS } from '@/graphql/mutations/update-societaire-claim-status';
 import { GET_SOCIETAIRE_PROFILE } from '@/graphql/queries/get-societaire-profile';
@@ -57,6 +58,7 @@ export const useSocietaireStore = defineStore('societaire', () => {
   const { mutate: markNotificationReadMutation } = useMutation(MARK_SOCIETAIRE_NOTIFICATION_READ);
   const { mutate: sendMessageMutation } = useMutation(SEND_SOCIETAIRE_MESSAGE);
   const { mutate: uploadDocumentMutation } = useMutation(UPLOAD_SOCIETAIRE_DOCUMENT);
+  const { mutate: uploadFileMutation } = useMutation(UPLOAD_SOCIETAIRE_FILE_MUTATION);
   const { mutate: updateClaimStatusMutation } = useMutation(UPDATE_SOCIETAIRE_CLAIM_STATUS);
   const { mutate: updateProfileMutation } = useMutation(UPDATE_SOCIETAIRE_PROFILE);
   
@@ -126,7 +128,12 @@ export const useSocietaireStore = defineStore('societaire', () => {
   onNotificationSubscription((result) => {
     if (result.data?.onSocietaireNotification) {
       const newNotification = result.data.onSocietaireNotification;
-      notifications.value.unshift(newNotification);
+      // Update notification to match new schema structure
+      notifications.value.unshift({
+        ...newNotification,
+        isRead: newNotification.isRead ?? false,
+        notificationType: newNotification.notificationType || newNotification.type
+      });
     }
   });
 
@@ -302,7 +309,6 @@ export const useSocietaireStore = defineStore('societaire', () => {
         const notification = notifications.value.find(n => n.id === notificationId);
         if (notification) {
           notification.isRead = true;
-          notification.readAt = result.data.markSocietaireNotificationRead.readAt;
         }
         return true;
       }
@@ -366,6 +372,29 @@ export const useSocietaireStore = defineStore('societaire', () => {
       return false;
     } catch (error) {
       console.error('Failed to upload document:', error);
+      return false;
+    }
+  };
+
+  // File Upload with actual file content
+  const uploadFileWithContent = async (file: File, category: string, description?: string) => {
+    if (!dossierNumber.value) return false;
+    try {
+      const result = await uploadFileMutation({
+        input: {
+          dossierNumber: dossierNumber.value,
+          file: file,
+          category: category,
+          description: description
+        }
+      });
+      if (result?.data?.uploadSocietaireFile) {
+        documents.value.push(result.data.uploadSocietaireFile);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Failed to upload file:', error);
       return false;
     }
   };
@@ -546,6 +575,7 @@ export const useSocietaireStore = defineStore('societaire', () => {
     sendMessage,
     // Document Management
     uploadDocument,
+    uploadFileWithContent,
     fetchDocuments,
     // Claim Status Management
     updateClaimStatus,

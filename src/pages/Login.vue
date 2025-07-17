@@ -133,13 +133,13 @@ const handleSubmit = async () => {
         }
         break
       case 'assureur':
-        success = await authStore.login(email.value, password.value)
+        success = await authStore.login(email.value, password.value, 'ASSUREUR')
         if (success) {
           router.push({ name: 'assureur-dashboard' })
         }
         break
       case 'prestataire':
-        success = await authStore.login(email.value, password.value)
+        success = await authStore.login(email.value, password.value, 'PRESTATAIRE')
         if (success) {
           router.push({ name: 'prestataire-dashboard' })
         }

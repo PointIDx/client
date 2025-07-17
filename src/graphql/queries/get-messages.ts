@@ -9,6 +9,13 @@ export const GET_MESSAGES_QUERY = gql`
       contenu
       dateEnvoi
       lu
+      fichiers {
+        id
+        fileName
+        url
+        contentType
+        size
+      }
     }
   }
 `;

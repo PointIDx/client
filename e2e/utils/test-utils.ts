@@ -14,6 +14,47 @@ export interface LoginCredentials {
  * Login as assureur
  */
 export async function loginAsAssureur(page: Page, credentials: LoginCredentials = { email: 'assureur@test.com', password: 'password123' }) {
+  // Mock the login GraphQL call with new schema structure
+  await page.route('**/graphql', route => {
+    const request = route.request();
+    const postData = request.postData();
+    
+    if (postData && postData.includes('Login')) {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: {
+            login: {
+              tokens: {
+                token: 'mock-assureur-jwt-token',
+                refreshToken: 'mock-assureur-refresh-token',
+                expiresIn: 3600
+              },
+              user: {
+                id: '1',
+                email: credentials.email,
+                passwordHash: '[REDACTED]',
+                accountType: 'ASSUREUR',
+                createdAt: '2024-01-01T00:00:00Z',
+                updatedAt: '2024-01-15T10:00:00Z',
+                emailVerified: true,
+                isActive: true,
+                profile: {
+                  companyName: 'Test Insurance Company',
+                  agreementNumber: 'AGR123456',
+                  regions: ['Île-de-France', 'Provence-Alpes-Côte d\'Azur']
+                }
+              }
+            }
+          }
+        })
+      });
+    } else {
+      route.continue();
+    }
+  });
+
   await page.goto('/login-selection');
   await page.waitForLoadState('domcontentloaded');
   await page.locator('button:has-text("Se connecter comme Assureur")').click();
@@ -29,6 +70,48 @@ export async function loginAsAssureur(page: Page, credentials: LoginCredentials 
  * Login as prestataire
  */
 export async function loginAsPrestataire(page: Page, credentials: LoginCredentials = { email: 'prestataire@test.com', password: 'password123' }) {
+  // Mock the login GraphQL call with new schema structure
+  await page.route('**/graphql', route => {
+    const request = route.request();
+    const postData = request.postData();
+    
+    if (postData && postData.includes('Login')) {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: {
+            login: {
+              tokens: {
+                token: 'mock-prestataire-jwt-token',
+                refreshToken: 'mock-prestataire-refresh-token',
+                expiresIn: 3600
+              },
+              user: {
+                id: '2',
+                email: credentials.email,
+                passwordHash: '[REDACTED]',
+                accountType: 'PRESTATAIRE',
+                createdAt: '2024-01-01T00:00:00Z',
+                updatedAt: '2024-01-15T10:00:00Z',
+                emailVerified: true,
+                isActive: true,
+                profile: {
+                  companyName: 'Test Construction SARL',
+                  siret: '12345678901234',
+                  sectors: ['Plomberie', 'Chauffage'],
+                  regions: ['Île-de-France']
+                }
+              }
+            }
+          }
+        })
+      });
+    } else {
+      route.continue();
+    }
+  });
+
   await page.goto('/login-selection');
   await page.waitForLoadState('domcontentloaded');
   await page.locator('button:has-text("Se connecter comme Prestataire")').click();
@@ -44,12 +127,38 @@ export async function loginAsPrestataire(page: Page, credentials: LoginCredentia
  * Login as societaire
  */
 export async function loginAsSocietaire(page: Page, credentials: LoginCredentials = { email: 'jean.dupont@email.com', dossierNumber: 'DOS2024001' }) {
+  // Mock the societaire login GraphQL call (this uses a separate mutation)
+  await page.route('**/graphql', route => {
+    const request = route.request();
+    const postData = request.postData();
+    
+    if (postData && postData.includes('SocietaireLogin')) {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: {
+            societaireLogin: {
+              token: 'mock-societaire-token',
+              societaire: {
+                email: credentials.email,
+                dossierNumber: credentials.dossierNumber
+              }
+            }
+          }
+        })
+      });
+    } else {
+      route.continue();
+    }
+  });
+
   await page.goto('/login-selection');
   await page.waitForLoadState('domcontentloaded');
   await page.locator('button:has-text("Se connecter comme Sociétaire")').click();
   await page.waitForURL('/login/societaire');
   await page.fill('input[type="email"]', credentials.email);
-  await page.fill('input[type="password"]', credentials.dossierNumber!);
+  await page.fill('#dossier', credentials.dossierNumber!); // Use ID selector instead of type
   await page.click('button[type="submit"]');
   await page.waitForURL('/societaire-dashboard');
   await page.waitForLoadState('networkidle');

@@ -67,7 +67,7 @@ const showMissionSuccess = ref(false)
 // Use data from the store
 const demandes = computed(() => assureurStore.communicationRequests)
 const missions = computed(() => assureurStore.missions)
-const notifications = computed(() => assureurStore.notifications.filter(n => !n.read))
+const notifications = computed(() => assureurStore.notifications.filter(n => !n.isRead))
 
 const secteurs = ["Maçonnerie", "Plomberie", "Électricité", "Chauffage", "Couverture", "Menuiserie", "Peinture"]
 const regions = [
@@ -245,7 +245,7 @@ import placeholderImage from '@/assets/placeholder.svg'
                 </DropdownMenuItem>
                 <DropdownMenuItem v-for="notif in notifications" :key="notif.id" class="flex-col items-start p-3">
                   <p class="text-sm font-medium">{{ notif.message }}</p>
-                  <p class="text-xs text-gray-500">{{ new Date(notif.date).toLocaleString() }}</p>
+                  <p class="text-xs text-gray-500">{{ new Date(notif.createdAt).toLocaleString() }}</p>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

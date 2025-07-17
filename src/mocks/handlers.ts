@@ -69,7 +69,7 @@ export const handlers = [
             companyInfo: {
               siret: '12345678901234',
               raisonSociale: 'ASSURANCE TEST SA',
-              formeJuridique: 'SAS',
+              formeJuridique: 'SA',
               adresse: '10 RUE DE LA PAIX',
               codePostal: '75001',
               ville: 'PARIS',
@@ -103,18 +103,9 @@ export const handlers = [
       return HttpResponse.json({
         data: {
           validateSiret: {
-            isValid: true,
-            companyInfo: {
-              siret: '11111111111111',
-              raisonSociale: 'MOREAU PLOMBERIE EURL',
-              formeJuridique: 'EURL',
-              adresse: '456 AVENUE DES CHAMPS',
-              codePostal: '13001',
-              ville: 'MARSEILLE',
-              pays: 'France',
-              dateCreation: '2015-03-10',
-            },
-            error: null
+            isValid: false,
+            companyInfo: null,
+            error: 'SIRET non trouvé ou invalide'
           }
         }
       });
@@ -147,10 +138,11 @@ export const handlers = [
 
   // Intercept "Login" GraphQL mutation.
   graphql.mutation<{}>('Login', (req) => {
-    const { email, password } = req.variables;
+    const { input } = req.variables;
+    const { email, password, accountType } = input || {};
 
     // Assureur login
-    if (email === 'assureur@test.com' && password === 'password123') {
+    if (email === 'assureur@test.com' && password === 'password123' && accountType === 'ASSUREUR') {
       return HttpResponse.json({
         data: {
           login: {
@@ -162,7 +154,12 @@ export const handlers = [
             user: {
               id: '1',
               email: email,
-              type: 'assureur',
+              passwordHash: '[REDACTED]',
+              accountType: 'ASSUREUR',
+              createdAt: '2024-01-01T00:00:00Z',
+              updatedAt: '2024-01-15T10:00:00Z',
+              emailVerified: true,
+              isActive: true,
               profile: {
                 companyName: 'Test Insurance Company',
                 agreementNumber: 'AGR123456',
@@ -174,7 +171,7 @@ export const handlers = [
       });
     }
     // Prestataire login
-    else if (email === 'prestataire@test.com' && password === 'password123') {
+    else if (email === 'prestataire@test.com' && password === 'password123' && accountType === 'PRESTATAIRE') {
       return HttpResponse.json({
         data: {
           login: {
@@ -199,7 +196,7 @@ export const handlers = [
       });
     }
     // General test user
-    else if (email === 'test@example.com' && password === 'password123') {
+    else if (email === 'test@example.com' && password === 'password123' && accountType === 'ASSUREUR') {
       return HttpResponse.json({
         data: {
           login: {
@@ -1142,6 +1139,7 @@ export const handlers = [
             contenu: 'Bonjour, pouvez-vous nous donner une estimation pour cette mission ?',
             dateEnvoi: new Date(Date.now() - 86400000).toISOString(),
             lu: true,
+            fichiers: [],
           },
           {
             id: '2',
@@ -1150,6 +1148,7 @@ export const handlers = [
             contenu: 'Bonjour, je peux être sur place demain matin pour faire l\'évaluation.',
             dateEnvoi: new Date(Date.now() - 43200000).toISOString(),
             lu: true,
+            fichiers: [],
           }
         ],
       },
@@ -1311,6 +1310,61 @@ export const handlers = [
     });
   }),
 
+  // Mock user notifications (for assureur)
+  graphql.query('GetUserNotifications', () => {
+    return HttpResponse.json({
+      data: {
+        getUserNotifications: [
+          {
+            id: 'notif-assureur-1',
+            userId: 'user-assureur-1',
+            notificationType: 'mission_accepted',
+            title: 'Mission acceptée',
+            message: 'La mission REF-002 a été acceptée par Marie Moreau',
+            relatedEntityId: 'mission-2',
+            relatedEntityType: 'mission',
+            priority: 'HIGH',
+            isRead: false,
+            createdAt: '2024-01-16T15:30:00Z',
+            expiresAt: null,
+            actionUrl: '/missions/mission-2',
+            metadata: []
+          },
+          {
+            id: 'notif-assureur-2',
+            userId: 'user-assureur-1',
+            notificationType: 'mission_completed',
+            title: 'Mission terminée',
+            message: 'La mission REF-001 a été terminée par Pierre Dubois',
+            relatedEntityId: 'mission-1',
+            relatedEntityType: 'mission',
+            priority: 'MEDIUM',
+            isRead: false,
+            createdAt: '2024-01-16T12:00:00Z',
+            expiresAt: null,
+            actionUrl: '/missions/mission-1',
+            metadata: []
+          },
+          {
+            id: 'notif-assureur-3',
+            userId: 'user-assureur-1',
+            notificationType: 'communication_response',
+            title: 'Réponse reçue',
+            message: 'Jean Dubois a répondu à votre demande de communication',
+            relatedEntityId: 'comm-1',
+            relatedEntityType: 'communication',
+            priority: 'MEDIUM',
+            isRead: false,
+            createdAt: '2024-01-15T14:30:00Z',
+            expiresAt: null,
+            actionUrl: '/communications/comm-1',
+            metadata: []
+          },
+        ],
+      },
+    });
+  }),
+
   graphql.mutation('MarkNotificationRead', ({ variables }) => {
     const { notificationId } = variables;
     return HttpResponse.json({
@@ -1367,39 +1421,63 @@ export const handlers = [
         getPrestataireNotifications: [
           {
             id: 'notif-p1',
-            type: 'new_mission',
+            userId: 'user-prestataire-1',
+            notificationType: 'new_mission',
             title: 'Nouvelle mission',
             message: 'Une nouvelle mission vous a été assignée: Réparation plomberie',
-            date: '2024-01-16T10:30:00Z',
-            read: false,
-            data: { missionId: 'mission-1' },
+            relatedEntityId: 'mission-1',
+            relatedEntityType: 'mission',
+            priority: 'HIGH',
+            isRead: false,
+            createdAt: '2024-01-16T10:30:00Z',
+            expiresAt: null,
+            actionUrl: '/missions/mission-1',
+            metadata: []
           },
           {
             id: 'notif-p2',
-            type: 'communication_request',
+            userId: 'user-prestataire-1',
+            notificationType: 'communication_request',
             title: 'Demande de communication',
             message: 'Assurance Alpha souhaite vous contacter',
-            date: '2024-01-15T16:00:00Z',
-            read: false,
-            data: { assureurId: 'assureur-1' },
+            relatedEntityId: 'assureur-1',
+            relatedEntityType: 'assureur',
+            priority: 'MEDIUM',
+            isRead: false,
+            createdAt: '2024-01-15T16:00:00Z',
+            expiresAt: null,
+            actionUrl: '/communications/assureur-1',
+            metadata: []
           },
           {
             id: 'notif-p3',
-            type: 'payment_received',
+            userId: 'user-prestataire-1',
+            notificationType: 'payment_received',
             title: 'Paiement reçu',
             message: 'Paiement de 850€ reçu pour la mission REF-001',
-            date: '2024-01-14T12:00:00Z',
-            read: true,
-            data: { missionId: 'mission-1', amount: 850 },
+            relatedEntityId: 'mission-1',
+            relatedEntityType: 'mission',
+            priority: 'LOW',
+            isRead: true,
+            createdAt: '2024-01-14T12:00:00Z',
+            expiresAt: null,
+            actionUrl: '/missions/mission-1',
+            metadata: []
           },
           {
             id: 'notif-p4',
-            type: 'review_received',
+            userId: 'user-prestataire-1',
+            notificationType: 'review_received',
             title: 'Nouvel avis',
             message: 'Vous avez reçu une note de 5/5 étoiles',
-            date: '2024-01-13T14:20:00Z',
-            read: true,
-            data: { rating: 5, comment: 'Excellent travail, très professionnel' },
+            relatedEntityId: 'review-1',
+            relatedEntityType: 'review',
+            priority: 'LOW',
+            isRead: true,
+            createdAt: '2024-01-13T14:20:00Z',
+            expiresAt: null,
+            actionUrl: '/reviews/review-1',
+            metadata: []
           },
         ],
       },
@@ -1630,12 +1708,13 @@ export const handlers = [
         getSocietaireNotifications: [
           {
             id: 'notif-soc-1',
-            type: 'timeline_update',
+            userId: 'user-societaire-1',
+            notificationType: 'timeline_update',
             title: 'Mise à jour de votre dossier',
             message: 'L\'expertise a été réalisée. Rapport disponible dans vos documents.',
             relatedEntityId: 'DOS-2024-001',
             relatedEntityType: 'dossier',
-            priority: 'high',
+            priority: 'HIGH',
             isRead: false,
             createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
             expiresAt: null,
@@ -2061,6 +2140,81 @@ export const handlers = [
           },
           searchTerm: input.searchTerm || '',
           appliedFilters: input.filters || {}
+        }
+      }
+    });
+  }),
+
+  // File Upload Mutations with actual file content
+  graphql.mutation('UploadSocietaireFile', ({ variables }) => {
+    const { input } = variables;
+    
+    return HttpResponse.json({
+      data: {
+        uploadSocietaireFile: {
+          id: `doc-${Date.now()}`,
+          dossierNumber: input.dossierNumber,
+          filename: `uploaded-${Date.now()}.pdf`,
+          originalName: input.file?.name || 'document.pdf',
+          url: `/uploads/societaire/${input.dossierNumber}/${Date.now()}.pdf`,
+          contentType: input.file?.type || 'application/pdf',
+          size: input.file?.size || 1024000,
+          category: input.category,
+          description: input.description || '',
+          uploadDate: new Date().toISOString(),
+          uploadedBy: 'user-societaire-1',
+          status: 'uploaded',
+          metadata: {
+            originalFilename: input.file?.name || 'document.pdf',
+            uploadMethod: 'graphql-multipart'
+          }
+        }
+      }
+    });
+  }),
+
+  graphql.mutation('UploadMissionFile', ({ variables }) => {
+    const { input } = variables;
+    
+    return HttpResponse.json({
+      data: {
+        uploadMissionFile: {
+          id: `mission-doc-${Date.now()}`,
+          filename: `mission-${Date.now()}.pdf`,
+          url: `/uploads/missions/${input.missionId}/${Date.now()}.pdf`,
+          contentType: input.file?.type || 'application/pdf',
+          size: input.file?.size || 1024000,
+          uploadDate: new Date().toISOString(),
+          description: input.description || '',
+          uploadedBy: 'user-prestataire-1'
+        }
+      }
+    });
+  }),
+
+  graphql.mutation('UploadFile', ({ variables }) => {
+    const { input } = variables;
+    
+    return HttpResponse.json({
+      data: {
+        uploadFile: {
+          id: `file-${Date.now()}`,
+          ownerId: 'user-123',
+          relatedEntityId: null,
+          relatedEntityType: null,
+          filename: `upload-${Date.now()}.pdf`,
+          originalFilename: input.filename,
+          fileType: input.contentType,
+          fileSize: input.file?.size || 1024000,
+          storagePath: `/uploads/general/${Date.now()}.pdf`,
+          documentType: 'AUTRE',
+          uploadedAt: new Date().toISOString(),
+          isPublic: false,
+          metadata: {
+            category: input.category,
+            description: input.description,
+            uploadMethod: 'graphql-upload'
+          }
         }
       }
     });

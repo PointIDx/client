@@ -4,24 +4,22 @@ export const GET_SOCIETAIRE_PROFILE = gql`
   query GetSocietaireProfile($dossierNumber: String!) {
     getSocietaireProfile(dossierNumber: $dossierNumber) {
       id
-      email
+      userId
       dossierNumber
-      personalInfo {
-        firstName
-        lastName
-        dateOfBirth
-        address {
-          street
-          city
-          postalCode
-          country
-        }
+      firstName
+      lastName
+      dateOfBirth
+      phone
+      address {
+        street
+        city
+        postalCode
+        country
+      }
+      emergencyContact {
+        name
         phone
-        emergencyContact {
-          name
-          phone
-          relationship
-        }
+        relationship
       }
       preferences {
         language
@@ -37,18 +35,7 @@ export const GET_SOCIETAIRE_PROFILE = gql`
           availableHours
         }
       }
-      policyInfo {
-        policyNumber
-        coverageType
-        startDate
-        endDate
-        deductible
-        coverageLimit
-      }
       accountStatus
-      lastLoginDate
-      createdAt
-      updatedAt
     }
   }
 `;

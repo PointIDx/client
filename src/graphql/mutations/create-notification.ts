@@ -1,8 +1,8 @@
 import { gql } from 'graphql-tag';
 
-export const GET_SOCIETAIRE_NOTIFICATIONS = gql`
-  query GetSocietaireNotifications($dossierNumber: String!) {
-    getSocietaireNotifications(dossierNumber: $dossierNumber) {
+export const CREATE_NOTIFICATION_MUTATION = gql`
+  mutation CreateNotification($input: CreateNotificationInput!) {
+    createNotification(input: $input) {
       id
       userId
       notificationType

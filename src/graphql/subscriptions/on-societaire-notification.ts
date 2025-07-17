@@ -4,7 +4,8 @@ export const ON_SOCIETAIRE_NOTIFICATION = gql`
   subscription OnSocietaireNotification($dossierNumber: String!) {
     onSocietaireNotification(dossierNumber: $dossierNumber) {
       id
-      type
+      userId
+      notificationType
       title
       message
       relatedEntityId

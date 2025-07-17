@@ -68,7 +68,7 @@ const showChat = ref(false)
 const newMessage = ref('')
 const showSuccess = ref(false)
 const successMessage = ref('')
-const notifications = computed(() => prestataireStore.notifications.filter(n => !n.read))
+const notifications = computed(() => prestataireStore.notifications.filter(n => !n.isRead))
 const getMessagesForMission = (missionId: string) => {
   return messages.value
     .filter((msg) => msg.missionId === missionId)
@@ -135,7 +135,7 @@ const changerStatutMission = async (missionId: string, nouveauStatut: MissionSta
                 </DropdownMenuItem>
                 <DropdownMenuItem v-for="notif in notifications" :key="notif.id" class="flex-col items-start p-3">
                   <p class="text-sm font-medium">{{ notif.message }}</p>
-                  <p class="text-xs text-gray-500">{{ new Date(notif.date).toLocaleString() }}</p>
+                  <p class="text-xs text-gray-500">{{ new Date(notif.createdAt).toLocaleString() }}</p>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

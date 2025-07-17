@@ -173,6 +173,34 @@ input CreateNotificationInput {
 	metadata: [NotificationMetadataInput!]
 }
 
+"""
+Custom dashboard widget configuration
+"""
+type DashboardWidget {
+	id: UUID!
+	widgetType: String!
+	title: String!
+	config: JSON!
+	position: Int!
+	size: String!
+}
+
+input DashboardWidgetInput {
+	widgetType: String!
+	title: String!
+	config: JSON!
+	position: Int!
+	size: String!
+}
+
+"""
+Date range for filtering
+"""
+type DateRange {
+	min: String!
+	max: String!
+}
+
 input DateRangeInput {
 	startDate: DateTime!
 	endDate: DateTime!
@@ -314,6 +342,17 @@ input FileMessageInput {
 	size: Int!
 }
 
+"""
+File upload input with actual file content
+"""
+input FileUploadInput {
+	file: Upload!
+	filename: String!
+	contentType: String!
+	category: String
+	description: String
+}
+
 type FilterOption {
 	value: String!
 	label: String!
@@ -346,6 +385,16 @@ type Historique {
 	timestamp: DateTime!
 	ipAddress: String
 	userAgent: String
+}
+
+"""
+Enhanced search filters for history
+"""
+type HistorySearchFilters {
+	categories: [String!]!
+	authors: [String!]!
+	dateRange: DateRange!
+	tags: [String!]!
 }
 
 """
@@ -462,6 +511,12 @@ input MissionDocumentInput {
 	filename: String!
 	contentType: String!
 	size: Int!
+	description: String
+}
+
+input MissionDocumentUploadInput {
+	missionId: UUID!
+	file: Upload!
 	description: String
 }
 
@@ -639,6 +694,18 @@ type MutationRoot {
 	"""
 	markPrestataireNotificationRead(notificationId: UUID!): Boolean!
 	"""
+	Mark multiple notifications as read in one operation
+	"""
+	markMultipleNotificationsRead(notificationIds: [UUID!]!): Int!
+	"""
+	Delete multiple notifications
+	"""
+	deleteMultipleNotifications(notificationIds: [UUID!]!): Int!
+	"""
+	Update notification preferences in bulk
+	"""
+	updateNotificationPreferences(input: NotificationPreferencesInput!): NotificationPreferences!
+	"""
 	Send a communication request
 	"""
 	sendCommunicationRequest(input: CommunicationRequestInput!): CommunicationRequest!
@@ -667,6 +734,18 @@ type MutationRoot {
 	"""
 	updateDocumentMetadata(documentId: UUID!, metadata: JSON!): Boolean!
 	"""
+	Upload a file for societaire with actual file content
+	"""
+	uploadSocietaireFile(input: SocietaireDocumentUploadInput!): SocietaireDocument!
+	"""
+	Upload a file for mission with actual file content
+	"""
+	uploadMissionFile(input: MissionDocumentUploadInput!): MissionDocument!
+	"""
+	Upload a general file and return file info
+	"""
+	uploadFile(input: FileUploadInput!): Document!
+	"""
 	Start mission export job
 	"""
 	exportMissions(format: ExportFormat!, filters: ExportFilters): ExportResult!
@@ -686,6 +765,14 @@ type MutationRoot {
 	Delete an export job and its files
 	"""
 	deleteExportJob(jobId: UUID!): Boolean!
+	"""
+	Save dashboard widget configuration
+	"""
+	saveDashboardWidget(input: DashboardWidgetInput!): DashboardWidget!
+	"""
+	Delete dashboard widget
+	"""
+	deleteDashboardWidget(widgetId: UUID!): Boolean!
 }
 
 """
@@ -725,6 +812,26 @@ input NotificationMetadataInput {
 	value: String!
 }
 
+type NotificationPreferences {
+	id: UUID!
+	userId: UUID!
+	emailEnabled: Boolean!
+	pushEnabled: Boolean!
+	categories: [String!]!
+	frequency: String!
+	updatedAt: DateTime!
+}
+
+"""
+Notification preferences for bulk operations
+"""
+input NotificationPreferencesInput {
+	emailEnabled: Boolean!
+	pushEnabled: Boolean!
+	categories: [String!]!
+	frequency: String!
+}
+
 enum NotificationPriority {
 	LOW
 	MEDIUM
@@ -758,6 +865,17 @@ type PaymentSummary {
 	amount: Float!
 	dueDate: DateTime!
 	daysOverdue: Int!
+}
+
+"""
+Performance monitoring types for admin dashboard
+"""
+type PerformanceMetrics {
+	responseTime: Float!
+	errorRate: Float!
+	activeUsers: Int!
+	systemLoad: Float!
+	timestamp: DateTime!
 }
 
 input PersonalInfoInput {
@@ -989,6 +1107,14 @@ type QueryRoot {
 	"""
 	getSearchFilters(entityType: String!): [SearchFilter!]!
 	"""
+	Get available search filters for history
+	"""
+	getHistorySearchFilters(dossierNumber: String!): HistorySearchFilters!
+	"""
+	Get autocomplete suggestions for search
+	"""
+	getSearchAutoComplete(query: String!, entityType: String!): [String!]!
+	"""
 	Export missions data
 	"""
 	exportMissions(filters: ExportFilters, format: ExportFormat!): ExportResult!
@@ -1008,6 +1134,14 @@ type QueryRoot {
 	Export societaire data
 	"""
 	exportSocietaireData(input: SocietaireExportInput!): ExportResult!
+	"""
+	Get system performance metrics (admin only)
+	"""
+	getPerformanceMetrics: PerformanceMetrics!
+	"""
+	Get user's dashboard configuration
+	"""
+	getDashboardWidgets: [DashboardWidget!]!
 }
 
 input RefreshTokenInput {
@@ -1081,6 +1215,16 @@ input SocietaireDocumentInput {
 	filename: String!
 	contentType: String!
 	size: Int!
+	category: String!
+	description: String
+}
+
+"""
+Enhanced document inputs with actual file upload capability
+"""
+input SocietaireDocumentUploadInput {
+	dossierNumber: String!
+	file: Upload!
 	category: String!
 	description: String
 }
@@ -1262,6 +1406,14 @@ type SubscriptionRoot {
 	Subscribe to societaire timeline updates
 	"""
 	onSocietaireTimelineUpdate(dossierNumber: String!): Timeline!
+	"""
+	Subscribe to user status changes
+	"""
+	onUserStatusChange(userId: UUID): UserStatus!
+	"""
+	Subscribe to typing indicators in conversations
+	"""
+	onTypingIndicator(conversationId: UUID!): TypingIndicator!
 }
 
 type Timeline {
@@ -1282,6 +1434,16 @@ type TimelineMetadata {
 }
 
 """
+Typing indicator for real-time chat features
+"""
+type TypingIndicator {
+	conversationId: UUID!
+	userId: UUID!
+	userName: String!
+	isTyping: Boolean!
+}
+
+"""
 A UUID is a unique 128-bit number, stored as 16 octets. UUIDs are parsed as
 Strings within GraphQL. UUIDs are used to assign unique identifiers to
 entities without requiring a central allocating authority.
@@ -1292,6 +1454,8 @@ entities without requiring a central allocating authority.
 * [RFC4122: A Universally Unique Identifier (UUID) URN Namespace](http://tools.ietf.org/html/rfc4122)
 """
 scalar UUID
+
+scalar Upload
 
 enum UrgenceLevel {
 	FAIBLE
@@ -1324,6 +1488,15 @@ input UserPreferencesInput {
 	timezone: String
 	notificationSettings: NotificationSettingsInput
 	communicationPreferences: CommunicationPreferencesInput
+}
+
+"""
+Real-time user status tracking
+"""
+type UserStatus {
+	userId: UUID!
+	status: String!
+	lastSeen: DateTime
 }
 
 """
