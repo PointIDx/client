@@ -1,0 +1,1345 @@
+input AccountInfoInput {
+	password: String!
+}
+
+enum AccountType {
+	SOCIETAIRE
+	ASSUREUR
+	PRESTATAIRE
+}
+
+type Address {
+	street: String!
+	city: String!
+	postalCode: String!
+	country: String!
+}
+
+input AddressInput {
+	street: String!
+	city: String!
+	postalCode: String!
+	country: String!
+}
+
+type AppliedFilter {
+	name: String!
+	value: String!
+	label: String!
+}
+
+input AssureurSignupInput {
+	companyInfo: CompanyInfoInput!
+	contactInfo: ContactInfoInput!
+	accountInfo: AccountInfoInput!
+}
+
+type AuthResponse {
+	tokens: AuthTokens!
+	user: User!
+}
+
+type AuthTokens {
+	token: String!
+	refreshToken: String!
+	expiresIn: Int!
+}
+
+enum AvailabilityStatus {
+	AVAILABLE
+	BUSY
+	AWAY
+	OFFLINE
+}
+
+type ClaimStatusUpdate {
+	id: UUID!
+	dossierNumber: String!
+	newStatus: String!
+	previousStatus: String!
+	comment: String
+	updatedBy: UUID!
+	updatedAt: DateTime!
+	timeline: [Timeline!]!
+}
+
+input ClaimStatusUpdateInput {
+	claimId: UUID!
+	newStatus: String!
+	comment: String
+}
+
+type Comment {
+	id: UUID!
+	missionId: UUID!
+	userId: UUID!
+	expediteur: String!
+	contenu: String!
+	dateEnvoi: DateTime!
+	lu: Boolean!
+	createdAt: DateTime!
+}
+
+input CommentInput {
+	missionId: UUID!
+	content: String!
+}
+
+type CommunicationPreferences {
+	preferredMethod: String!
+	availableHours: String!
+}
+
+input CommunicationPreferencesInput {
+	preferredMethod: String
+	availableHours: String
+}
+
+type CommunicationRequest {
+	id: UUID!
+	senderId: UUID!
+	receiverId: UUID!
+	subject: String!
+	message: String!
+	statut: CommunicationStatus!
+	dateEnvoi: DateTime!
+	dateReponse: DateTime
+	reponseMessage: String
+	createdAt: DateTime!
+	updatedAt: DateTime!
+}
+
+input CommunicationRequestInput {
+	receiverId: UUID!
+	subject: String!
+	message: String!
+}
+
+input CommunicationResponseInput {
+	requestId: UUID!
+	message: String!
+	accepted: Boolean!
+}
+
+enum CommunicationStatus {
+	PENDING
+	ACCEPTED
+	REJECTED
+	CANCELLED
+}
+
+type CompanyInfo {
+	siret: String!
+	raisonSociale: String
+	formeJuridique: String
+	formeJuridiqueLisible: String
+	adresse: String
+	codePostal: String
+	ville: String
+	pays: String
+	dateCreation: String
+}
+
+input CompanyInfoInput {
+	raisonSociale: String!
+	siret: String!
+	companyAddress: AddressInput!
+	licenseNumber: String
+}
+
+input CompanyInfoUpdateInput {
+	companyName: String
+	phone: String
+	address: AddressInput
+	contactPerson: String
+}
+
+input ContactInfoInput {
+	nom: String!
+	prenom: String!
+	phone: String!
+	email: String!
+}
+
+input CreateNotificationInput {
+	userId: UUID!
+	notificationType: String!
+	title: String!
+	message: String!
+	relatedEntityId: UUID
+	relatedEntityType: String
+	priority: NotificationPriority!
+	actionUrl: String
+	metadata: [NotificationMetadataInput!]
+}
+
+input DateRangeInput {
+	startDate: DateTime!
+	endDate: DateTime!
+}
+
+"""
+Implement the DateTime<Utc> scalar
+
+The input/output is a string in RFC3339 format.
+"""
+scalar DateTime
+
+type Document {
+	id: UUID!
+	ownerId: UUID!
+	relatedEntityId: UUID
+	relatedEntityType: String
+	filename: String!
+	originalFilename: String!
+	fileType: String!
+	fileSize: Int!
+	storagePath: String!
+	documentType: DocumentType!
+	uploadedAt: DateTime!
+	isPublic: Boolean!
+	metadata: JSON
+}
+
+type DocumentDownload {
+	url: String!
+	filename: String!
+	contentType: String!
+	expiresAt: DateTime
+}
+
+input DocumentSearchInput {
+	searchTerm: String
+	documentTypes: [String!]
+	startDate: DateTime
+	endDate: DateTime
+	sortBy: String
+	sortDesc: Boolean
+	limit: Int
+	offset: Int
+}
+
+type DocumentSearchResult {
+	results: [DocumentSearchResultItem!]!
+	totalCount: Int!
+	hasMore: Boolean!
+	filters: [SearchFilter!]!
+	searchTerm: String
+	appliedFilters: [AppliedFilter!]!
+}
+
+type DocumentSearchResultItem {
+	id: UUID!
+	filename: String!
+	originalFilename: String!
+	documentType: String!
+	uploadedAt: DateTime!
+	fileSize: Int!
+	relevanceScore: Float!
+}
+
+enum DocumentType {
+	KBIS
+	ASSURANCE
+	AGREMENT
+	RAPPORT
+	FACTURE
+	PHOTO
+	AUTRE
+}
+
+type EmergencyContact {
+	name: String!
+	phone: String!
+	relationship: String!
+}
+
+input EmergencyContactInput {
+	name: String!
+	phone: String!
+	relationship: String!
+}
+
+input ExportFilters {
+	startDate: DateTime
+	endDate: DateTime
+	status: String
+	prestataireId: UUID
+	societaireDossier: String
+}
+
+enum ExportFormat {
+	PDF
+	EXCEL
+	CSV
+	JSON
+}
+
+type ExportJob {
+	id: UUID!
+	userId: UUID!
+	exportType: String!
+	format: ExportFormat!
+	status: ExportStatus!
+	progress: Float!
+	result: ExportResult
+	errorMessage: String
+	createdAt: DateTime!
+	completedAt: DateTime
+}
+
+type ExportResult {
+	url: String!
+	filename: String!
+	contentType: String!
+	size: Int
+	expiresAt: DateTime
+	downloadCount: Int!
+	maxDownloads: Int
+}
+
+enum ExportStatus {
+	PENDING
+	PROCESSING
+	COMPLETED
+	FAILED
+	CANCELLED
+}
+
+input FileMessageInput {
+	missionId: UUID!
+	content: String!
+	filename: String!
+	contentType: String!
+	size: Int!
+}
+
+type FilterOption {
+	value: String!
+	label: String!
+	count: Int!
+}
+
+input GlobalSearchInput {
+	searchTerm: String!
+	entityTypes: [String!]
+	limit: Int
+	offset: Int
+}
+
+type GlobalSearchResult {
+	results: [SearchResultItem!]!
+	totalCount: Int!
+	hasMore: Boolean!
+	searchTerm: String!
+	entityTypes: [String!]!
+}
+
+type Historique {
+	id: UUID!
+	entityType: String!
+	entityId: UUID!
+	action: String!
+	oldValue: String
+	newValue: String
+	userId: UUID!
+	timestamp: DateTime!
+	ipAddress: String
+	userAgent: String
+}
+
+"""
+A scalar that can represent any JSON value.
+"""
+scalar JSON
+
+input LoginInput {
+	email: String!
+	password: String
+	dossierNumber: String
+	accountType: AccountType!
+}
+
+type Message {
+	id: UUID!
+	conversationId: UUID!
+	senderId: UUID!
+	content: String!
+	messageType: MessageType!
+	sentAt: DateTime!
+	isRead: Boolean!
+	attachments: [UUID!]!
+}
+
+input MessageInput {
+	conversationId: UUID!
+	content: String!
+	messageType: MessageType!
+	attachments: [UUID!]
+}
+
+enum MessageType {
+	TEXT
+	FILE
+	SYSTEM
+}
+
+type Mission {
+	id: UUID!
+	reference: String!
+	assureurId: UUID!
+	prestataireId: UUID
+	societaireDossier: String!
+	title: String!
+	description: String!
+	urgence: UrgenceLevel!
+	statut: MissionStatut!
+	createdAt: DateTime!
+	updatedAt: DateTime!
+	deadline: DateTime
+	location: Address!
+	estimatedCost: Float
+	actualCost: Float
+}
+
+type MissionAssignment {
+	id: UUID!
+	missionStatus: MissionStatut!
+	dossier: String!
+	assureur: MissionAssureur!
+	dateCreation: DateTime!
+}
+
+type MissionAssureur {
+	id: UUID!
+	companyName: String!
+	contactPerson: String!
+	phone: String!
+	email: String!
+}
+
+input MissionCreateInput {
+	title: String!
+	description: String!
+	societaireDossier: String!
+	urgence: UrgenceLevel!
+	deadline: DateTime
+	location: AddressInput!
+	estimatedCost: Float
+}
+
+type MissionDetails {
+	id: UUID!
+	reference: String!
+	status: MissionStatut!
+	dateDeCreation: DateTime!
+	urgence: UrgenceLevel!
+	description: String!
+	societaire: MissionSocietaire!
+	prestataire: MissionPrestataire
+	documents: [MissionDocument!]!
+	historique: [Historique!]!
+	commentaires: [Comment!]!
+	estimatedCost: Float
+	actualCost: Float
+	location: Address!
+	deadline: DateTime
+}
+
+type MissionDocument {
+	id: UUID!
+	filename: String!
+	url: String!
+	contentType: String!
+	size: Int!
+	uploadDate: DateTime!
+	description: String
+	uploadedBy: UUID!
+}
+
+input MissionDocumentInput {
+	missionId: UUID!
+	filename: String!
+	contentType: String!
+	size: Int!
+	description: String
+}
+
+type MissionMessage {
+	id: UUID!
+	missionId: UUID!
+	expediteur: String!
+	contenu: String!
+	dateEnvoi: DateTime!
+	lu: Boolean!
+	fichiers: [MissionDocument!]!
+}
+
+type MissionPrestataire {
+	id: UUID!
+	companyName: String!
+	contactPerson: String!
+	phone: String!
+	email: String!
+}
+
+input MissionSearchInput {
+	searchTerm: String
+	statuses: [String!]
+	urgencies: [String!]
+	startDate: DateTime
+	endDate: DateTime
+	sortBy: String
+	sortDesc: Boolean
+	limit: Int
+	offset: Int
+}
+
+type MissionSearchResult {
+	results: [MissionSearchResultItem!]!
+	totalCount: Int!
+	hasMore: Boolean!
+	filters: [SearchFilter!]!
+	searchTerm: String
+	appliedFilters: [AppliedFilter!]!
+}
+
+type MissionSearchResultItem {
+	id: UUID!
+	reference: String!
+	title: String!
+	description: String!
+	status: String!
+	urgency: String!
+	createdAt: DateTime!
+	deadline: DateTime
+	location: Address!
+	relevanceScore: Float!
+}
+
+type MissionSocietaire {
+	id: UUID!
+	dossierNumber: String!
+	firstName: String!
+	lastName: String!
+	phone: String
+	email: String!
+}
+
+input MissionStatusUpdateInput {
+	missionId: UUID!
+	status: MissionStatut!
+	comment: String
+}
+
+enum MissionStatut {
+	EN_ATTENTE
+	ASSIGNEE
+	EN_COURS
+	TERMINEE
+	ANNULEE
+	SUSPENDUE
+}
+
+type MissionSummary {
+	id: UUID!
+	reference: String!
+	title: String!
+	deadline: DateTime
+	estimatedCost: Float
+}
+
+type MutationRoot {
+	"""
+	Authenticate user and return JWT token with user info
+	"""
+	login(input: LoginInput!): AuthResponse!
+	"""
+	Update societaire profile
+	"""
+	updateSocietaireProfile(input: SocietaireProfileUpdateInput!): SocietaireInfo!
+	"""
+	General user signup
+	"""
+	signup(input: SignupInput!): AuthResponse!
+	"""
+	Assureur company signup
+	"""
+	assureurSignup(input: AssureurSignupInput!): AuthResponse!
+	"""
+	Prestataire company signup
+	"""
+	prestataireSignup(input: PrestataireSignupInput!): AuthResponse!
+	"""
+	Societaire login with dossier number
+	"""
+	societaireLogin(input: SocietaireLoginInput!): SocietaireAuthResponse!
+	"""
+	Refresh authentication token
+	"""
+	refreshToken(input: RefreshTokenInput!): AuthTokens!
+	"""
+	Update prestataire profile
+	"""
+	updatePrestataireProfile(input: PrestataireProfileUpdateInput!): PrestataireInfo!
+	"""
+	Update prestataire availability
+	"""
+	updatePrestataireAvailability(status: AvailabilityStatus!): PrestataireInfo!
+	"""
+	Update societaire claim status
+	"""
+	updateSocietaireClaimStatus(input: ClaimStatusUpdateInput!): ClaimStatusUpdate!
+	"""
+	Create a new mission
+	"""
+	createMission(input: MissionCreateInput!): Mission!
+	"""
+	Accept a mission (for prestataire)
+	"""
+	acceptMission(missionId: UUID!): Mission!
+	"""
+	Update mission status
+	"""
+	updateMissionStatus(input: MissionStatusUpdateInput!): Mission!
+	"""
+	Send a message in a conversation
+	"""
+	sendMessage(input: MessageInput!): Message!
+	"""
+	Send a message with file attachment
+	"""
+	sendFileWithMessage(input: FileMessageInput!): MissionMessage!
+	"""
+	Send a message to societaire
+	"""
+	sendSocietaireMessage(input: SocietaireMessageInput!): SocietaireMessage!
+	"""
+	Mark notification as read
+	"""
+	markNotificationRead(notificationId: UUID!): Boolean!
+	"""
+	Create a new notification
+	"""
+	createNotification(input: CreateNotificationInput!): Notification!
+	"""
+	Mark all notifications as read for current user
+	"""
+	markAllNotificationsRead: Int!
+	"""
+	Delete expired notifications (admin only)
+	"""
+	deleteExpiredNotifications: Int!
+	"""
+	Mark societaire notification as read
+	"""
+	markSocietaireNotificationRead(notificationId: UUID!): Boolean!
+	"""
+	Mark prestataire notification as read
+	"""
+	markPrestataireNotificationRead(notificationId: UUID!): Boolean!
+	"""
+	Send a communication request
+	"""
+	sendCommunicationRequest(input: CommunicationRequestInput!): CommunicationRequest!
+	"""
+	Respond to a communication request
+	"""
+	respondToCommunicationRequest(input: CommunicationResponseInput!): CommunicationRequest!
+	"""
+	Send a comment/message to a mission
+	"""
+	sendComment(input: CommentInput!): Comment!
+	"""
+	Upload a document for a societaire
+	"""
+	uploadSocietaireDocument(input: SocietaireDocumentInput!): SocietaireDocument!
+	"""
+	Upload a document for a mission
+	"""
+	uploadMissionDocument(input: MissionDocumentInput!): MissionDocument!
+	"""
+	Delete a document
+	"""
+	deleteDocument(documentId: UUID!): Boolean!
+	"""
+	Update document metadata
+	"""
+	updateDocumentMetadata(documentId: UUID!, metadata: JSON!): Boolean!
+	"""
+	Start mission export job
+	"""
+	exportMissions(format: ExportFormat!, filters: ExportFilters): ExportResult!
+	"""
+	Start prestataire performance report export
+	"""
+	exportPrestataireReport(format: ExportFormat!, filters: PrestataireExportFilters): ExportJob!
+	"""
+	Start societaire dossier export
+	"""
+	exportSocietaireDossier(format: ExportFormat!, input: SocietaireExportInput!): ExportJob!
+	"""
+	Cancel an export job
+	"""
+	cancelExportJob(jobId: UUID!): Boolean!
+	"""
+	Delete an export job and its files
+	"""
+	deleteExportJob(jobId: UUID!): Boolean!
+}
+
+"""
+ISO 8601 calendar date without timezone.
+Format: %Y-%m-%d
+
+# Examples
+
+* `1994-11-13`
+* `2000-02-24`
+"""
+scalar NaiveDate
+
+type Notification {
+	id: UUID!
+	userId: UUID!
+	notificationType: String!
+	title: String!
+	message: String!
+	relatedEntityId: UUID
+	relatedEntityType: String
+	priority: NotificationPriority!
+	isRead: Boolean!
+	createdAt: DateTime!
+	expiresAt: DateTime
+	actionUrl: String
+	metadata: [NotificationMetadata!]!
+}
+
+type NotificationMetadata {
+	key: String!
+	value: String!
+}
+
+input NotificationMetadataInput {
+	key: String!
+	value: String!
+}
+
+enum NotificationPriority {
+	LOW
+	MEDIUM
+	HIGH
+	CRITICAL
+}
+
+type NotificationSettings {
+	email: Boolean!
+	sms: Boolean!
+	push: Boolean!
+	categories: [String!]!
+}
+
+input NotificationSettingsInput {
+	email: Boolean
+	sms: Boolean
+	push: Boolean
+	categories: [String!]
+}
+
+type NotificationStats {
+	total: Int!
+	unread: Int!
+	criticalUnread: Int!
+	highUnread: Int!
+}
+
+type PaymentSummary {
+	missionId: UUID!
+	amount: Float!
+	dueDate: DateTime!
+	daysOverdue: Int!
+}
+
+input PersonalInfoInput {
+	firstName: String
+	lastName: String
+	dateOfBirth: NaiveDate
+	phone: String
+	address: AddressInput
+	emergencyContact: EmergencyContactInput
+}
+
+type PolicyInfo {
+	policyNumber: String!
+	policyType: String!
+	startDate: NaiveDate!
+	endDate: NaiveDate!
+	coverageAmount: Float!
+	premium: Float!
+}
+
+input PrestataireExportFilters {
+	startDate: DateTime
+	endDate: DateTime
+	status: String
+	includePayments: Boolean
+	includeStatistics: Boolean
+}
+
+type PrestataireInfo {
+	id: UUID!
+	userId: UUID!
+	companyName: String!
+	siret: String!
+	companyAddress: Address!
+	contactPerson: String!
+	phone: String!
+	specializations: [String!]!
+	certifications: [String!]!
+	availabilityZones: [String!]!
+}
+
+input PrestataireProfileUpdateInput {
+	companyInfo: CompanyInfoUpdateInput
+	sectors: [String!]
+	specialties: [String!]
+	description: String
+	serviceRadius: Float
+	hourlyRate: Float
+	availabilityStatus: AvailabilityStatus
+}
+
+input PrestataireSearchInput {
+	location: String
+	specialty: String
+	name: String
+	radius: Float
+	minRating: Float
+	availabilityOnly: Boolean
+}
+
+type PrestataireSearchResult {
+	id: UUID!
+	companyName: String!
+	contactPerson: String!
+	email: String!
+	phone: String!
+	address: Address!
+	specialties: [String!]!
+	rating: Float
+	distance: Float
+	availabilityStatus: String!
+}
+
+input PrestataireSignupInput {
+	companyInfo: CompanyInfoInput!
+	contactInfo: ContactInfoInput!
+	accountInfo: AccountInfoInput!
+	specializations: [String!]!
+	certifications: [String!]!
+	availabilityZones: [String!]!
+}
+
+type PrestataireStatistics {
+	totalMissions: Int!
+	completedMissions: Int!
+	pendingMissions: Int!
+	acceptanceRate: Float!
+	averageRating: Float!
+	totalEarnings: Float!
+	monthlyEarnings: Float!
+	missionsThisMonth: Int!
+	missionsThisWeek: Int!
+	upcomingMissions: [MissionSummary!]!
+	overduePayments: [PaymentSummary!]!
+}
+
+type QueryRoot {
+	"""
+	Get societaire profile by dossier number
+	"""
+	getSocietaireProfile(dossierNumber: String!): SocietaireInfo
+	"""
+	Get enhanced societaire profile with nested structure
+	"""
+	getSocietaireProfileEnhanced(dossierNumber: String!): SocietaireProfile
+	"""
+	Get complete societaire dossier with timeline and documents
+	"""
+	getSocietaireDossier(dossierNumber: String!): SocietaireDossier
+	"""
+	Search prestataires by location, specialty, or name
+	"""
+	searchPrestataires(input: PrestataireSearchInput!): [PrestataireSearchResult!]!
+	"""
+	Get prestataire statistics for dashboard
+	"""
+	getPrestataireStatistics: PrestataireStatistics
+	"""
+	Get notifications for a societaire
+	"""
+	getSocietaireNotifications(dossierNumber: String!): [Notification!]!
+	"""
+	Get notifications for current user
+	"""
+	getUserNotifications(unreadOnly: Boolean, notificationType: String, limit: Int, offset: Int): [Notification!]!
+	"""
+	Get notification statistics for current user
+	"""
+	getNotificationStats: NotificationStats!
+	"""
+	Get notifications for current user (alias for compatibility)
+	"""
+	getNotifications: [Notification!]!
+	"""
+	Get prestataire notifications
+	"""
+	getPrestataireNotifications: [Notification!]!
+	"""
+	Get missions for assureur
+	"""
+	getAssureurMissions(assureurId: UUID!): [Mission!]!
+	"""
+	Get missions for prestataire
+	"""
+	getPrestataireMissions(prestataireId: UUID): [Mission!]!
+	"""
+	Get detailed mission information by ID
+	"""
+	mission(missionId: UUID!): MissionDetails
+	"""
+	Get mission details (alias for mission)
+	"""
+	getMissionDetails(missionId: UUID!): MissionDetails
+	"""
+	Get missions formatted for prestataire dashboard
+	"""
+	getPrestataireMissionsEnhanced: [MissionAssignment!]!
+	"""
+	Get missions formatted for assureur dashboard
+	"""
+	getAssureurMissionsEnhanced: [MissionDetails!]!
+	"""
+	Get documents for a user
+	"""
+	getUserDocuments(ownerId: UUID!): [Document!]!
+	"""
+	Get documents for a societaire
+	"""
+	getSocietaireDocuments(dossierNumber: String!, offset: Int, limit: Int): SocietaireDocuments!
+	"""
+	Get documents for a mission
+	"""
+	getMissionDocuments(missionId: UUID!): [MissionDocument!]!
+	"""
+	Get document download URL
+	"""
+	getDocumentDownloadUrl(documentId: UUID!): DocumentDownload
+	"""
+	Search documents
+	"""
+	searchDocuments(searchTerm: String!, documentType: String, limit: Int, offset: Int): [Document!]!
+	"""
+	Download document by name
+	"""
+	downloadDocument(documentName: String!): DocumentDownload
+	"""
+	Get conversation messages
+	"""
+	getConversationMessages(conversationId: UUID!): [Message!]!
+	"""
+	Get messages for a specific mission
+	"""
+	getMessages(missionId: UUID!): [MissionMessage!]!
+	"""
+	Get messages for a societaire
+	"""
+	getSocietaireMessages(dossierNumber: String!, offset: Int, limit: Int): SocietaireMessages!
+	validateSiret(siret: String!): SiretValidationResult!
+	"""
+	Get communication requests for current user
+	"""
+	getCommunicationRequests: [CommunicationRequest!]!
+	"""
+	Get communication requests for prestataire
+	"""
+	getCommunicationRequestsForPrestataire: [CommunicationRequest!]!
+	"""
+	Global search across all entities
+	"""
+	globalSearch(input: GlobalSearchInput!): GlobalSearchResult!
+	"""
+	Search societaire history
+	"""
+	searchSocietaireHistory(input: SocietaireHistorySearchInput!): SocietaireHistoryResult!
+	"""
+	Advanced mission search
+	"""
+	searchMissions(input: MissionSearchInput!): MissionSearchResult!
+	"""
+	Search documents with advanced filtering
+	"""
+	searchDocumentsAdvanced(input: DocumentSearchInput!): DocumentSearchResult!
+	"""
+	Get search suggestions/autocomplete
+	"""
+	searchSuggestions(query: String!, entityType: String, limit: Int): [String!]!
+	"""
+	Get search filters for a specific entity type
+	"""
+	getSearchFilters(entityType: String!): [SearchFilter!]!
+	"""
+	Export missions data
+	"""
+	exportMissions(filters: ExportFilters, format: ExportFormat!): ExportResult!
+	"""
+	Export specific mission details
+	"""
+	exportMissionDetails(missionId: String!, format: ExportFormat!): ExportResult!
+	"""
+	Export prestataire missions
+	"""
+	exportPrestataireMissions(filters: PrestataireExportFilters, format: ExportFormat!): ExportResult!
+	"""
+	Export prestataire report
+	"""
+	exportPrestataireReport(period: ReportPeriod!, format: ExportFormat!): ExportResult!
+	"""
+	Export societaire data
+	"""
+	exportSocietaireData(input: SocietaireExportInput!): ExportResult!
+}
+
+input RefreshTokenInput {
+	refreshToken: String!
+}
+
+enum ReportPeriod {
+	THIS_WEEK
+	THIS_MONTH
+	LAST_MONTH
+	THIS_QUARTER
+	THIS_YEAR
+	WEEKLY
+	MONTHLY
+	QUARTERLY
+	YEARLY
+	CUSTOM
+}
+
+type SearchFilter {
+	name: String!
+	label: String!
+	options: [FilterOption!]!
+}
+
+type SearchResultItem {
+	id: UUID!
+	entityType: String!
+	title: String!
+	description: String
+	createdAt: DateTime!
+	relevanceScore: Float!
+	metadata: JSON
+}
+
+input SignupInput {
+	email: String!
+	password: String!
+	accountType: AccountType!
+}
+
+type SiretValidationResult {
+	isValid: Boolean!
+	companyInfo: CompanyInfo
+	error: String
+}
+
+type SocietaireAuthResponse {
+	token: String!
+	societaire: SocietaireLoginInfo!
+}
+
+type SocietaireDocument {
+	id: UUID!
+	dossierNumber: String!
+	filename: String!
+	originalName: String!
+	url: String!
+	contentType: String!
+	size: Int!
+	category: String!
+	description: String
+	uploadDate: DateTime!
+	uploadedBy: UUID!
+	status: String!
+	metadata: JSON
+}
+
+input SocietaireDocumentInput {
+	dossierNumber: String!
+	filename: String!
+	contentType: String!
+	size: Int!
+	category: String!
+	description: String
+}
+
+type SocietaireDocuments {
+	documents: [SocietaireDocument!]!
+	totalCount: Int!
+	hasMore: Boolean!
+	categories: [String!]!
+}
+
+type SocietaireDossier {
+	dossierData: SocietaireProfile!
+	timeline: [Timeline!]!
+	historique: [Historique!]!
+	documents: [SocietaireDocument!]!
+}
+
+input SocietaireExportInput {
+	dossierNumber: String!
+	includeDocuments: Boolean
+	includeMessages: Boolean
+	includeTimeline: Boolean
+	dateRange: DateRangeInput
+}
+
+type SocietaireHistoryEntry {
+	id: UUID!
+	eventType: String!
+	title: String!
+	description: String!
+	date: DateTime!
+	entityType: String!
+	entityId: UUID!
+	relevanceScore: Float!
+}
+
+type SocietaireHistoryResult {
+	results: [SocietaireHistoryEntry!]!
+	totalCount: Int!
+	hasMore: Boolean!
+	filters: [SearchFilter!]!
+	searchTerm: String
+	appliedFilters: [AppliedFilter!]!
+}
+
+input SocietaireHistorySearchInput {
+	dossierNumber: String!
+	searchTerm: String
+	eventTypes: [String!]
+	startDate: DateTime
+	endDate: DateTime
+	limit: Int
+	offset: Int
+}
+
+type SocietaireInfo {
+	id: UUID!
+	userId: UUID!
+	dossierNumber: String!
+	firstName: String!
+	lastName: String!
+	dateOfBirth: NaiveDate
+	phone: String
+	address: Address
+	emergencyContact: EmergencyContact
+	preferences: UserPreferences
+	accountStatus: String!
+}
+
+type SocietaireLoginInfo {
+	email: String!
+	dossierNumber: String!
+}
+
+input SocietaireLoginInput {
+	email: String!
+	dossierNumber: String!
+}
+
+type SocietaireMessage {
+	id: UUID!
+	dossierNumber: String!
+	expediteur: String!
+	destinataire: String!
+	contenu: String!
+	dateEnvoi: DateTime!
+	lu: Boolean!
+	messageType: String!
+	fichiers: [MissionDocument!]!
+	metadata: JSON
+}
+
+input SocietaireMessageInput {
+	dossierNumber: String!
+	destinataire: String!
+	contenu: String!
+	messageType: String!
+	fichiers: [String!]
+}
+
+type SocietaireMessages {
+	messages: [SocietaireMessage!]!
+	totalCount: Int!
+	hasMore: Boolean!
+}
+
+type SocietairePersonalInfo {
+	firstName: String!
+	lastName: String!
+	dateOfBirth: NaiveDate
+	phone: String
+	address: Address
+	emergencyContact: EmergencyContact
+}
+
+type SocietaireProfile {
+	id: UUID!
+	email: String!
+	dossierNumber: String!
+	personalInfo: SocietairePersonalInfo!
+	preferences: UserPreferences
+	policyInfo: PolicyInfo
+	accountStatus: String!
+	lastLoginDate: DateTime
+	createdAt: DateTime!
+	updatedAt: DateTime!
+}
+
+input SocietaireProfileUpdateInput {
+	dossierNumber: String!
+	email: String
+	personalInfo: PersonalInfoInput
+	preferences: UserPreferencesInput
+}
+
+type SubscriptionRoot {
+	"""
+	Subscribe to notifications for a specific societaire
+	"""
+	onSocietaireNotification(dossierNumber: String!): Notification!
+	"""
+	Subscribe to general notifications for current user
+	"""
+	onNotification: Notification!
+	"""
+	Subscribe to prestataire notifications
+	"""
+	onPrestataireNotification: Notification!
+	"""
+	Subscribe to mission updates for assureur
+	"""
+	onAssureurMissionUpdate(assureurId: UUID!): Mission!
+	"""
+	Subscribe to mission updates for prestataire
+	"""
+	onPrestataireMissionUpdate(prestataireId: UUID): Mission!
+	"""
+	Subscribe to new messages in a conversation
+	"""
+	onConversationMessage(conversationId: UUID!): Message!
+	"""
+	Subscribe to new messages in a mission
+	"""
+	onNewMessage(missionId: UUID!): Message!
+	"""
+	Subscribe to communication responses
+	"""
+	onCommunicationResponse: CommunicationRequest!
+	"""
+	Subscribe to new mission assignments for prestataires
+	"""
+	onNewMissionAssignment: Mission!
+	"""
+	Subscribe to communication requests
+	"""
+	onCommunicationRequest: CommunicationRequest!
+	"""
+	Subscribe to societaire timeline updates
+	"""
+	onSocietaireTimelineUpdate(dossierNumber: String!): Timeline!
+}
+
+type Timeline {
+	id: UUID!
+	dossierNumber: String!
+	eventType: String!
+	title: String!
+	description: String!
+	date: DateTime!
+	createdBy: UUID!
+	metadata: [TimelineMetadata!]!
+	createdAt: DateTime!
+}
+
+type TimelineMetadata {
+	key: String!
+	value: String!
+}
+
+"""
+A UUID is a unique 128-bit number, stored as 16 octets. UUIDs are parsed as
+Strings within GraphQL. UUIDs are used to assign unique identifiers to
+entities without requiring a central allocating authority.
+
+# References
+
+* [Wikipedia: Universally Unique Identifier](http://en.wikipedia.org/wiki/Universally_unique_identifier)
+* [RFC4122: A Universally Unique Identifier (UUID) URN Namespace](http://tools.ietf.org/html/rfc4122)
+"""
+scalar UUID
+
+enum UrgenceLevel {
+	FAIBLE
+	MOYENNE
+	HAUTE
+	CRITIQUE
+}
+
+type User {
+	id: UUID!
+	email: String!
+	passwordHash: String!
+	accountType: AccountType!
+	createdAt: DateTime!
+	updatedAt: DateTime!
+	emailVerified: Boolean!
+	isActive: Boolean!
+	profile: JSON
+}
+
+type UserPreferences {
+	language: String!
+	timezone: String!
+	notificationSettings: NotificationSettings!
+	communicationPreferences: CommunicationPreferences!
+}
+
+input UserPreferencesInput {
+	language: String
+	timezone: String
+	notificationSettings: NotificationSettingsInput
+	communicationPreferences: CommunicationPreferencesInput
+}
+
+"""
+Directs the executor to include this field or fragment only when the `if` argument is true.
+"""
+directive @include(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+"""
+Directs the executor to skip this field or fragment when the `if` argument is true.
+"""
+directive @skip(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+"""
+Provides a scalar specification URL for specifying the behavior of custom scalar types.
+"""
+directive @specifiedBy(url: String!) on SCALAR
+schema {
+	query: QueryRoot
+	mutation: MutationRoot
+	subscription: SubscriptionRoot
+}

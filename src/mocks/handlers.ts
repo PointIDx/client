@@ -56,30 +56,78 @@ let mockMissions = [
 ];
 
 export const handlers = [
-  // Mock SIRET API
-  http.get('https://api.insee.fr/entreprises/sirene/V3/siret/:siret', ({ params }) => {
-    const { siret } = params;
+  // GraphQL SIRET validation
+  graphql.query('ValidateSiret', ({ variables }) => {
+    const { siret } = variables;
+    
+    // Mock validation for testing
     if (siret === '12345678901234') {
       return HttpResponse.json({
-        etablissement: {
-          uniteLegale: {
-            denominationUniteLegale: "ASSURANCE TEST SA",
-            categorieJuridiqueUniteLegale: "5499",
-          },
-          adresseEtablissement: {
-            numeroVoieEtablissement: "10",
-            typeVoieEtablissement: "RUE",
-            libelleVoieEtablissement: "DE LA PAIX",
-            codePostalEtablissement: "75001",
-            libelleCommuneEtablissement: "PARIS",
-          },
-          dateCreationEtablissement: "2020-01-01",
-        },
+        data: {
+          validateSiret: {
+            isValid: true,
+            companyInfo: {
+              siret: '12345678901234',
+              raisonSociale: 'ASSURANCE TEST SA',
+              formeJuridique: 'SAS',
+              adresse: '10 RUE DE LA PAIX',
+              codePostal: '75001',
+              ville: 'PARIS',
+              pays: 'France',
+              dateCreation: '2020-01-01',
+            },
+            error: null
+          }
+        }
+      });
+    } else if (siret === '98765432109876') {
+      return HttpResponse.json({
+        data: {
+          validateSiret: {
+            isValid: true,
+            companyInfo: {
+              siret: '98765432109876',
+              raisonSociale: 'DUBOIS MAÇONNERIE SARL',
+              formeJuridique: 'SARL',
+              adresse: '123 RUE DE LA PAIX',
+              codePostal: '75001',
+              ville: 'PARIS',
+              pays: 'France',
+              dateCreation: '2010-05-15',
+            },
+            error: null
+          }
+        }
+      });
+    } else if (siret === '11111111111111') {
+      return HttpResponse.json({
+        data: {
+          validateSiret: {
+            isValid: true,
+            companyInfo: {
+              siret: '11111111111111',
+              raisonSociale: 'MOREAU PLOMBERIE EURL',
+              formeJuridique: 'EURL',
+              adresse: '456 AVENUE DES CHAMPS',
+              codePostal: '13001',
+              ville: 'MARSEILLE',
+              pays: 'France',
+              dateCreation: '2015-03-10',
+            },
+            error: null
+          }
+        }
       });
     } else {
       return HttpResponse.json({
-        message: "SIRET non trouvé ou invalide",
-      }, { status: 404 });
+        data: {
+          validateSiret: {
+            isValid: false,
+            companyInfo: null,
+            error: 'SIRET non trouvé ou invalide'
+          }
+        }
+      });
     }
   }),
 

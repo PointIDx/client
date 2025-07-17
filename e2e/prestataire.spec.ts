@@ -18,7 +18,7 @@ test.describe('Prestataire Flow', () => {
     await expect(page.locator('[data-testid="adresse-input"]')).toHaveValue("10 RUE DE LA PAIX")
     await expect(page.locator('[data-testid="code-postal-input"]')).toHaveValue("75001")
     await expect(page.locator('[data-testid="ville-input"]')).toHaveValue("PARIS")
-    await expect(page.locator('[data-testid="forme-juridique-trigger"]')).toHaveText("SAS");
+    await expect(page.locator('[data-testid="forme-juridique-trigger"]')).toHaveText("SA");
     await page.click('[data-testid="next-button"]');
 
     // Step 3: Files
