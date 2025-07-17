@@ -63,7 +63,7 @@ export async function loginAsAssureur(page: Page, credentials: LoginCredentials 
   await page.fill('input[type="password"]', credentials.password!);
   await page.click('button[type="submit"]');
   await page.waitForURL('/assureur-dashboard');
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded');
 }
 
 /**
@@ -120,7 +120,7 @@ export async function loginAsPrestataire(page: Page, credentials: LoginCredentia
   await page.fill('input[type="password"]', credentials.password!);
   await page.click('button[type="submit"]');
   await page.waitForURL('/prestataire-dashboard');
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded');
 }
 
 /**
@@ -161,7 +161,7 @@ export async function loginAsSocietaire(page: Page, credentials: LoginCredential
   await page.fill('#dossier', credentials.dossierNumber!); // Use ID selector instead of type
   await page.click('button[type="submit"]');
   await page.waitForURL('/societaire-dashboard');
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded');
 }
 
 /**
