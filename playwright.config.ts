@@ -36,7 +36,7 @@ export default defineConfig({
     /* Maximum time each action such as `click()` can take. Defaults to 0 (no limit). */
     actionTimeout: process.env.CI ? 15000 : 10000,
     /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: process.env.CI ? 'http://localhost:4173' : 'http://localhost:5173',
+    baseURL: process.env.CI ? 'http://localhost:4173/client' : 'http://localhost:5173',
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
@@ -106,7 +106,7 @@ export default defineConfig({
      * Playwright will re-use the local server if there is already a dev-server running.
      */
     command: process.env.CI ? 'npm run build && npm run preview -- --port 4173 --host 0.0.0.0' : 'npm run dev',
-    url: process.env.CI ? 'http://localhost:4173' : 'http://localhost:5173',
+    url: process.env.CI ? 'http://localhost:4173/client/' : 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
     timeout: 300 * 1000, // 5 minutes
   },
