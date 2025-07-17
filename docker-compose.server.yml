@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  # Database service
+  timescaledb:
+    image: timescale/timescaledb:latest-pg15
+    container_name: ${CONTAINER_PREFIX:-point_id}-timescaledb
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-point_id_test}
+      POSTGRES_USER: ${POSTGRES_USER:-test_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-test_password}
+    ports:
+      - "${DB_PORT:-5434}:5432"
+    volumes:
+      - timescaledb-data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    command: ["postgres", "-c", "log_statement=all", "-c", "log_destination=stderr"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-test_user} -d ${POSTGRES_DB:-point_id_test}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  # Application service (production image)
+  point-id-server:
+    image: ghcr.io/${GITHUB_REPOSITORY:-ondonda/point_id_server}:${RELEASE_VERSION:-latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ${CONTAINER_PREFIX:-point_id}-server
+    environment:
+      RUST_LOG: ${RUST_LOG:-point_id_server=debug,tower_http=debug,tracing=info}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-test_user}:${POSTGRES_PASSWORD:-test_password}@timescaledb:5432/${POSTGRES_DB:-point_id_test}
+      SERVER_PORT: ${SERVER_PORT:-8000}
+      SERVER_HOST: ${SERVER_HOST:-0.0.0.0}
+      INSEE_API_TOKEN: ${INSEE_API_TOKEN:-}
+    ports:
+      - "${SERVER_PORT:-8000}:8000"
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+volumes:
+  timescaledb-data:
