@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { loginAsAssureur, mockGraphQLResponse, uploadFile, TestData } from './utils/test-utils.js';
+import { loginAsAssureur, uploadFile, TestData } from './utils/test-utils.js';
 
 test.describe('Assureur Export Functionality', () => {
   test.beforeEach(async ({ page }) => {
@@ -15,17 +15,6 @@ test.describe('Assureur Export Functionality', () => {
   });
 
   test('should export missions list when export button is clicked', async ({ page }) => {
-    // Intercept the export GraphQL query
-    await mockGraphQLResponse(page, 'ExportMissions', {
-      data: {
-        exportMissions: {
-          url: '/exports/missions-export-2024-01-15.pdf',
-          filename: 'missions-export-2024-01-15.pdf',
-          contentType: 'application/pdf'
-        }
-      }
-    });
-    
     // Go to missions tab
     await page.getByRole('tab').filter({ hasText: 'Mes Missions' }).click();
     
@@ -37,17 +26,6 @@ test.describe('Assureur Export Functionality', () => {
   });
 
   test('should export individual mission details', async ({ page }) => {
-    // Intercept the export GraphQL query
-    await mockGraphQLResponse(page, 'ExportMissionDetails', {
-      data: {
-        exportMissionDetails: {
-          url: '/exports/mission-1-2024-01-15.pdf',
-          filename: 'mission-1-2024-01-15.pdf',
-          contentType: 'application/pdf'
-        }
-      }
-    });
-    
     // Go to missions tab
     await page.getByRole('tab').filter({ hasText: 'Mes Missions' }).click();
     
@@ -79,16 +57,7 @@ test.describe('Assureur Export Functionality', () => {
     await page.locator('div:has(> label:has-text("Urgence")) button[role="combobox"]').click();
     await page.getByRole('option').filter({ hasText: 'Élevée' }).click();
     
-    // Intercept the export GraphQL query to verify filters are passed
-    await mockGraphQLResponse(page, 'ExportMissions', {
-      data: {
-        exportMissions: {
-          url: '/exports/missions-export-filtered-2024-01-15.pdf',
-          filename: 'missions-export-filtered-2024-01-15.pdf',
-          contentType: 'application/pdf'
-        }
-      }
-    });
+    // Export functionality should work with applied filters
     
     // Click export button
     await page.getByRole('button').filter({ hasText: 'Exporter' }).click();
@@ -98,14 +67,6 @@ test.describe('Assureur Export Functionality', () => {
   });
 
   test('should handle export errors gracefully', async ({ page }) => {
-    // Intercept the export GraphQL query to return an error
-    await mockGraphQLResponse(page, 'ExportMissions', {
-      errors: [{
-        message: 'Export service temporarily unavailable',
-        extensions: { code: 'EXPORT_ERROR' }
-      }]
-    });
-    
     // Go to missions tab
     await page.getByRole('tab').filter({ hasText: 'Mes Missions' }).click();
     
@@ -133,33 +94,6 @@ test.describe('Assureur Export Functionality', () => {
   });
 
   test('should show loading state during export', async ({ page }) => {
-    // Intercept the export GraphQL query with a delay
-    await page.route('**/graphql', route => {
-      const request = route.request();
-      const postData = request.postData();
-      
-      if (postData && postData.includes('ExportMissions')) {
-        // Simulate a delay
-        setTimeout(() => {
-          route.fulfill({
-            status: 200,
-            contentType: 'application/json',
-            body: JSON.stringify({
-              data: {
-                exportMissions: {
-                  url: '/exports/missions-export-2024-01-15.pdf',
-                  filename: 'missions-export-2024-01-15.pdf',
-                  contentType: 'application/pdf'
-                }
-              }
-            })
-          });
-        }, 1000);
-      } else {
-        route.continue();
-      }
-    });
-    
     // Go to missions tab
     await page.getByRole('tab').filter({ hasText: 'Mes Missions' }).click();
     

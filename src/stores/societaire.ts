@@ -1,10 +1,10 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { useLazyQuery, useMutation, useSubscription } from '@vue/apollo-composable';
-import { SOCIETAIRE_LOGIN } from '@/graphql/mutations/societaire-login';
+import { SOCIETAIRE_LOGIN_MUTATION } from '@/graphql/mutations/societaire-login';
 import { SEND_FILE } from '@/graphql/mutations/send-file';
 import { SEND_COMMENT_MUTATION } from '@/graphql/mutations/send-comment';
-import { GET_SOCIETAIRE_DOSSIER } from '@/graphql/queries/get-societaire-dossier';
+import { GET_SOCIETAIRE_DOSSIER_QUERY } from '@/graphql/queries/get-societaire-dossier';
 import { GET_SOCIETAIRE_NOTIFICATIONS } from '@/graphql/queries/get-societaire-notifications';
 import { MARK_SOCIETAIRE_NOTIFICATION_READ } from '@/graphql/mutations/mark-societaire-notification-read';
 import { GET_SOCIETAIRE_MESSAGES } from '@/graphql/queries/get-societaire-messages';
@@ -12,7 +12,7 @@ import { SEND_SOCIETAIRE_MESSAGE } from '@/graphql/mutations/send-societaire-mes
 import { UPLOAD_SOCIETAIRE_DOCUMENT } from '@/graphql/mutations/upload-societaire-document';
 import { UPLOAD_SOCIETAIRE_FILE_MUTATION } from '@/graphql/mutations/upload-file';
 import { GET_SOCIETAIRE_DOCUMENTS } from '@/graphql/queries/get-societaire-documents';
-import { UPDATE_SOCIETAIRE_CLAIM_STATUS } from '@/graphql/mutations/update-societaire-claim-status';
+import { UPDATE_SOCIETAIRE_CLAIM_STATUS_MUTATION } from '@/graphql/mutations/update-societaire-claim-status';
 import { GET_SOCIETAIRE_PROFILE } from '@/graphql/queries/get-societaire-profile';
 import { UPDATE_SOCIETAIRE_PROFILE } from '@/graphql/mutations/update-societaire-profile';
 import { ON_SOCIETAIRE_NOTIFICATION } from '@/graphql/subscriptions/on-societaire-notification';
@@ -21,7 +21,7 @@ import type { DossierData } from '@/interfaces/dossier-data';
 import type { TimelineItem } from '@/interfaces/timeline-item';
 import type { HistoriqueItem } from '@/interfaces/historique-item';
 import type { DocumentItem } from '@/interfaces/document-item';
-import type { JWTTokens } from '@/interfaces/auth';
+import type { JWTTokens, SocietaireLoginInput, SocietaireAuthResponse } from '@/interfaces/auth';
 import { AuthUtils } from '@/utils/auth';
 import { TimelineStatut } from '@/enums/timeline-statut';
 import { HistoriqueType } from '@/enums/historique-type';
@@ -52,17 +52,17 @@ export const useSocietaireStore = defineStore('societaire', () => {
     return notifications.value.filter(n => !n.isRead).length;
   });
 
-  const { mutate: societaireLoginMutation } = useMutation(SOCIETAIRE_LOGIN);
+  const { mutate: societaireLoginMutation } = useMutation(SOCIETAIRE_LOGIN_MUTATION);
   const { mutate: sendFileMutation } = useMutation(SEND_FILE);
   const { mutate: sendCommentMutation } = useMutation(SEND_COMMENT_MUTATION);
   const { mutate: markNotificationReadMutation } = useMutation(MARK_SOCIETAIRE_NOTIFICATION_READ);
   const { mutate: sendMessageMutation } = useMutation(SEND_SOCIETAIRE_MESSAGE);
   const { mutate: uploadDocumentMutation } = useMutation(UPLOAD_SOCIETAIRE_DOCUMENT);
   const { mutate: uploadFileMutation } = useMutation(UPLOAD_SOCIETAIRE_FILE_MUTATION);
-  const { mutate: updateClaimStatusMutation } = useMutation(UPDATE_SOCIETAIRE_CLAIM_STATUS);
+  const { mutate: updateClaimStatusMutation } = useMutation(UPDATE_SOCIETAIRE_CLAIM_STATUS_MUTATION);
   const { mutate: updateProfileMutation } = useMutation(UPDATE_SOCIETAIRE_PROFILE);
   
-  const { onResult: onSocietaireDossierResult, load: loadSocietaireDossier } = useLazyQuery(GET_SOCIETAIRE_DOSSIER, () => ({
+  const { onResult: onSocietaireDossierResult, load: loadSocietaireDossier } = useLazyQuery(GET_SOCIETAIRE_DOSSIER_QUERY, () => ({
     dossierNumber: dossierNumber.value,
   }), { enabled: false });
 
@@ -145,12 +145,11 @@ export const useSocietaireStore = defineStore('societaire', () => {
     }
   });
 
-  const login = async (emailInput: string, dossierNumberInput: string): Promise<boolean> => {
+  const login = async (loginInput: SocietaireLoginInput): Promise<boolean> => {
     try {
       // Use GraphQL API call
       const result = await societaireLoginMutation({
-        email: emailInput,
-        dossierNumber: dossierNumberInput,
+        input: loginInput,
       });
       
       if (result?.data?.societaireLogin) {
@@ -163,10 +162,6 @@ export const useSocietaireStore = defineStore('societaire', () => {
         tokens.value = authTokens;
         email.value = result.data.societaireLogin.societaire.email;
         dossierNumber.value = result.data.societaireLogin.societaire.dossierNumber;
-        dossierData.value = result.data.societaireLogin.societaire.dossierData;
-        timeline.value = result.data.societaireLogin.societaire.timeline;
-        historique.value = result.data.societaireLogin.societaire.historique;
-        documents.value = result.data.societaireLogin.societaire.documents;
         
         // Save to localStorage
         AuthUtils.saveTokens(authTokens);

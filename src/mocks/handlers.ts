@@ -229,7 +229,8 @@ export const handlers = [
 
   // Intercept "Signup" GraphQL mutation.
   graphql.mutation('Signup', (req) => {
-    const { email, password } = req.variables
+    const { input } = req.variables;
+    const { email, password, accountType } = input || {};
 
     if (email && password) {
       return HttpResponse.json({
@@ -243,7 +244,12 @@ export const handlers = [
             user: {
               id: 'new-user-456',
               email: email,
-              type: 'general'
+              accountType: accountType || 'ASSUREUR',
+              createdAt: '2024-01-01T00:00:00Z',
+              updatedAt: '2024-01-15T10:00:00Z',
+              emailVerified: true,
+              isActive: true,
+              profile: null
             },
           },
         },
@@ -297,7 +303,8 @@ export const handlers = [
 
   // Intercept "AssureurSignup" GraphQL mutation.
   graphql.mutation('AssureurSignup', (req) => {
-    const { companyInfo, contactInfo, accountInfo, kbisFile, insuranceFile, agreementFile } = req.variables;
+    const { input } = req.variables;
+    const { companyInfo, contactInfo, accountInfo } = input || {};
 
     if (companyInfo && contactInfo && accountInfo) {
       return HttpResponse.json({
@@ -310,8 +317,12 @@ export const handlers = [
             },
             user: {
               id: 'assureur-789',
-              email: accountInfo.email,
-              type: 'assureur',
+              email: contactInfo.email,
+              accountType: 'ASSUREUR',
+              createdAt: '2024-01-01T00:00:00Z',
+              updatedAt: '2024-01-15T10:00:00Z',
+              emailVerified: true,
+              isActive: true,
               profile: {
                 companyName: companyInfo.raisonSociale,
                 agreementNumber: 'AGR789456',
@@ -343,9 +354,26 @@ export const handlers = [
       return HttpResponse.json({
         data: {
           prestataireSignup: {
-            token: 'mock-prestataire-jwt-token',
-            expiresIn: 3600,
-            refreshToken: 'mock-prestataire-refresh-token',
+            tokens: {
+              token: 'mock-prestataire-jwt-token',
+              refreshToken: 'mock-prestataire-refresh-token',
+              expiresIn: 3600
+            },
+            user: {
+              id: 'prestataire-456',
+              email: input.contact.email,
+              accountType: 'PRESTATAIRE',
+              createdAt: '2024-01-01T00:00:00Z',
+              updatedAt: '2024-01-15T10:00:00Z',
+              emailVerified: true,
+              isActive: true,
+              profile: {
+                companyName: input.companyInfo.raisonSociale,
+                siret: input.companyInfo.siret,
+                sectors: input.providerInfo.sectors || [],
+                regions: input.providerInfo.regions || []
+              }
+            },
           },
         },
       });
@@ -365,7 +393,8 @@ export const handlers = [
 
   // Intercept "SocietaireLogin" GraphQL mutation.
   graphql.mutation('SocietaireLogin', (req) => {
-    const { email, dossierNumber } = req.variables;
+    const { input } = req.variables;
+    const { email, dossierNumber } = input || {};
 
     if (email === 'jean.dupont@email.com' && dossierNumber === 'DOS2024001') {
       return HttpResponse.json({

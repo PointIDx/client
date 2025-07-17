@@ -2,21 +2,28 @@
 import { gql } from 'graphql-tag'
 
 export const GET_ASSUREUR_MISSIONS_QUERY = gql`
-  query GetAssureurMissions {
-    missions {
+  query GetAssureurMissions($assureurId: UUID!) {
+    getAssureurMissions(assureurId: $assureurId) {
       id
       reference
-      status
-      societaire {
-        id
-        name
-        address
+      assureurId
+      prestataireId
+      societaireDossier
+      title
+      description
+      urgence
+      statut
+      createdAt
+      updatedAt
+      deadline
+      location {
+        street
+        city
+        postalCode
+        country
       }
-      prestataire {
-        id
-        companyName
-      }
-      dateDeCreation
+      estimatedCost
+      actualCost
     }
   }
 `

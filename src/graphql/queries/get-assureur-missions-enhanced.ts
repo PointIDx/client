@@ -1,6 +1,6 @@
 import { gql } from 'graphql-tag';
 
-export const GET_ASSUREUR_MISSIONS_ENHANCED = gql`
+export const GET_ASSUREUR_MISSIONS_ENHANCED_QUERY = gql`
   query GetAssureurMissionsEnhanced {
     getAssureurMissionsEnhanced {
       id

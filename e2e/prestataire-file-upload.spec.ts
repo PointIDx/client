@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { loginAsPrestataire, mockGraphQLResponse, uploadFile, TestData } from './utils/test-utils.js';
+import { loginAsPrestataire, uploadFile, TestData } from './utils/test-utils.js';
 
 test.describe('Prestataire File Upload and Enhanced Chat', () => {
   test.beforeEach(async ({ page }) => {
@@ -90,27 +90,6 @@ test.describe('Prestataire File Upload and Enhanced Chat', () => {
 
   test('should upload files with message', async ({ page }) => {
     // Mock the file upload functionality
-    await mockGraphQLResponse(page, 'SendFileWithMessage', {
-      data: {
-        sendFileWithMessage: {
-          id: 'msg-file-123',
-          missionId: 'mission-1',
-          expediteur: 'prestataire',
-          contenu: 'Photos avant intervention',
-          dateEnvoi: new Date().toISOString(),
-          fichiers: [
-            {
-              id: 'file-1',
-              fileName: 'avant_intervention.jpg',
-              url: '/uploads/avant_intervention.jpg',
-              contentType: 'image/jpeg',
-              size: 1024000,
-            }
-          ],
-          lu: false,
-        },
-      },
-    });
     
     // This test would require implementing file upload UI in the chat
     // For now, we test the underlying GraphQL functionality
@@ -118,21 +97,6 @@ test.describe('Prestataire File Upload and Enhanced Chat', () => {
 
   test('should upload mission documents', async ({ page }) => {
     // Mock the mission document upload
-    await mockGraphQLResponse(page, 'UploadMissionDocument', {
-      data: {
-        uploadMissionDocument: TestData.generateDocument({
-          id: 'doc-123',
-          fileName: 'devis_plomberie.pdf',
-          originalName: 'devis_plomberie.pdf',
-          url: '/uploads/mission-docs/devis_plomberie.pdf',
-          contentType: 'application/pdf',
-          size: 512000,
-          uploadDate: new Date().toISOString(),
-          description: 'Devis détaillé pour réparation plomberie',
-          category: 'quote',
-        }),
-      },
-    });
     
     // This test would require implementing document upload UI
     // For now, we test the underlying GraphQL functionality
@@ -158,12 +122,6 @@ test.describe('Prestataire File Upload and Enhanced Chat', () => {
 
   test('should validate file types and sizes', async ({ page }) => {
     // Mock file validation errors
-    await mockGraphQLResponse(page, 'SendFileWithMessage', {
-      errors: [{
-        message: 'File size exceeds maximum allowed (10MB)',
-        extensions: { code: 'FILE_TOO_LARGE' }
-      }]
-    });
     
     // This test would require implementing file validation in the upload UI
     // For now, we test that errors are handled correctly by the store
@@ -171,27 +129,6 @@ test.describe('Prestataire File Upload and Enhanced Chat', () => {
 
   test('should show upload progress', async ({ page }) => {
     // Mock upload with progress
-    await mockGraphQLResponse(page, 'SendFileWithMessage', {
-      data: {
-        sendFileWithMessage: {
-          id: 'msg-file-123',
-          missionId: 'mission-1',
-          expediteur: 'prestataire',
-          contenu: 'Fichier uploadé avec succès',
-          dateEnvoi: new Date().toISOString(),
-          fichiers: [
-            {
-              id: 'file-1',
-              fileName: 'document.pdf',
-              url: '/uploads/document.pdf',
-              contentType: 'application/pdf',
-              size: 1024000,
-            }
-          ],
-          lu: false,
-        },
-      },
-    });
     
     // This test would require implementing upload progress UI
     // For now, we test that the upload eventually completes
@@ -199,21 +136,6 @@ test.describe('Prestataire File Upload and Enhanced Chat', () => {
 
   test('should categorize uploaded documents', async ({ page }) => {
     // Mock document upload with categories
-    await mockGraphQLResponse(page, 'UploadMissionDocument', {
-      data: {
-        uploadMissionDocument: TestData.generateDocument({
-          id: 'doc-123',
-          fileName: 'test-document.pdf',
-          originalName: 'test-document.pdf',
-          url: '/uploads/mission-docs/test-document.pdf',
-          contentType: 'application/pdf',
-          size: 1024000,
-          uploadDate: new Date().toISOString(),
-          description: 'Test document with category',
-          category: 'quote', // quote, invoice, photos_before, photos_after, report, certificate, other
-        }),
-      },
-    });
     
     // This test would require implementing document categorization UI
     // Categories: quote, invoice, photos_before, photos_after, report, certificate, other

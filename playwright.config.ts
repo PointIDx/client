@@ -26,7 +26,7 @@ export default defineConfig({
   /* Retry on CI only */
   retries: process.env.CI ? 1 : 0,
   /* Opt out of parallel tests on CI. */
-  workers: process.env.CI ? 1 : undefined,
+  workers: process.env.CI ? 1 : 2,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: process.env.CI ? 'github' : 'list',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
@@ -36,7 +36,7 @@ export default defineConfig({
     /* Maximum time each action such as `click()` can take. Defaults to 0 (no limit). */
     actionTimeout: process.env.CI ? 15000 : 10000,
     /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: process.env.CI ? 'http://localhost:4173/client' : 'http://localhost:5173',
+    baseURL: 'http://localhost:5173',
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
@@ -44,6 +44,11 @@ export default defineConfig({
     /* Wait for navigation to complete before proceeding */
     navigationTimeout: process.env.CI ? 45000 : 30000,
   },
+  /* Configure global env variables for test mode */
+  globalSetup: './e2e/global-setup.ts',
+  
+  /* Global test configuration */
+  globalTeardown: './e2e/global-teardown.ts',
 
   /* Configure projects for major browsers */
   projects: [
@@ -101,13 +106,12 @@ export default defineConfig({
   /* Run your local dev server before starting the tests */
   webServer: {
     /**
-     * Use the dev server by default for faster feedback loop.
-     * Use the preview server on CI for more realistic testing.
-     * Playwright will re-use the local server if there is already a dev-server running.
+     * Use the dev server for e2e tests with real server backend
+     * Frontend proxy will forward GraphQL requests to localhost:8000
      */
-    command: process.env.CI ? 'npm run build && npm run preview -- --port 4173 --host 0.0.0.0' : 'npm run dev',
-    url: process.env.CI ? 'http://localhost:4173/client/' : 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
+    command: 'npm run dev',
+    url: 'http://localhost:5173',
+    reuseExistingServer: true,
     timeout: 300 * 1000, // 5 minutes
   },
 })

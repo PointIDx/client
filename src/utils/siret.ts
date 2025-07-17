@@ -1,7 +1,7 @@
 import { VALIDATION_RULES, VALIDATION_MESSAGES } from '@/constants'
 import type { CompanyInfo } from '@/interfaces/company-info'
 import apolloClient from '@/apollo-client'
-import { VALIDATE_SIRET } from '@/graphql/queries/validate-siret'
+import { VALIDATE_SIRET_QUERY } from '@/graphql/queries/validate-siret'
 
 export interface SiretApiResponse {
   etablissement: {
@@ -54,7 +54,7 @@ export async function fetchSiretInfo(siret: string): Promise<SiretValidationResu
     }
 
     const { data } = await apolloClient.query({
-      query: VALIDATE_SIRET,
+      query: VALIDATE_SIRET_QUERY,
       variables: { siret: siret.replace(/\s+/g, '') },
       fetchPolicy: 'network-only'
     })

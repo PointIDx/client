@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { loginAsPrestataire, mockGraphQLResponse, uploadFile, TestData } from './utils/test-utils.js';
+import { loginAsPrestataire, uploadFile, TestData } from './utils/test-utils.js';
 
 test.describe('Prestataire Statistics and Analytics', () => {
   test.beforeEach(async ({ page }) => {
@@ -8,23 +8,6 @@ test.describe('Prestataire Statistics and Analytics', () => {
 
   test('should display statistics dashboard', async ({ page }) => {
     // Mock statistics data
-    await mockGraphQLResponse(page, 'GetPrestataireStatistics', {
-      data: {
-        getPrestataireStatistics: {
-          totalMissions: 47,
-          completedMissions: 42,
-          pendingMissions: 3,
-          acceptanceRate: 0.89,
-          averageRating: 4.6,
-          totalEarnings: 23450,
-          monthlyEarnings: 3200,
-          missionsThisMonth: 8,
-          missionsThisWeek: 2,
-          upcomingMissions: 3,
-          overduePayments: 1,
-        },
-      },
-    });
     
     // This test would require implementing a statistics dashboard or section
     // The statistics could be shown as cards or charts in the dashboard
@@ -35,23 +18,6 @@ test.describe('Prestataire Statistics and Analytics', () => {
 
   test('should show mission completion statistics', async ({ page }) => {
     // Mock mission statistics
-    await mockGraphQLResponse(page, 'GetPrestataireStatistics', {
-      data: {
-        getPrestataireStatistics: {
-          totalMissions: 47,
-          completedMissions: 42,
-          pendingMissions: 3,
-          acceptanceRate: 0.89,
-          averageRating: 4.6,
-          totalEarnings: 23450,
-          monthlyEarnings: 3200,
-          missionsThisMonth: 8,
-          missionsThisWeek: 2,
-          upcomingMissions: 3,
-          overduePayments: 1,
-        },
-      },
-    });
     
     // Test mission completion rate display
     // Should show: total missions (47), completed (42), completion rate (89%)
@@ -84,28 +50,6 @@ test.describe('Prestataire Statistics and Analytics', () => {
 
   test('should show performance trends', async ({ page }) => {
     // Mock trend data
-    await mockGraphQLResponse(page, 'GetPrestataireStatistics', {
-      data: {
-        getPrestataireStatistics: {
-          totalMissions: 47,
-          completedMissions: 42,
-          pendingMissions: 3,
-          acceptanceRate: 0.89,
-          averageRating: 4.6,
-          totalEarnings: 23450,
-          monthlyEarnings: 3200,
-          missionsThisMonth: 8,
-          missionsThisWeek: 2,
-          upcomingMissions: 3,
-          overduePayments: 1,
-          trends: {
-            earningsGrowth: 0.15, // 15% growth
-            ratingTrend: 0.05, // +0.05 points
-            missionGrowth: 0.20, // 20% more missions
-          }
-        },
-      },
-    });
     
     // Test performance trends display
     // Should show growth indicators, trend arrows, percentage changes
@@ -130,11 +74,6 @@ test.describe('Prestataire Statistics and Analytics', () => {
 
   test('should handle missing statistics gracefully', async ({ page }) => {
     // Mock empty or null statistics
-    await mockGraphQLResponse(page, 'GetPrestataireStatistics', {
-      data: {
-        getPrestataireStatistics: null
-      }
-    });
     
     // Test that missing statistics are handled gracefully
     // Should show placeholder content or "No data available" message
@@ -142,23 +81,6 @@ test.describe('Prestataire Statistics and Analytics', () => {
 
   test('should update statistics in real-time', async ({ page }) => {
     // Mock initial statistics
-    await mockGraphQLResponse(page, 'GetPrestataireStatistics', {
-      data: {
-        getPrestataireStatistics: {
-          totalMissions: 47,
-          completedMissions: 42,
-          pendingMissions: 3,
-          acceptanceRate: 0.89,
-          averageRating: 4.6,
-          totalEarnings: 23450,
-          monthlyEarnings: 3200,
-          missionsThisMonth: 8,
-          missionsThisWeek: 2,
-          upcomingMissions: 3,
-          overduePayments: 1,
-        },
-      },
-    });
     
     // Test that statistics update when missions are completed
     // Could use WebSocket updates or periodic refresh
@@ -169,23 +91,6 @@ test.describe('Prestataire Statistics and Analytics', () => {
 
   test('should provide statistics date range filtering', async ({ page }) => {
     // Mock statistics with date filtering
-    await mockGraphQLResponse(page, 'GetPrestataireStatistics', {
-      data: {
-        getPrestataireStatistics: {
-          totalMissions: 8,
-          completedMissions: 7,
-          pendingMissions: 1,
-          acceptanceRate: 0.89,
-          averageRating: 4.6,
-          totalEarnings: 3200,
-          monthlyEarnings: 3200,
-          missionsThisMonth: 8,
-          missionsThisWeek: 2,
-          upcomingMissions: 3,
-          overduePayments: 1,
-        }
-      }
-    });
     
     // Test filtering statistics by date range
     // Should allow viewing stats for: this week, this month, this quarter, this year
@@ -194,28 +99,6 @@ test.describe('Prestataire Statistics and Analytics', () => {
 
   test('should show comparative analytics', async ({ page }) => {
     // Mock comparative statistics
-    await mockGraphQLResponse(page, 'GetPrestataireStatistics', {
-      data: {
-        getPrestataireStatistics: {
-          totalMissions: 47,
-          completedMissions: 42,
-          pendingMissions: 3,
-          acceptanceRate: 0.89,
-          averageRating: 4.6,
-          totalEarnings: 23450,
-          monthlyEarnings: 3200,
-          missionsThisMonth: 8,
-          missionsThisWeek: 2,
-          upcomingMissions: 3,
-          overduePayments: 1,
-          platformAverages: {
-            acceptanceRate: 0.75,
-            averageRating: 4.2,
-            monthlyEarnings: 2800,
-          }
-        },
-      },
-    });
     
     // Test comparative analytics against platform averages
     // Should show how the prestataire performs compared to others

@@ -1,6 +1,6 @@
 import { gql } from 'graphql-tag';
 
-export const GET_SOCIETAIRE_PROFILE_ENHANCED = gql`
+export const GET_SOCIETAIRE_PROFILE_ENHANCED_QUERY = gql`
   query GetSocietaireProfileEnhanced($dossierNumber: String!) {
     getSocietaireProfileEnhanced(dossierNumber: $dossierNumber) {
       id

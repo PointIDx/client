@@ -25,7 +25,7 @@ services:
 
   # Application service (production image)
   point-id-server:
-    image: ghcr.io/${GITHUB_REPOSITORY:-ondonda/point_id_server}:${RELEASE_VERSION:-latest}
+    image: ghcr.io/pointidx/server-test:v0.1.7
     build:
       context: .
       dockerfile: Dockerfile

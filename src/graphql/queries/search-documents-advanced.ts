@@ -1,6 +1,6 @@
 import { gql } from 'graphql-tag';
 
-export const SEARCH_DOCUMENTS_ADVANCED = gql`
+export const SEARCH_DOCUMENTS_ADVANCED_QUERY = gql`
   query SearchDocumentsAdvanced($input: DocumentSearchInput!) {
     searchDocumentsAdvanced(input: $input) {
       results {

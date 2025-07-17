@@ -9,16 +9,14 @@ test.describe('Prestataire Flow', () => {
     await page.click('text="S\'inscrire comme Prestataire"');
     await expect(page.locator('h1')).toContainText('Inscription Prestataire');
 
-    // test siret 12345678901234
-
     // Step 1:  filling the siret input
-    await page.fill('[data-testid="siret-input"]', "12345678901234");
+    await page.fill('[data-testid="siret-input"]', "80391760800017");
     await page.click('[data-testid="verify-siret-button"]');
-    await expect(page.locator('[data-testid="raison-sociale-input"]')).toHaveValue("ASSURANCE TEST SA");
-    await expect(page.locator('[data-testid="adresse-input"]')).toHaveValue("10 RUE DE LA PAIX")
-    await expect(page.locator('[data-testid="code-postal-input"]')).toHaveValue("75001")
-    await expect(page.locator('[data-testid="ville-input"]')).toHaveValue("PARIS")
-    await expect(page.locator('[data-testid="forme-juridique-trigger"]')).toHaveText("SA");
+    await expect(page.locator('[data-testid="raison-sociale-input"]')).toHaveValue("PRINCE ONDONDA");
+    await expect(page.locator('[data-testid="adresse-input"]')).toHaveValue("APPARTEMENT RDC 03, 50 AVENUE DE SAVIGNY")
+    await expect(page.locator('[data-testid="code-postal-input"]')).toHaveValue("93600")
+    await expect(page.locator('[data-testid="ville-input"]')).toHaveValue("AULNAY-SOUS-BOIS")
+    await expect(page.locator('[data-testid="forme-juridique-trigger"]')).toHaveText("EI");
     await page.click('[data-testid="next-button"]');
 
     // Step 3: Files
@@ -29,7 +27,7 @@ test.describe('Prestataire Flow', () => {
     // Step 4: Contact Info
     await page.fill('[data-testid="contact-prenom-input"]', 'John');
     await page.fill('[data-testid="contact-nom-input"]', 'Doe');
-    await page.fill('[data-testid="contact-email-input"]', 'john.doe@construction.com');
+    await page.fill('[data-testid="contact-email-input"]', `john.doe.${Date.now()}@construction.com`);
     await page.fill('[data-testid="contact-telephone-input"]', '0123456789');
     await page.click('[data-testid="next-button"]');
 
@@ -39,7 +37,7 @@ test.describe('Prestataire Flow', () => {
     await page.click('[data-testid="next-button"]');
 
     // Step 4: Account Creation
-    await page.fill('[data-testid="email-login-input"]', 'prestataire-new@test.com');
+    await page.fill('[data-testid="email-login-input"]', `prestataire-${Date.now()}@test.com`);
     await page.fill('[data-testid="password-input"]', 'password123');
     await page.fill('[data-testid="confirm-password-input"]', 'password123');
     await page.click('[data-testid="next-button"]');

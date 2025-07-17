@@ -4,14 +4,9 @@ export const GET_COMMUNICATION_REQUESTS_QUERY = gql`
   query GetCommunicationRequests {
     getCommunicationRequests {
       id
-      prestataire {
-        id
-        nom
-        raisonSociale
-        ville
-        telephone
-        email
-      }
+      senderId
+      receiverId
+      subject
       message
       statut
       dateEnvoi
@@ -23,16 +18,11 @@ export const GET_COMMUNICATION_REQUESTS_QUERY = gql`
 
 export interface CommunicationRequestResponse {
   id: string
-  prestataire: {
-    id: string
-    nom: string
-    raisonSociale: string
-    ville: string
-    telephone: string
-    email: string
-  }
+  senderId: string
+  receiverId: string
+  subject: string
   message: string
-  statut: 'en_attente' | 'acceptee' | 'refusee'
+  statut: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED'
   dateEnvoi: string
   dateReponse?: string
   reponseMessage?: string

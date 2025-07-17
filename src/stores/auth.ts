@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { LOGIN_MUTATION } from '@/graphql/mutations/login';
 import { SIGNUP_MUTATION } from '@/graphql/mutations/signup';
-import type { User, JWTTokens, AuthResponse } from '@/interfaces/auth';
+import type { User, JWTTokens, AuthResponse, LoginInput, SignupInput } from '@/interfaces/auth';
 import { AuthUtils } from '@/utils/auth';
 import { useGraphQL } from '@/composables/useGraphQL';
 
@@ -16,19 +16,15 @@ export const useAuthStore = defineStore('auth', () => {
     return !AuthUtils.isTokenExpired(tokens.value.token);
   });
 
-  async function login(email: string, password: string, accountType: 'ASSUREUR' | 'PRESTATAIRE'): Promise<boolean> {
+  async function login(loginInput: LoginInput): Promise<boolean> {
     try {
-      console.log('Attempting login with:', email, password, accountType);
+      console.log('Attempting login with:', loginInput);
       
       // Use GraphQL API call
       const result = await executeMutation<{ login: AuthResponse }>(
         LOGIN_MUTATION,
         { 
-          input: {
-            email, 
-            password, 
-            accountType 
-          }
+          input: loginInput
         },
         {
           context: 'User Login',
@@ -52,13 +48,13 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function signup(email: string, password: string): Promise<boolean> {
+  async function signup(signupInput: SignupInput): Promise<boolean> {
     try {
-      console.log('Attempting signup with:', email, password);
+      console.log('Attempting signup with:', signupInput);
 
       const result = await executeMutation<{ signup: AuthResponse }>(
         SIGNUP_MUTATION,
-        { email, password },
+        { input: signupInput },
         {
           context: 'User Signup',
           showErrorToast: false

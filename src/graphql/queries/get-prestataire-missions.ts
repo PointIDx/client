@@ -4,18 +4,25 @@ export const GET_PRESTATAIRE_MISSIONS_QUERY = gql`
   query GetPrestataireMissions {
     getPrestataireMissions {
       id
-      missionStatus
-      dossier {
-        id
-        dossierNumber
-        description
-        address
-        type
+      reference
+      title
+      description
+      statut
+      urgence
+      assureurId
+      prestataireId
+      societaireDossier
+      createdAt
+      updatedAt
+      deadline
+      location {
+        street
+        city
+        postalCode
+        country
       }
-      assureur {
-        id
-        companyName
-      }
+      estimatedCost
+      actualCost
     }
   }
 `

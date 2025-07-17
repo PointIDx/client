@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { loginAsPrestataire, mockGraphQLResponse, uploadFile, TestData } from './utils/test-utils.js';
+import { loginAsPrestataire, uploadFile, TestData } from './utils/test-utils.js';
 
 test.describe('Prestataire Dashboard', () => {
   test.beforeEach(async ({ page }) => {

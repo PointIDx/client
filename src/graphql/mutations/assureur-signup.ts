@@ -1,22 +1,8 @@
 import { gql } from 'graphql-tag';
 
 export const ASSUREUR_SIGNUP_MUTATION = gql`
-  mutation AssureurSignup(
-    $companyInfo: CompanyInfoInput!
-    $contactInfo: ContactInfoInput!
-    $accountInfo: AccountInfoInput!
-    $kbisFile: Upload
-    $insuranceFile: Upload
-    $agreementFile: Upload
-  ) {
-    assureurSignup(
-      companyInfo: $companyInfo
-      contactInfo: $contactInfo
-      accountInfo: $accountInfo
-      kbisFile: $kbisFile
-      insuranceFile: $insuranceFile
-      agreementFile: $agreementFile
-    ) {
+  mutation AssureurSignup($input: AssureurSignupInput!) {
+    assureurSignup(input: $input) {
       tokens {
         token
         refreshToken
@@ -25,7 +11,11 @@ export const ASSUREUR_SIGNUP_MUTATION = gql`
       user {
         id
         email
-        type
+        accountType
+        createdAt
+        updatedAt
+        emailVerified
+        isActive
         profile
       }
     }

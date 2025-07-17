@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { loginAsPrestataire, mockGraphQLResponse, uploadFile, TestData } from './utils/test-utils.js';
+import { loginAsPrestataire, uploadFile, TestData } from './utils/test-utils.js';
 
 test.describe('Prestataire Notifications System', () => {
   test.beforeEach(async ({ page }) => {
@@ -61,14 +61,6 @@ test.describe('Prestataire Notifications System', () => {
 
   test('should mark notification as read when clicked', async ({ page }) => {
     // Mock the mark as read mutation
-    await mockGraphQLResponse(page, 'MarkPrestataireNotificationRead', {
-      data: {
-        markPrestataireNotificationRead: {
-          id: 'notif-p1',
-          read: true
-        }
-      }
-    });
     
     // Wait for notifications to load
     await page.waitForTimeout(1000);

@@ -277,7 +277,7 @@ const submitRegistration = async () => {
   try {
     let success = false;
     if (accountType.value === "societaire") {
-      success = await authStore.signup(accountValues.email as string, accountValues.password as string);
+      success = await authStore.signup({ email: accountValues.email as string, password: accountValues.password as string, accountType: 'SOCIETAIRE' });
       if (success) {
         router.push("/societaire-dashboard");
       }
@@ -306,16 +306,34 @@ const submitRegistration = async () => {
       const accountData = accountValues;
 
       try {
+        const signupData = {
+          input: {
+              companyInfo: {
+                raisonSociale: companyInfoData.raisonSociale,
+                siret: companyInfoData.siret,
+                companyAddress: {
+                  street: companyInfoData.adresse,
+                  city: companyInfoData.ville,
+                  postalCode: companyInfoData.codePostal,
+                  country: companyInfoData.pays || 'France'
+                },
+                licenseNumber: null
+              },
+              contactInfo: {
+                nom: contactData.nom,
+                prenom: contactData.prenom,
+                phone: contactData.telephone,
+                email: accountData.email
+              },
+              accountInfo: {
+                password: accountData.password
+              },
+            }
+        };
+        
         const result = await executeMutation<{ assureurSignup: { tokens: any, user: any } }>(
           ASSUREUR_SIGNUP_MUTATION,
-          {
-            companyInfo: companyInfoData,
-            contactInfo: contactData,
-            accountInfo: accountData,
-            kbisFile: documentsData.kbis,
-            insuranceFile: documentsData.assurance,
-            agreementFile: documentsData.agrement,
-          },
+          signupData,
           {
             context: 'Assureur Signup',
             showSuccessMessage: false,

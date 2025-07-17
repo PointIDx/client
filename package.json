@@ -9,9 +9,11 @@
     "preview": "vite preview",
     "test:unit": "vitest",
     "test:e2e": "playwright test",
+    "test:e2e:real": "playwright test --config=playwright.config.ts",
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
-    "release": "NODE_ENV=production vite build && vite preview"
+    "pretest": "npx kill-port 4173",
+    "release": "VITE_ENABLE_MSW=false NODE_ENV=production vite build && vite preview"
   },
   "dependencies": {
     "@apollo/client": "^3.13.8",

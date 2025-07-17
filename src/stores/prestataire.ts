@@ -85,17 +85,36 @@ export const usePrestataireStore = defineStore('prestataire', () => {
         mutation: PRESTATAIRE_SIGNUP_MUTATION,
         variables: {
           input: {
-            companyInfo: companyInfoData,
-            contact: contactData,
-            providerInfo: providerInfoData,
-            account: accountData
+            companyInfo: {
+              raisonSociale: companyInfoData.raisonSociale,
+              siret: companyInfoData.siret,
+              companyAddress: {
+                street: companyInfoData.adresse,
+                city: companyInfoData.ville,
+                postalCode: companyInfoData.codePostal,
+                country: companyInfoData.pays || 'France'
+              },
+              licenseNumber: null
+            },
+            contactInfo: {
+              nom: contactData.nom,
+              prenom: contactData.prenom,
+              phone: contactData.telephone,
+              email: contactData.email
+            },
+            accountInfo: {
+              password: accountData.password
+            },
+            specializations: providerInfoData.secteursActivite?.split(',').map(s => s.trim()) || [],
+            certifications: [],
+            availabilityZones: providerInfoData.zonesGeographiques?.regions || []
           }
         }
       })
-      const { token, expiresIn, refreshToken } = data.prestataireSignup
-      localStorage.setItem('token', token)
-      localStorage.setItem('expiresIn', expiresIn)
-      localStorage.setItem('refreshToken', refreshToken)
+      const { tokens, user } = data.prestataireSignup
+      localStorage.setItem('token', tokens.token)
+      localStorage.setItem('expiresIn', tokens.expiresIn.toString())
+      localStorage.setItem('refreshToken', tokens.refreshToken)
       
       showSuccess('Inscription réussie ! Redirection vers votre dashboard...')
     } catch (error) {

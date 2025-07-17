@@ -15,6 +15,7 @@ import { ON_NOTIFICATION_SUBSCRIPTION, ON_COMMUNICATION_RESPONSE_SUBSCRIPTION } 
 import { useQuery, useMutation, useSubscription, useApolloClient } from '@vue/apollo-composable';
 import type { Prestataire } from '@/interfaces/prestataire';
 import type { Mission } from '@/interfaces/mission';
+import { useAuthStore } from '@/stores/auth';
 
 // Import new utilities
 import { fetchSiretInfo } from '@/utils/siret';
@@ -23,6 +24,7 @@ import { DEFAULT_VALUES } from '@/constants';
 
 export const useAssureurStore = defineStore('assureur', () => {
   const { client } = useApolloClient();
+  const authStore = useAuthStore();
   
   const siretValidated = ref(false);
   const companyInfo = ref<CompanyInfo>({
@@ -64,7 +66,7 @@ export const useAssureurStore = defineStore('assureur', () => {
   };
 
   const searchPrestataires = (filters: FiltresDeRecherche) => {
-    const { onResult, onError } = useQuery(SEARCH_PRESTATAIRES_QUERY, filters);
+    const { onResult, onError } = useQuery(SEARCH_PRESTATAIRES_QUERY, { input: filters });
 
     onResult((queryResult) => {
       if (queryResult.data) {
@@ -80,13 +82,19 @@ export const useAssureurStore = defineStore('assureur', () => {
 
   const fetchMissions = async () => {
     try {
+      if (!authStore.user?.id) {
+        console.warn('No authenticated user found, cannot fetch missions');
+        return;
+      }
+
       const result = await client.query({
         query: GET_ASSUREUR_MISSIONS_QUERY,
+        variables: { assureurId: authStore.user.id },
         fetchPolicy: 'network-only'
       });
       
-      if (result?.data?.missions) {
-        missions.value = result.data.missions;
+      if (result?.data?.getAssureurMissions) {
+        missions.value = result.data.getAssureurMissions;
       }
     } catch (error) {
       console.error('Error fetching missions:', error);

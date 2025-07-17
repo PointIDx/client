@@ -37,7 +37,7 @@ const handleSubmit = async () => {
   error.value = ""
   isLoading.value = true
 
-  const success = await societaireStore.login(email.value, dossier.value)
+  const success = await societaireStore.login({ email: email.value, dossierNumber: dossier.value })
 
   if (success) {
     router.push({ name: 'societaire-dashboard' })

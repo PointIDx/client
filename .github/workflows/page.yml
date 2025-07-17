@@ -37,9 +37,13 @@ jobs:
         run: npx playwright install --with-deps
 
       - name: Run E2E tests
-        run: npm run test:e2e
+        run: npx playwright test --config=playwright.ci.config.ts
         env:
           CI: true
+          DEV: true
+          VITE_ENABLE_MSW: true
+          PLAYWRIGHT_TEST_TIMEOUT: 120000
+          PLAYWRIGHT_EXPECT_TIMEOUT: 45000
         continue-on-error: false
 
       - name: Upload test results

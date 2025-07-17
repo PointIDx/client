@@ -32,6 +32,7 @@ debug-*.png
 
 test-results/
 playwright-report/
+bin
 
 
 .env

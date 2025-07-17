@@ -1,8 +1,8 @@
 import { gql } from 'graphql-tag';
 
-export const GET_SOCIETAIRE_DOSSIER = gql`
+export const GET_SOCIETAIRE_DOSSIER_QUERY = gql`
   query GetSocietaireDossier($dossierNumber: String!) {
-    societaireDossier(dossierNumber: $dossierNumber) {
+    getSocietaireDossier(dossierNumber: $dossierNumber) {
       dossierData {
         dossierNumber
         status

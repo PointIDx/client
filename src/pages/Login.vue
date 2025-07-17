@@ -127,19 +127,19 @@ const handleSubmit = async () => {
 
     switch (loginType.value) {
       case 'societaire':
-        success = await societaireStore.login(email.value, dossier.value)
+        success = await societaireStore.login({ email: email.value, dossierNumber: dossier.value })
         if (success) {
           router.push({ name: 'societaire-dashboard' })
         }
         break
       case 'assureur':
-        success = await authStore.login(email.value, password.value, 'ASSUREUR')
+        success = await authStore.login({ email: email.value, password: password.value, accountType: 'ASSUREUR' })
         if (success) {
           router.push({ name: 'assureur-dashboard' })
         }
         break
       case 'prestataire':
-        success = await authStore.login(email.value, password.value, 'PRESTATAIRE')
+        success = await authStore.login({ email: email.value, password: password.value, accountType: 'PRESTATAIRE' })
         if (success) {
           router.push({ name: 'prestataire-dashboard' })
         }

@@ -12,8 +12,13 @@ export interface AuthResponse {
 export interface User {
   id: string
   email: string
-  type: 'societaire' | 'assureur' | 'prestataire'
-  profile?: SocietaireProfile | AssureurProfile | PrestataireProfile
+  passwordHash?: string
+  accountType: 'SOCIETAIRE' | 'ASSUREUR' | 'PRESTATAIRE'
+  createdAt: string
+  updatedAt: string
+  emailVerified: boolean
+  isActive: boolean
+  profile?: any
 }
 
 export interface SocietaireProfile {
@@ -33,4 +38,84 @@ export interface PrestataireProfile {
   siret: string
   sectors: string[]
   regions: string[]
+}
+
+// GraphQL Input Interfaces
+export interface LoginInput {
+  email: string
+  password?: string
+  dossierNumber?: string
+  accountType: 'SOCIETAIRE' | 'ASSUREUR' | 'PRESTATAIRE'
+}
+
+export interface SignupInput {
+  email: string
+  password: string
+  accountType: 'SOCIETAIRE' | 'ASSUREUR' | 'PRESTATAIRE'
+}
+
+export interface SocietaireLoginInput {
+  email: string
+  dossierNumber: string
+}
+
+export interface SocietaireAuthResponse {
+  token: string
+  societaire: {
+    email: string
+    dossierNumber: string
+  }
+}
+
+export interface AssureurSignupInput {
+  companyInfo: {
+    raisonSociale: string
+    siret: string
+    companyAddress: {
+      street: string
+      city: string
+      postalCode: string
+      country: string
+    }
+    licenseNumber?: string
+  }
+  contactInfo: {
+    nom: string
+    prenom: string
+    phone: string
+    email: string
+  }
+  accountInfo: {
+    password: string
+  }
+}
+
+export interface PrestataireSignupInput {
+  companyInfo: {
+    raisonSociale: string
+    siret: string
+    companyAddress: {
+      street: string
+      city: string
+      postalCode: string
+      country: string
+    }
+    licenseNumber?: string
+  }
+  contactInfo: {
+    nom: string
+    prenom: string
+    phone: string
+    email: string
+  }
+  accountInfo: {
+    password: string
+  }
+  specializations: string[]
+  certifications: string[]
+  availabilityZones: string[]
+}
+
+export interface RefreshTokenInput {
+  refreshToken: string
 }

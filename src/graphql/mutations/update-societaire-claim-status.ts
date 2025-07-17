@@ -1,6 +1,6 @@
 import { gql } from 'graphql-tag';
 
-export const UPDATE_SOCIETAIRE_CLAIM_STATUS = gql`
+export const UPDATE_SOCIETAIRE_CLAIM_STATUS_MUTATION = gql`
   mutation UpdateSocietaireClaimStatus($input: ClaimStatusUpdateInput!) {
     updateSocietaireClaimStatus(input: $input) {
       id
