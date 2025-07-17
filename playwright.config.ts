@@ -105,8 +105,8 @@ export default defineConfig({
      * Use the preview server on CI for more realistic testing.
      * Playwright will re-use the local server if there is already a dev-server running.
      */
-    command: process.env.CI ? 'npm run build && npm run preview' : 'npm run dev',
-    port: process.env.CI ? 4173 : 5173,
+    command: process.env.CI ? 'npm run build && npm run preview -- --port 4173 --host 0.0.0.0' : 'npm run dev',
+    url: process.env.CI ? 'http://localhost:4173' : 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
     timeout: 300 * 1000, // 5 minutes
   },
