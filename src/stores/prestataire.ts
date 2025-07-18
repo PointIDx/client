@@ -5,7 +5,7 @@ import type { Contact } from '@/interfaces/contact'
 import type { ProviderInfo } from '@/interfaces/provider-info'
 import type { Account } from '@/interfaces/account'
 import { PRESTATAIRE_SIGNUP_MUTATION } from '@/graphql/mutations/prestataire-signup'
-import { useApolloClient, useQuery } from '@vue/apollo-composable'
+import { useApolloClient, useMutation, useQuery, useSubscription } from '@vue/apollo-composable'
 
 import { GET_PRESTATAIRE_MISSIONS_QUERY } from '@/graphql/queries/get-prestataire-missions'
 import { GET_MISSION_DETAILS_QUERY } from '@/graphql/queries/get-mission-details'
@@ -74,6 +74,8 @@ export const usePrestataireStore = defineStore('prestataire', () => {
     }
   }
 
+  const { mutate: prestataireSignupMutation } = useMutation(PRESTATAIRE_SIGNUP_MUTATION);
+
   async function prestataireSignup(
     companyInfoData: CompanyInfo,
     contactData: Contact,
@@ -81,45 +83,44 @@ export const usePrestataireStore = defineStore('prestataire', () => {
     accountData: Account
   ) {
     try {
-      const { data } = await client.mutate({
-        mutation: PRESTATAIRE_SIGNUP_MUTATION,
-        variables: {
-          input: {
-            companyInfo: {
-              raisonSociale: companyInfoData.raisonSociale,
-              siret: companyInfoData.siret,
-              companyAddress: {
-                street: companyInfoData.adresse,
-                city: companyInfoData.ville,
-                postalCode: companyInfoData.codePostal,
-                country: companyInfoData.pays || 'France'
-              },
-              licenseNumber: null
+      const result = await prestataireSignupMutation({
+        input: {
+          companyInfo: {
+            raisonSociale: companyInfoData.raisonSociale,
+            siret: companyInfoData.siret,
+            companyAddress: {
+              street: companyInfoData.adresse,
+              city: companyInfoData.ville,
+              postalCode: companyInfoData.codePostal,
+              country: companyInfoData.pays || 'France'
             },
-            contactInfo: {
-              nom: contactData.nom,
-              prenom: contactData.prenom,
-              phone: contactData.telephone,
-              email: contactData.email
-            },
-            accountInfo: {
-              password: accountData.password
-            },
-            specializations: providerInfoData.secteursActivite?.split(',').map(s => s.trim()) || [],
-            certifications: [],
-            availabilityZones: providerInfoData.zonesGeographiques?.regions || []
-          }
+            licenseNumber: null
+          },
+          contactInfo: {
+            nom: contactData.nom,
+            prenom: contactData.prenom,
+            phone: contactData.telephone,
+            email: contactData.email
+          },
+          accountInfo: {
+            password: accountData.password
+          },
+          specializations: providerInfoData.secteursActivite?.split(',').map(s => s.trim()) || [],
+          certifications: [],
+          availabilityZones: providerInfoData.zonesGeographiques?.regions || []
         }
-      })
-      const { tokens, user } = data.prestataireSignup
-      localStorage.setItem('token', tokens.token)
-      localStorage.setItem('expiresIn', tokens.expiresIn.toString())
-      localStorage.setItem('refreshToken', tokens.refreshToken)
-      
-      showSuccess('Inscription réussie ! Redirection vers votre dashboard...')
+      });
+      if (result && result.data) {
+        const { tokens, user } = result.data.prestataireSignup;
+        localStorage.setItem('token', tokens.token);
+        localStorage.setItem('expiresIn', tokens.expiresIn.toString());
+        localStorage.setItem('refreshToken', tokens.refreshToken);
+        
+        showSuccess('Inscription réussie ! Redirection vers votre dashboard...');
+      }
     } catch (error) {
-      handleGraphQLError(error, 'Prestataire Signup', { showToast: true })
-      throw error
+      handleGraphQLError(error, 'Prestataire Signup', { showToast: true });
+      throw error;
     }
   }
 
@@ -140,69 +141,59 @@ export const usePrestataireStore = defineStore('prestataire', () => {
   }
 
   async function getMissionDetails(missionId: string) {
-    try {
-      const { data } = await client.query({
-        query: GET_MISSION_DETAILS_QUERY,
-        variables: { missionId },
-        fetchPolicy: 'network-only'
-      })
-      mission.value = data.mission
-    } catch (error) {
-      handleGraphQLError(error, 'Fetch Mission Details', { showToast: true })
-      throw error
-    }
+    const { onResult, onError } = useQuery(GET_MISSION_DETAILS_QUERY, { missionId }, { fetchPolicy: 'network-only' });
+
+    onResult((queryResult) => {
+      if (queryResult.data) {
+        mission.value = queryResult.data.mission;
+      }
+    });
+
+    onError((error) => {
+      handleGraphQLError(error, 'Fetch Mission Details', { showToast: true });
+      throw error;
+    });
   }
+
+  const { mutate: updateMissionStatusMutation } = useMutation(UPDATE_MISSION_STATUS_MUTATION);
 
   async function updateMissionStatus(missionId: string, status: MissionStatutPrestataire) {
     try {
-      const { data } = await client.mutate({
-        mutation: UPDATE_MISSION_STATUS_MUTATION,
-        variables: {
-          missionId,
-          status
-        }
-      })
+      await updateMissionStatusMutation({ missionId, status });
       
       // Refresh missions from server to ensure consistency
-      await getMissions()
+      await getMissions();
       
-      showSuccess('Statut de la mission mis à jour avec succès')
+      showSuccess('Statut de la mission mis à jour avec succès');
     } catch (error) {
-      handleGraphQLError(error, 'Update Mission Status', { showToast: true })
-      throw error
+      handleGraphQLError(error, 'Update Mission Status', { showToast: true });
+      throw error;
     }
   }
+
+  const { mutate: sendMessageMutation } = useMutation(SEND_COMMENT_MUTATION);
 
   async function sendMessage(missionId: string, content: string) {
     try {
-      const { data } = await client.mutate({
-        mutation: SEND_COMMENT_MUTATION,
-        variables: {
-          missionId,
-          content
-        }
-      })
-      messages.value.push(data.sendComment)
+      const result = await sendMessageMutation({ missionId, content });
+      if (result && result.data) {
+        messages.value.push(result.data.sendComment);
+      }
     } catch (error) {
-      handleGraphQLError(error, 'Send Message', { showToast: true })
-      throw error
+      handleGraphQLError(error, 'Send Message', { showToast: true });
+      throw error;
     }
   }
 
+  const { mutate: sendFileMutation } = useMutation(SEND_FILE);
+
   async function sendFile(missionId: string, file: File, comment: string) {
     try {
-      await client.mutate({
-        mutation: SEND_FILE,
-        variables: {
-          missionId,
-          file,
-          comment,
-        }
-      })
-      showSuccess('Fichier envoyé avec succès')
+      await sendFileMutation({ missionId, file, comment });
+      showSuccess('Fichier envoyé avec succès');
     } catch (error) {
-      handleGraphQLError(error, 'Send File', { showToast: true })
-      throw error
+      handleGraphQLError(error, 'Send File', { showToast: true });
+      throw error;
     }
   }
 
@@ -224,23 +215,17 @@ export const usePrestataireStore = defineStore('prestataire', () => {
     fetchMessages(missionId);
     
     // Setup subscription for real-time updates
-    try {
-      client
-        .subscribe({
-          query: ON_NEW_MESSAGE_SUBSCRIPTION,
-          variables: { missionId }
-        })
-        .subscribe({
-          next({ data }) {
-            messages.value.push(data.onNewMessage)
-          },
-          error(err) {
-            console.warn('Message subscription failed:', err)
-          }
-        })
-    } catch (error) {
-      console.warn('Failed to start message subscription:', error)
-    }
+    const { onResult, onError } = useSubscription(ON_NEW_MESSAGE_SUBSCRIPTION, { missionId });
+
+    onResult((result) => {
+      if (result.data) {
+        messages.value.push(result.data.onNewMessage);
+      }
+    });
+
+    onError((error) => {
+      console.warn('Message subscription failed:', error);
+    });
   }
 
   // Notifications management
@@ -259,20 +244,19 @@ export const usePrestataireStore = defineStore('prestataire', () => {
     })
   }
 
+  const { mutate: markNotificationAsReadMutation } = useMutation(MARK_PRESTATAIRE_NOTIFICATION_READ_MUTATION);
+
   async function markNotificationAsRead(notificationId: string) {
     try {
-      await client.mutate({
-        mutation: MARK_PRESTATAIRE_NOTIFICATION_READ_MUTATION,
-        variables: { notificationId }
-      })
+      await markNotificationAsReadMutation({ notificationId });
       // Update local state
-      const notification = notifications.value.find(n => n.id === notificationId)
+      const notification = notifications.value.find(n => n.id === notificationId);
       if (notification) {
-        notification.isRead = true
+        notification.isRead = true;
       }
     } catch (error) {
-      handleGraphQLError(error, 'Mark Notification Read', { showToast: true })
-      throw error
+      handleGraphQLError(error, 'Mark Notification Read', { showToast: true });
+      throw error;
     }
   }
 
@@ -294,18 +278,17 @@ export const usePrestataireStore = defineStore('prestataire', () => {
     })
   }
 
+  const { mutate: respondToCommunicationRequestMutation } = useMutation(RESPOND_TO_COMMUNICATION_REQUEST_MUTATION);
+
   async function respondToCommunicationRequest(input: CommunicationResponseInput) {
     try {
-      await client.mutate({
-        mutation: RESPOND_TO_COMMUNICATION_REQUEST_MUTATION,
-        variables: { input }
-      })
+      await respondToCommunicationRequestMutation({ input });
       // Refresh communication requests
-      await fetchCommunicationRequests()
-      showSuccess('Réponse envoyée avec succès')
+      await fetchCommunicationRequests();
+      showSuccess('Réponse envoyée avec succès');
     } catch (error) {
-      handleGraphQLError(error, 'Respond to Communication Request', { showToast: true })
-      throw error
+      handleGraphQLError(error, 'Respond to Communication Request', { showToast: true });
+      throw error;
     }
   }
 
@@ -327,170 +310,151 @@ export const usePrestataireStore = defineStore('prestataire', () => {
 
   // Export functionality
   async function exportMissions(filters: PrestataireExportFilters, format: ExportFormat = 'pdf') {
-    try {
-      const { data } = await client.query({
-        query: EXPORT_PRESTATAIRE_MISSIONS_QUERY,
-        variables: { filters, format },
-        fetchPolicy: 'network-only'
-      })
-      
-      if (data?.exportPrestataireMissions) {
-        const { url, filename } = data.exportPrestataireMissions
+    const { onResult, onError } = useQuery(EXPORT_PRESTATAIRE_MISSIONS_QUERY, { filters, format }, { fetchPolicy: 'network-only' });
+
+    onResult((queryResult) => {
+      if (queryResult.data?.exportPrestataireMissions) {
+        const { url, filename } = queryResult.data.exportPrestataireMissions;
         // Download the file
-        const link = document.createElement('a')
-        link.href = url
-        link.download = filename
-        link.click()
-        showSuccess('Export généré avec succès')
-        return data.exportPrestataireMissions
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        link.click();
+        showSuccess('Export généré avec succès');
       }
-    } catch (error) {
-      handleGraphQLError(error, 'Export Missions', { showToast: true })
-      throw error
-    }
+    });
+
+    onError((error) => {
+      handleGraphQLError(error, 'Export Missions', { showToast: true });
+      throw error;
+    });
   }
 
   async function exportReport(period: ReportPeriod, format: ExportFormat = 'pdf') {
-    try {
-      const { data } = await client.query({
-        query: EXPORT_PRESTATAIRE_REPORT_QUERY,
-        variables: { period, format },
-        fetchPolicy: 'network-only'
-      })
-      
-      if (data?.exportPrestataireReport) {
-        const { url, filename } = data.exportPrestataireReport
+    const { onResult, onError } = useQuery(EXPORT_PRESTATAIRE_REPORT_QUERY, { period, format }, { fetchPolicy: 'network-only' });
+
+    onResult((queryResult) => {
+      if (queryResult.data?.exportPrestataireReport) {
+        const { url, filename } = queryResult.data.exportPrestataireReport;
         // Download the file
-        const link = document.createElement('a')
-        link.href = url
-        link.download = filename
-        link.click()
-        showSuccess('Rapport généré avec succès')
-        return data.exportPrestataireReport
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        link.click();
+        showSuccess('Rapport généré avec succès');
       }
-    } catch (error) {
-      handleGraphQLError(error, 'Export Report', { showToast: true })
-      throw error
-    }
+    });
+
+    onError((error) => {
+      handleGraphQLError(error, 'Export Report', { showToast: true });
+      throw error;
+    });
   }
 
   // Profile management
+  const { mutate: updateProfileMutation } = useMutation(UPDATE_PRESTATAIRE_PROFILE_MUTATION);
+
   async function updateProfile(input: PrestataireProfileUpdateInput) {
     try {
-      const { data } = await client.mutate({
-        mutation: UPDATE_PRESTATAIRE_PROFILE_MUTATION,
-        variables: { input }
-      })
-      showSuccess('Profil mis à jour avec succès')
-      return data.updatePrestataireProfile
+      const result = await updateProfileMutation({ input });
+      if (result && result.data) {
+        showSuccess('Profil mis à jour avec succès');
+        return result.data.updatePrestataireProfile;
+      }
     } catch (error) {
-      handleGraphQLError(error, 'Update Profile', { showToast: true })
-      throw error
+      handleGraphQLError(error, 'Update Profile', { showToast: true });
+      throw error;
     }
   }
 
+  const { mutate: updateAvailabilityMutation } = useMutation(UPDATE_PRESTATAIRE_AVAILABILITY_MUTATION);
+
   async function updateAvailability(status: AvailabilityStatus) {
     try {
-      await client.mutate({
-        mutation: UPDATE_PRESTATAIRE_AVAILABILITY_MUTATION,
-        variables: { status }
-      })
-      availabilityStatus.value = status
-      showSuccess('Statut de disponibilité mis à jour')
+      await updateAvailabilityMutation({ status });
+      availabilityStatus.value = status;
+      showSuccess('Statut de disponibilité mis à jour');
     } catch (error) {
-      handleGraphQLError(error, 'Update Availability', { showToast: true })
-      throw error
+      handleGraphQLError(error, 'Update Availability', { showToast: true });
+      throw error;
     }
   }
 
   // Enhanced file upload
+  const { mutate: sendFileWithMessageMutation } = useMutation(SEND_FILE_WITH_MESSAGE_MUTATION);
+
   async function sendFileWithMessage(input: FileMessageInput) {
     try {
-      const { data } = await client.mutate({
-        mutation: SEND_FILE_WITH_MESSAGE_MUTATION,
-        variables: { input }
-      })
-      messages.value.push(data.sendFileWithMessage)
-      showSuccess('Fichier envoyé avec succès')
+      const result = await sendFileWithMessageMutation({ input });
+      if (result && result.data) {
+        messages.value.push(result.data.sendFileWithMessage);
+        showSuccess('Fichier envoyé avec succès');
+      }
     } catch (error) {
-      handleGraphQLError(error, 'Send File with Message', { showToast: true })
-      throw error
+      handleGraphQLError(error, 'Send File with Message', { showToast: true });
+      throw error;
     }
   }
 
+  const { mutate: uploadMissionDocumentMutation } = useMutation(UPLOAD_MISSION_DOCUMENT_MUTATION);
+
   async function uploadMissionDocument(input: MissionDocumentInput) {
     try {
-      const { data } = await client.mutate({
-        mutation: UPLOAD_MISSION_DOCUMENT_MUTATION,
-        variables: { input }
-      })
-      showSuccess('Document uploadé avec succès')
-      return data.uploadMissionDocument
+      const result = await uploadMissionDocumentMutation({ input });
+      if (result && result.data) {
+        showSuccess('Document uploadé avec succès');
+        return result.data.uploadMissionDocument;
+      }
     } catch (error) {
-      handleGraphQLError(error, 'Upload Mission Document', { showToast: true })
-      throw error
+      handleGraphQLError(error, 'Upload Mission Document', { showToast: true });
+      throw error;
     }
   }
 
   // Real-time subscriptions
   function subscribeToNotifications() {
-    try {
-      client
-        .subscribe({
-          query: ON_PRESTATAIRE_NOTIFICATION_SUBSCRIPTION
-        })
-        .subscribe({
-          next({ data }) {
-            notifications.value.unshift(data.onPrestataireNotification)
-          },
-          error(err) {
-            console.warn('Notification subscription failed:', err)
-          }
-        })
-    } catch (error) {
-      console.warn('Failed to start notification subscription:', error)
-    }
+    const { onResult, onError } = useSubscription(ON_PRESTATAIRE_NOTIFICATION_SUBSCRIPTION);
+
+    onResult((result) => {
+      if (result.data) {
+        notifications.value.unshift(result.data.onPrestataireNotification);
+      }
+    });
+
+    onError((error) => {
+      console.warn('Notification subscription failed:', error);
+    });
   }
 
   function subscribeToNewMissions() {
-    try {
-      client
-        .subscribe({
-          query: ON_NEW_MISSION_ASSIGNMENT_SUBSCRIPTION
-        })
-        .subscribe({
-          next({ data }) {
-            missions.value.unshift(data.onNewMissionAssignment)
-            // Optionally show a notification
-            showSuccess('Nouvelle mission reçue !')
-          },
-          error(err) {
-            console.warn('Mission assignment subscription failed:', err)
-          }
-        })
-    } catch (error) {
-      console.warn('Failed to start mission assignment subscription:', error)
-    }
+    const { onResult, onError } = useSubscription(ON_NEW_MISSION_ASSIGNMENT_SUBSCRIPTION);
+
+    onResult((result) => {
+      if (result.data) {
+        missions.value.unshift(result.data.onNewMissionAssignment);
+        // Optionally show a notification
+        showSuccess('Nouvelle mission reçue !');
+      }
+    });
+
+    onError((error) => {
+      console.warn('Mission assignment subscription failed:', error);
+    });
   }
 
   function subscribeToCommunicationRequests() {
-    try {
-      client
-        .subscribe({
-          query: ON_COMMUNICATION_REQUEST_SUBSCRIPTION
-        })
-        .subscribe({
-          next({ data }) {
-            communicationRequests.value.unshift(data.onCommunicationRequest)
-            showSuccess('Nouvelle demande de communication reçue')
-          },
-          error(err) {
-            console.warn('Communication request subscription failed:', err)
-          }
-        })
-    } catch (error) {
-      console.warn('Failed to start communication request subscription:', error)
-    }
+    const { onResult, onError } = useSubscription(ON_COMMUNICATION_REQUEST_SUBSCRIPTION);
+
+    onResult((result) => {
+      if (result.data) {
+        communicationRequests.value.unshift(result.data.onCommunicationRequest);
+        showSuccess('Nouvelle demande de communication reçue');
+      }
+    });
+
+    onError((error) => {
+      console.warn('Communication request subscription failed:', error);
+    });
   }
 
   return {

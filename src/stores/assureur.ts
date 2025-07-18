@@ -171,20 +171,19 @@ export const useAssureurStore = defineStore('assureur', () => {
   };
 
   // Notifications management
-  const fetchNotifications = async () => {
-    try {
-      const result = await client.query({
-        query: GET_NOTIFICATIONS_QUERY,
-        fetchPolicy: 'network-only'
-      });
-      
-      if (result?.data?.getUserNotifications) {
-        notifications.value = result.data.getUserNotifications;
+  const fetchNotifications = () => {
+    const { onResult, onError } = useQuery(GET_NOTIFICATIONS_QUERY, null, { fetchPolicy: 'network-only' });
+
+    onResult((queryResult) => {
+      if (queryResult.data) {
+        notifications.value = queryResult.data.getUserNotifications;
       }
-    } catch (error) {
+    });
+
+    onError((error) => {
       console.error('Error fetching notifications:', error);
       handleGraphQLError(error, 'Get Notifications', { showToast: true });
-    }
+    });
   };
 
   const markAsRead = async (notificationId: string) => {
@@ -202,16 +201,12 @@ export const useAssureurStore = defineStore('assureur', () => {
   };
 
   // Export functionality
-  const exportMissions = async (filters: ExportFilters, format: ExportFormat = 'pdf') => {
-    try {
-      const result = await client.query({
-        query: EXPORT_MISSIONS_QUERY,
-        variables: { filters, format },
-        fetchPolicy: 'network-only'
-      });
-      
-      if (result?.data?.exportMissions) {
-        const { url, filename } = result.data.exportMissions;
+  const exportMissions = (filters: ExportFilters, format: ExportFormat = 'pdf') => {
+    const { onResult, onError } = useQuery(EXPORT_MISSIONS_QUERY, { filters, format }, { fetchPolicy: 'network-only' });
+
+    onResult((queryResult) => {
+      if (queryResult.data?.exportMissions) {
+        const { url, filename } = queryResult.data.exportMissions;
         // Download the file
         const link = document.createElement('a');
         link.href = url;
@@ -220,25 +215,21 @@ export const useAssureurStore = defineStore('assureur', () => {
         link.click();
         document.body.removeChild(link);
         showSuccess('Export généré avec succès');
-        return result.data.exportMissions;
       }
-    } catch (error) {
+    });
+
+    onError((error) => {
       console.error('Error exporting missions:', error);
       handleGraphQLError(error, 'Export Missions', { showToast: true });
-      throw error;
-    }
+    });
   };
 
-  const exportMissionDetails = async (missionId: string, format: ExportFormat = 'pdf') => {
-    try {
-      const result = await client.query({
-        query: EXPORT_MISSION_DETAILS_QUERY,
-        variables: { missionId, format },
-        fetchPolicy: 'network-only'
-      });
-      
-      if (result?.data?.exportMissionDetails) {
-        const { url, filename } = result.data.exportMissionDetails;
+  const exportMissionDetails = (missionId: string, format: ExportFormat = 'pdf') => {
+    const { onResult, onError } = useQuery(EXPORT_MISSION_DETAILS_QUERY, { missionId, format }, { fetchPolicy: 'network-only' });
+
+    onResult((queryResult) => {
+      if (queryResult.data?.exportMissionDetails) {
+        const { url, filename } = queryResult.data.exportMissionDetails;
         // Download the file
         const link = document.createElement('a');
         link.href = url;
@@ -247,13 +238,13 @@ export const useAssureurStore = defineStore('assureur', () => {
         link.click();
         document.body.removeChild(link);
         showSuccess('Export de la mission généré avec succès');
-        return result.data.exportMissionDetails;
       }
-    } catch (error) {
+    });
+
+    onError((error) => {
       console.error('Error exporting mission details:', error);
       handleGraphQLError(error, 'Export Mission Details', { showToast: true });
-      throw error;
-    }
+    });
   };
 
   // Real-time subscriptions
