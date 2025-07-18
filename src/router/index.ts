@@ -52,6 +52,12 @@ const router = createRouter({
       name: 'societaire-app',
       component: () => import('../pages/SocietaireApp.vue'),
     },
+    {
+      path: '/mission-creation',
+      name: 'mission-creation',
+      component: () => import('../pages/MissionCreationPage.vue'),
+      props: true,
+    },
   ],
 })
 

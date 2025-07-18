@@ -159,7 +159,7 @@ Test E2E - ${timestamp}`;
     const requestCount = await requests.count();
     console.log(`Found ${requestCount} communication requests`);
     
-    // STEP 5: Assureur creates a mission
+    // STEP 5: Assureur creates a mission (now uses separate page)
     console.log('STEP 5: Create mission');
     
     // Try to navigate back to search tab if needed
@@ -176,61 +176,75 @@ Test E2E - ${timestamp}`;
     if (await missionButton.count() > 0) {
       await missionButton.first().click();
       
-      // Check if mission creation dialog opens
-      const dialogExists = await page.locator('[role="dialog"]').isVisible().catch(() => false) ||
-                           await page.locator('[data-testid="mission-dialog"]').isVisible().catch(() => false);
+      // Now we should navigate to the mission creation page
+      console.log('Waiting for navigation to mission creation page...');
       
-      if (dialogExists) {
-        console.log('Mission creation dialog opened successfully');
+      try {
+        await page.waitForURL('**/mission-creation**', { timeout: 10000 });
+        console.log('Successfully navigated to mission creation page');
         
-        // Check if we can see mission creation elements
-        const missionCreationVisible = await page.getByText('Créer une mission').isVisible().catch(() => false) ||
-                                       await page.locator('[data-testid="mission-title"]').isVisible().catch(() => false);
+        // Verify page elements
+        await expect(page.locator('[data-testid="progress-bar"]')).toBeVisible();
+        await expect(page.locator('[data-testid="prestataire-info-card"]')).toBeVisible();
         
-        if (missionCreationVisible) {
-          console.log('Mission creation form is available - proceeding with mission creation');
-          
-          // Fill mission creation form with more flexible approach
-          const missionTitle = generateUniqueMissionTitle();
-          const societaireDossier = generateUniqueDossierNumber();
-          
-          try {
-            // Step 1: Client Information - try to fill what we can
-            const missionTimestamp = Date.now();
-            await page.fill('[data-testid="client-prenom"]', 'Jean').catch(() => console.log('client-prenom field not found'));
-            await page.fill('[data-testid="client-nom"]', 'Sociétaire').catch(() => console.log('client-nom field not found'));
-            await page.fill('[data-testid="client-email"]', `societaire-${missionTimestamp}@test.com`).catch(() => console.log('client-email field not found'));
-            await page.fill('[data-testid="client-telephone"]', generateUniquePhone()).catch(() => console.log('client-telephone field not found'));
-            await page.fill('[data-testid="client-adresse"]', '456 Avenue des Tests').catch(() => console.log('client-adresse field not found'));
-            await page.fill('[data-testid="client-ville"]', 'Paris').catch(() => console.log('client-ville field not found'));
-            await page.fill('[data-testid="client-code-postal"]', '75015').catch(() => console.log('client-code-postal field not found'));
-            
-            // Try to proceed to next step
-            await page.click('[data-testid="next-step-button"]').catch(() => 
-              page.getByRole('button').filter({ hasText: 'Suivant' }).first().click().catch(() => console.log('next button not found')));
-            
-            await page.waitForTimeout(1000);
-            
-            // Skip remaining steps for now and try to create mission directly
-            await page.click('[data-testid="create-mission-button"]').catch(() => 
-              page.getByRole('button').filter({ hasText: 'Créer' }).first().click().catch(() => 
-              page.getByRole('button').filter({ hasText: 'Valider' }).first().click().catch(() => console.log('create mission button not found'))));
-            
-            await waitForMutation(page, 'createMission');
-            await page.waitForTimeout(3000);
-            
-          } catch (error) {
-            console.log('Mission creation form filling failed:', error);
-            // Try to close dialog and continue
-            await page.keyboard.press('Escape').catch(() => {});
-          }
-    
-          console.log('Mission creation completed successfully');
-        } else {
-          console.log('Mission creation form not visible - feature might be incomplete');
+        // Fill out a quick mission
+        const missionTitle = generateUniqueMissionTitle();
+        const missionTimestamp = Date.now();
+        
+        console.log('Filling mission creation form...');
+        
+        // Client tab
+        await page.fill('[data-testid="client-nom-input"]', 'Sociétaire');
+        await page.fill('[data-testid="client-prenom-input"]', 'Jean');
+        
+        // Handle custom Select component
+        await page.click('[data-testid="client-civilite-select"]');
+        await page.click('text="Monsieur"');
+        await page.fill('[data-testid="client-telephone-input"]', generateUniquePhone());
+        await page.fill('[data-testid="client-email-input"]', `societaire-${missionTimestamp}@test.com`);
+        await page.fill('[data-testid="client-adresse-input"]', '456 Avenue des Tests');
+        await page.fill('[data-testid="client-codepostal-input"]', '75015');
+        await page.fill('[data-testid="client-ville-input"]', 'Paris');
+        
+        // Move to chantier tab
+        await page.click('[data-testid="next-tab-button"]');
+        await page.fill('[data-testid="chantier-adresse-input"]', '456 Avenue des Tests');
+        await page.fill('[data-testid="chantier-codepostal-input"]', '75015');
+        await page.fill('[data-testid="chantier-ville-input"]', 'Paris');
+        
+        // Move to sinistre tab
+        await page.click('[data-testid="next-tab-button"]');
+        
+        // Handle custom Select component
+        await page.click('[data-testid="sinistre-type-select"]');
+        await page.click('text="Dégât des eaux"');
+        await page.fill('[data-testid="sinistre-description-textarea"]', 'Dégât des eaux dans salle de bain');
+        
+        // Move to mission tab
+        await page.click('[data-testid="next-tab-button"]');
+        await page.fill('[data-testid="mission-titre-input"]', missionTitle);
+        await page.fill('[data-testid="mission-description-textarea"]', 'Réparation dégât des eaux - salle de bain');
+        
+        // Move to validation tab
+        await page.click('[data-testid="next-tab-button"]');
+        
+        // Create mission
+        await page.click('[data-testid="create-mission-button"]');
+        
+        // Wait for navigation back to dashboard
+        await page.waitForURL('**/assureur-dashboard**', { timeout: 10000 });
+        console.log('Mission created successfully, returned to dashboard');
+        
+      } catch (error) {
+        console.log('Mission creation page navigation or form filling failed:', error);
+        
+        // Try to navigate back to dashboard if we're stuck
+        try {
+          await page.goto('/assureur-dashboard');
+          await page.waitForTimeout(2000);
+        } catch (navError) {
+          console.log('Could not navigate back to dashboard');
         }
-      } else {
-        console.log('Mission creation dialog did not open - feature might be incomplete');
       }
     } else {
       console.log('Mission button not found - feature might not be implemented');

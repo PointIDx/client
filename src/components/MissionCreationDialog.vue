@@ -14,7 +14,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { User, MapPin, AlertTriangle, Briefcase, Upload, FileText, Send, CheckCircle, Euro, Phone, Home } from 'lucide-vue-next'
-import type { IMissionCreationDialog } from '@/interfaces/IMissionCreationDialog'
 
 interface Prestataire {
   id: string

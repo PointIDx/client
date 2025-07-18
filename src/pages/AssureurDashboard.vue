@@ -38,7 +38,7 @@ import {
   Plus,
 } from 'lucide-vue-next'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import MissionCreationDialog from '@/components/MissionCreationDialog.vue'
+// MissionCreationDialog removed - now using separate page
 import MissionsList from '@/components/MissionsList.vue'
 import type { Prestataire } from '@/interfaces/prestataire'
 import type { CommunicationRequestResponse } from '@/graphql/queries/get-communication-requests'
@@ -47,9 +47,11 @@ import { DemandeCommStatut } from '@/enums/demande-comm-statut'
 import { useAssureurStore } from '@/stores/assureur'
 import { useGraphQL } from '@/composables/useGraphQL'
 import { DOWNLOAD_DOCUMENT_QUERY } from '@/graphql/queries/download-document'
+import { useRouter } from 'vue-router'
 
 const assureurStore = useAssureurStore()
 const { executeQuery } = useGraphQL()
+const router = useRouter()
 
 const searchTerm = ref("")
 const selectedSecteur = ref("all")
@@ -60,9 +62,7 @@ const showCommDialog = ref(false)
 const messageComm = ref("")
 const showSuccess = ref(false)
 
-const showMissionDialog = ref(false)
-const selectedPrestataireForMission = ref<Prestataire | null>(null)
-const showMissionSuccess = ref(false)
+// Mission dialog refs removed - now using separate page
 
 // Use data from the store
 const demandes = computed(() => assureurStore.communicationRequests)
@@ -167,17 +167,7 @@ const getStatutBadge = (statut: CommunicationRequestResponse["statut"]) => {
   }
 }
 
-const handleCreateMission = async (missionData: any) => {
-  try {
-    await assureurStore.createMission(missionData)
-    // Refresh missions list
-    await assureurStore.fetchMissions()
-    showMissionSuccess.value = true
-    setTimeout(() => (showMissionSuccess.value = false), 5000)
-  } catch (error) {
-    console.error('Erreur lors de la création de la mission:', error)
-  }
-}
+// handleCreateMission removed - now handled in separate page
 
 const telechargerDocument = async (documentName: string) => {
   try {
@@ -211,8 +201,19 @@ const handleContactClick = (prestataire: Prestataire) => {
 };
 
 const handleMissionClick = (prestataire: Prestataire) => {
-  selectedPrestataireForMission.value = prestataire;
-  showMissionDialog.value = true;
+  // Navigate to mission creation page with prestataire data in query params
+  router.push({
+    name: 'mission-creation',
+    query: {
+      prestataireId: prestataire.id,
+      prestataireNom: prestataire.nom,
+      prestataireRaisonSociale: prestataire.raisonSociale,
+      prestataireSecteurs: prestataire.secteurs?.join(',') || '',
+      prestataireVille: prestataire.ville,
+      prestataireTelephone: prestataire.telephone,
+      prestataireEmail: prestataire.email
+    }
+  });
 };
 
 import placeholderImage from '@/assets/placeholder.svg'
@@ -267,12 +268,7 @@ import placeholderImage from '@/assets/placeholder.svg'
       </Alert>
     </div>
 
-    <div v-if="showMissionSuccess" class="mx-auto px-4 sm:px-6 lg:px-8 pt-4">
-      <Alert class="bg-gray-100 border-gray-300">
-        <CheckCircle class="h-4 w-4 text-black" />
-        <AlertDescription class="text-black">Mission créée et envoyée avec succès !</AlertDescription>
-      </Alert>
-    </div>
+    <!-- Mission success alert removed - now handled in separate page -->
 
     <div class="mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <Tabs default-value="recherche" class="space-y-6">
@@ -642,12 +638,6 @@ import placeholderImage from '@/assets/placeholder.svg'
       </DialogContent>
     </Dialog>
 
-    <!-- Dialog Création de mission -->
-    <MissionCreationDialog
-      :open="showMissionDialog"
-      :prestataire="selectedPrestataireForMission"
-      @update:open="showMissionDialog = $event"
-      @createMission="handleCreateMission"
-    />
+    <!-- Dialog Création de mission removed - now navigating to separate page -->
   </div>
 </template>
