@@ -5,7 +5,7 @@ import type { Contact } from '@/interfaces/contact'
 import type { ProviderInfo } from '@/interfaces/provider-info'
 import type { Account } from '@/interfaces/account'
 import { PRESTATAIRE_SIGNUP_MUTATION } from '@/graphql/mutations/prestataire-signup'
-import { useApolloClient } from '@vue/apollo-composable'
+import { useApolloClient, useQuery } from '@vue/apollo-composable'
 
 import { GET_PRESTATAIRE_MISSIONS_QUERY } from '@/graphql/queries/get-prestataire-missions'
 import { GET_MISSION_DETAILS_QUERY } from '@/graphql/queries/get-mission-details'
@@ -124,16 +124,19 @@ export const usePrestataireStore = defineStore('prestataire', () => {
   }
 
   async function getMissions() {
-    try {
-      const { data } = await client.query({
-        query: GET_PRESTATAIRE_MISSIONS_QUERY,
-        fetchPolicy: 'network-only'
-      })
-      missions.value = data.getPrestataireMissions
-    } catch (error) {
-      handleGraphQLError(error, 'Fetch Missions', { showToast: true })
-      throw error
-    }
+
+    const { onResult, onError } = useQuery(GET_PRESTATAIRE_MISSIONS_QUERY)
+
+    onResult((queryResult) => {
+      if(queryResult.data) {
+        missions.value = queryResult.data.getPrestataireMissions
+      }
+    })
+
+    onError((err) => {
+      handleGraphQLError(err, 'Fetch Missions', { showToast: true })
+      throw err
+    })
   }
 
   async function getMissionDetails(missionId: string) {
@@ -204,18 +207,16 @@ export const usePrestataireStore = defineStore('prestataire', () => {
   }
 
   async function fetchMessages(missionId: string) {
-    try {
-      const { data } = await client.query({
-        query: GET_MESSAGES_QUERY,
-        variables: { missionId }
-      });
-      
-      if (data?.getMessages) {
-        messages.value = data.getMessages;
+    const { onResult, onError } = useQuery(GET_MESSAGES_QUERY, {missionId})
+    onResult((queryResult) => {
+      if(queryResult.data)  {
+        messages.value = queryResult.data.getMessages;
       }
-    } catch (error) {
-      console.error('Error fetching messages:', error);
-    }
+    })
+
+    onError((err) => {
+      throw err
+    })
   }
 
   function subscribeToNewMessages(missionId: string) {
@@ -244,16 +245,18 @@ export const usePrestataireStore = defineStore('prestataire', () => {
 
   // Notifications management
   async function fetchNotifications() {
-    try {
-      const { data } = await client.query({
-        query: GET_PRESTATAIRE_NOTIFICATIONS_QUERY,
-        fetchPolicy: 'network-only'
-      })
-      notifications.value = data.getPrestataireNotifications
-    } catch (error) {
-      handleGraphQLError(error, 'Fetch Notifications', { showToast: true })
-      throw error
-    }
+    const { onResult, onError } = useQuery(GET_PRESTATAIRE_NOTIFICATIONS_QUERY)
+
+    onResult((queryResult) => {
+      if(queryResult.data){
+        notifications.value = queryResult.data.getPrestataireNotifications
+      }
+    })
+
+    onError((err) => {
+      handleGraphQLError(err, 'Fetch Notifications', { showToast: true })
+      throw err
+    })
   }
 
   async function markNotificationAsRead(notificationId: string) {
@@ -275,16 +278,20 @@ export const usePrestataireStore = defineStore('prestataire', () => {
 
   // Communication requests management
   async function fetchCommunicationRequests() {
-    try {
-      const { data } = await client.query({
-        query: GET_COMMUNICATION_REQUESTS_FOR_PRESTATAIRE_QUERY,
-        fetchPolicy: 'network-only'
-      })
-      communicationRequests.value = data.getCommunicationRequestsForPrestataire
-    } catch (error) {
-      handleGraphQLError(error, 'Fetch Communication Requests', { showToast: true })
-      throw error
-    }
+
+    const { onResult, onError } = useQuery(GET_COMMUNICATION_REQUESTS_FOR_PRESTATAIRE_QUERY)
+
+    onResult((queryResult) => {
+      if(queryResult.data){
+        communicationRequests.value = queryResult.data.getCommunicationRequestsForPrestataire
+      }
+    })
+
+
+    onError((err) => {
+      handleGraphQLError(err, 'Fetch Communication Requests', { showToast: true })
+      throw err
+    })
   }
 
   async function respondToCommunicationRequest(input: CommunicationResponseInput) {
@@ -304,16 +311,18 @@ export const usePrestataireStore = defineStore('prestataire', () => {
 
   // Statistics
   async function fetchStatistics() {
-    try {
-      const { data } = await client.query({
-        query: GET_PRESTATAIRE_STATISTICS_QUERY,
-        fetchPolicy: 'network-only'
+      const { onResult, onError } = useQuery(GET_PRESTATAIRE_STATISTICS_QUERY)
+
+      onResult((QueryResult) => {
+        if(QueryResult.data) {
+          statistics.value = QueryResult.data.getPrestataireStatistics
+        }
       })
-      statistics.value = data.getPrestataireStatistics
-    } catch (error) {
-      handleGraphQLError(error, 'Fetch Statistics', { showToast: true })
-      throw error
-    }
+
+      onError((err) => {
+      handleGraphQLError(err, 'Fetch Statistics', { showToast: true })
+      throw err
+      })
   }
 
   // Export functionality

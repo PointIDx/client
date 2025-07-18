@@ -158,13 +158,13 @@ const changerStatutMission = async (missionId: string, nouveauStatut: MissionSta
     <div class="mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <Tabs default-value="nouvelles" class="space-y-6">
         <TabsList data-testid="missions-tabs">
-          <TabsTrigger value="nouvelles" data-testid="nouvelles-tab">
+          <TabsTrigger value="nouvelles" data-testid="nouvelles-tab" class="data-[state=active]:bg-black data-[state=active]:text-white">
             Nouvelles demandes ({{ nouvellesMissions.length }})
           </TabsTrigger>
-          <TabsTrigger value="en-cours" data-testid="en-cours-tab">
+          <TabsTrigger value="en-cours" data-testid="en-cours-tab" class="data-[state=active]:bg-black data-[state=active]:text-white">
             Missions en cours ({{ missionsEnCours.length }})
           </TabsTrigger>
-          <TabsTrigger value="terminees" data-testid="terminees-tab">
+          <TabsTrigger value="terminees" data-testid="terminees-tab" class="data-[state=active]:bg-black data-[state=active]:text-white">
             Missions terminées ({{ missionsTerminees.length }})
           </TabsTrigger>
         </TabsList>

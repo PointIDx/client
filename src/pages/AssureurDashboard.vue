@@ -121,22 +121,22 @@ const resetFilters = () => {
 }
 
 const envoyerDemandeComm = async () => {
-  if (!selectedPrestataire.value || !messageComm.value.trim()) return
+  if (!selectedPrestataire.value || !messageComm.value.trim()) return;
 
   try {
     await assureurStore.sendCommRequest({
       prestataireId: selectedPrestataire.value.id,
-      message: messageComm.value
-    })
+      message: messageComm.value,
+    });
 
-    messageComm.value = ""
-    showCommDialog.value = false
-    showSuccess.value = true
-    setTimeout(() => (showSuccess.value = false), 3000)
+    messageComm.value = '';
+    showCommDialog.value = false;
+    showSuccess.value = true;
+    setTimeout(() => (showSuccess.value = false), 3000);
   } catch (error) {
-    console.error('Erreur lors de l\'envoi de la demande:', error)
+    console.error("Erreur lors de l'envoi de la demande:", error);
   }
-}
+};
 
 const getStatutBadge = (statut: CommunicationRequestResponse["statut"]) => {
   switch (statut) {
@@ -206,14 +206,14 @@ const telechargerDocument = async (documentName: string) => {
 }
 
 const handleContactClick = (prestataire: Prestataire) => {
-  selectedPrestataire.value = prestataire
-  showCommDialog.value = true
-}
+  selectedPrestataire.value = prestataire;
+  showCommDialog.value = true;
+};
 
 const handleMissionClick = (prestataire: Prestataire) => {
-  selectedPrestataireForMission.value = prestataire
-  showMissionDialog.value = true
-}
+  selectedPrestataireForMission.value = prestataire;
+  showMissionDialog.value = true;
+};
 
 import placeholderImage from '@/assets/placeholder.svg'
 </script>
@@ -277,9 +277,9 @@ import placeholderImage from '@/assets/placeholder.svg'
     <div class="mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <Tabs default-value="recherche" class="space-y-6">
         <TabsList>
-          <TabsTrigger value="recherche">Recherche Prestataires</TabsTrigger>
-          <TabsTrigger value="demandes" @click="assureurStore.fetchCommunicationRequests()">Mes Demandes ({{ demandes.length }})</TabsTrigger>
-          <TabsTrigger value="missions" @click="assureurStore.fetchMissions()">Mes Missions ({{ missions.length }})</TabsTrigger>
+          <TabsTrigger value="recherche" class="data-[state=active]:bg-black data-[state=active]:text-white">Recherche Prestataires</TabsTrigger>
+          <TabsTrigger value="demandes" @click="assureurStore.fetchCommunicationRequests()" class="data-[state=active]:bg-black data-[state=active]:text-white">Mes Demandes ({{ demandes.length }})</TabsTrigger>
+          <TabsTrigger value="missions" @click="assureurStore.fetchMissions()" class="data-[state=active]:bg-black data-[state=active]:text-white">Mes Missions ({{ missions.length }})</TabsTrigger>
         </TabsList>
 
         <!-- Onglet Recherche -->
@@ -378,13 +378,13 @@ import placeholderImage from '@/assets/placeholder.svg'
                     <div class="flex items-center space-x-3">
                       <Avatar>
                         <AvatarImage :src="prestataire.avatar || placeholderImage" />
-                        <AvatarFallback>
-                          {{ prestataire.nom.split(' ').map((n) => n[0]).join('') }}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <CardTitle class="text-lg">{{ prestataire.nom }}</CardTitle>
-                        <CardDescription class="text-sm">{{ prestataire.raisonSociale }}</CardDescription>
+                      <AvatarFallback>
+                        {{ prestataire.contactPerson.split(' ').map((n) => n[0]).join('') }}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <CardTitle class="text-lg">{{ prestataire.companyName }}</CardTitle>
+                      <CardDescription class="text-sm">{{ prestataire.contactPerson }}</CardDescription>
                       </div>
                     </div>
                   </div>
@@ -392,21 +392,20 @@ import placeholderImage from '@/assets/placeholder.svg'
                 <CardContent class="space-y-3">
                   <div class="flex items-center space-x-2">
                     <MapPin class="w-4 h-4 text-gray-500" />
-                    <span class="text-sm text-gray-600">{{ prestataire.ville }}</span>
+                    <span class="text-sm text-gray-600">{{ prestataire.address.city }}</span>
                   </div>
 
                   <div class="flex items-center space-x-2">
                     <Star class="w-4 h-4 text-yellow-500 fill-current" />
-                    <span class="text-sm font-medium">{{ prestataire.notemoyenne }}</span>
-                    <span class="text-sm text-gray-500">({{ prestataire.nombreAvis }} avis)</span>
+                    <span class="text-sm font-medium">{{ prestataire.rating }}</span>
                   </div>
 
                   <div class="flex flex-wrap gap-1">
-                    <Badge v-for="secteur in prestataire.secteurs.slice(0, 2)" :key="secteur" variant="secondary" class="text-xs">
-                      {{ secteur }}
+                    <Badge v-for="specialty in prestataire.specialties.slice(0, 2)" :key="specialty" variant="secondary" class="text-xs">
+                      {{ specialty }}
                     </Badge>
-                    <Badge v-if="prestataire.secteurs.length > 2" variant="outline" class="text-xs">
-                      +{{ prestataire.secteurs.length - 2 }}
+                    <Badge v-if="prestataire.specialties.length > 2" variant="outline" class="text-xs">
+                      +{{ prestataire.specialties.length - 2 }}
                     </Badge>
                   </div>
 
@@ -424,12 +423,12 @@ import placeholderImage from '@/assets/placeholder.svg'
                             <Avatar class="w-12 h-12">
                               <AvatarImage :src="prestataire.avatar || placeholderImage" />
                               <AvatarFallback>
-                                {{ prestataire.nom.split(' ').map((n) => n[0]).join('') }}
+                                {{ prestataire.contactPerson.split(' ').map((n) => n[0]).join('') }}
                               </AvatarFallback>
                             </Avatar>
                             <div>
-                              <h3 class="text-xl font-bold">{{ prestataire.nom }}</h3>
-                              <p class="text-gray-600">{{ prestataire.raisonSociale }}</p>
+                              <h3 class="text-xl font-bold">{{ prestataire.companyName }}</h3>
+                              <p class="text-gray-600">{{ prestataire.contactPerson }}</p>
                             </div>
                           </DialogTitle>
                         </DialogHeader>
@@ -440,21 +439,9 @@ import placeholderImage from '@/assets/placeholder.svg'
                             <h4 class="font-semibold mb-3">Informations générales</h4>
                             <div class="grid grid-cols-2 gap-4 text-sm">
                               <div>
-                                <span class="text-gray-500">SIRET:</span>
-                                <p>{{ prestataire.siret }}</p>
-                              </div>
-                              <div>
-                                <span class="text-gray-500">Forme juridique:</span>
-                                <p>{{ prestataire.formeJuridique }}</p>
-                              </div>
-                              <div>
-                                <span class="text-gray-500">Création:</span>
-                                <p>{{ new Date(prestataire.dateCreation).toLocaleDateString() }}</p>
-                              </div>
-                              <div>
                                 <span class="text-gray-500">Localisation:</span>
                                 <p>
-                                  {{ prestataire.ville }}, {{ prestataire.departement }}
+                                  {{ prestataire.address.city }}
                                 </p>
                               </div>
                             </div>
@@ -466,7 +453,7 @@ import placeholderImage from '@/assets/placeholder.svg'
                             <div class="space-y-2 text-sm">
                               <div class="flex items-center space-x-2">
                                 <Phone class="w-4 h-4 text-gray-500" />
-                                <span>{{ prestataire.telephone }}</span>
+                                <span>{{ prestataire.phone }}</span>
                               </div>
                               <div class="flex items-center space-x-2">
                                 <Mail class="w-4 h-4 text-gray-500" />
@@ -474,27 +461,18 @@ import placeholderImage from '@/assets/placeholder.svg'
                               </div>
                               <div class="flex items-center space-x-2">
                                 <Building class="w-4 h-4 text-gray-500" />
-                                <span>{{ prestataire.adresse }}</span>
+                                <span>{{ prestataire.address.street }}, {{ prestataire.address.postalCode }} {{ prestataire.address.city }}</span>
                               </div>
                             </div>
                           </div>
 
                           <!-- Spécialités -->
                           <div>
-                            <h4 class="font-semibold mb-3">Secteurs et spécialités</h4>
+                            <h4 class="font-semibold mb-3">Spécialités</h4>
                             <div class="space-y-2">
                               <div>
-                                <span class="text-sm text-gray-500">Secteurs:</span>
                                 <div class="flex flex-wrap gap-1 mt-1">
-                                  <Badge v-for="secteur in prestataire.secteurs" :key="secteur" variant="default">
-                                    {{ secteur }}
-                                  </Badge>
-                                </div>
-                              </div>
-                              <div>
-                                <span class="text-sm text-gray-500">Spécialités:</span>
-                                <div class="flex flex-wrap gap-1 mt-1">
-                                  <Badge v-for="specialite in prestataire.specialites" :key="specialite" variant="secondary">
+                                  <Badge v-for="specialite in prestataire.specialties" :key="specialite" variant="secondary">
                                     {{ specialite }}
                                   </Badge>
                                 </div>
@@ -502,36 +480,7 @@ import placeholderImage from '@/assets/placeholder.svg'
                             </div>
                           </div>
 
-                          <!-- Description -->
-                          <div>
-                            <h4 class="font-semibold mb-3">Description</h4>
-                            <p class="text-sm text-gray-700">{{ prestataire.description }}</p>
-                          </div>
-
-                          <!-- Certifications -->
-                          <div>
-                            <h4 class="font-semibold mb-3">Certifications</h4>
-                            <div class="flex flex-wrap gap-2">
-                              <Badge v-for="cert in prestataire.certifications" :key="cert" variant="outline" class="bg-green-50 text-green-700">
-                                <CheckCircle class="w-3 h-3 mr-1" />
-                                {{ cert }}
-                              </Badge>
-                            </div>
-                          </div>
-
-                          <!-- Documents publics -->
-                          <div>
-                            <h4 class="font-semibold mb-3">Documents publics</h4>
-                            <div class="space-y-2">
-                              <div v-for="doc in prestataire.documentsPublics" :key="doc" class="flex items-center space-x-2">
-                                <FileText class="w-4 h-4 text-gray-500" />
-                                <span class="text-sm">{{ doc }}</span>
-                                <Button variant="ghost" size="sm" @click="telechargerDocument(doc)">
-                                  Télécharger
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
+                          
 
                           <!-- Évaluations -->
                           <div>
@@ -539,12 +488,9 @@ import placeholderImage from '@/assets/placeholder.svg'
                             <div class="flex items-center space-x-4">
                               <div class="flex items-center space-x-2">
                                 <Star class="w-5 h-5 text-yellow-500 fill-current" />
-                                <span class="text-lg font-semibold">{{ prestataire.notemoyenne }}</span>
+                                <span class="text-lg font-semibold">{{ prestataire.rating }}</span>
                                 <span class="text-gray-500">/ 5</span>
                               </div>
-                              <span class="text-sm text-gray-500">
-                                Basé sur {{ prestataire.nombreAvis }} avis clients
-                              </span>
                             </div>
                           </div>
                         </div>
@@ -646,20 +592,20 @@ import placeholderImage from '@/assets/placeholder.svg'
       <DialogContent class="bg-white">
         <DialogHeader>
           <DialogTitle>Demande de communication</DialogTitle>
-          <DialogDescription>Envoyez une demande de contact à {{ selectedPrestataire?.nom }}</DialogDescription>
+          <DialogDescription>Envoyez une demande de contact à {{ selectedPrestataire?.companyName }}</DialogDescription>
         </DialogHeader>
 
         <div v-if="selectedPrestataire" class="space-y-4">
           <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
             <Avatar>
               <AvatarFallback>
-                {{ selectedPrestataire.nom.split(' ').map((n) => n[0]).join('') }}
+                {{ selectedPrestataire.contactPerson.split(' ').map((n) => n[0]).join('') }}
               </AvatarFallback>
             </Avatar>
             <div>
-              <h4 class="font-semibold">{{ selectedPrestataire.nom }}</h4>
-              <p class="text-sm text-gray-600">{{ selectedPrestataire.raisonSociale }}</p>
-              <p class="text-sm text-gray-500">{{ selectedPrestataire.ville }}</p>
+              <h4 class="font-semibold">{{ selectedPrestataire.companyName }}</h4>
+              <p class="text-sm text-gray-600">{{ selectedPrestataire.contactPerson }}</p>
+              <p class="text-sm text-gray-500">{{ selectedPrestataire.address.city }}</p>
             </div>
           </div>
 

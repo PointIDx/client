@@ -21,6 +21,7 @@ import { useAuthStore } from '@/stores/auth';
 import { fetchSiretInfo } from '@/utils/siret';
 import { handleError, handleGraphQLError, showSuccess } from '@/utils/error-handling';
 import { DEFAULT_VALUES } from '@/constants';
+import { GET_ASSUREUR_MISSIONS_ENHANCED_QUERY } from '@/graphql/queries/get-assureur-missions-enhanced';
 
 export const useAssureurStore = defineStore('assureur', () => {
   const { client } = useApolloClient();
@@ -70,7 +71,25 @@ export const useAssureurStore = defineStore('assureur', () => {
 
     onResult((queryResult) => {
       if (queryResult.data) {
-        prestataires.value = queryResult.data.searchPrestataires;
+        prestataires.value = queryResult.data.searchPrestataires.map((p: any) => ({
+          ...p,
+          nom: p.contactPerson,
+          raisonSociale: p.companyName,
+          ville: p.address.city,
+          telephone: p.phone,
+          adresse: `${p.address.street}, ${p.address.postalCode} ${p.address.city}`,
+          notemoyenne: p.rating,
+          secteurs: [],
+          nombreAvis: 0,
+          siret: '',
+          formeJuridique: '',
+          dateCreation: '',
+          description: '',
+          certifications: [],
+          documentsPublics: [],
+          departement: '',
+          region: ''
+        }));
       }
     });
 
@@ -81,25 +100,23 @@ export const useAssureurStore = defineStore('assureur', () => {
   };
 
   const fetchMissions = async () => {
-    try {
-      if (!authStore.user?.id) {
+          if (!authStore.user?.id) {
         console.warn('No authenticated user found, cannot fetch missions');
         return;
       }
 
-      const result = await client.query({
-        query: GET_ASSUREUR_MISSIONS_QUERY,
-        variables: { assureurId: authStore.user.id },
-        fetchPolicy: 'network-only'
-      });
-      
-      if (result?.data?.getAssureurMissions) {
-        missions.value = result.data.getAssureurMissions;
-      }
-    } catch (error) {
-      console.error('Error fetching missions:', error);
-      handleGraphQLError(error, 'Fetch Missions', { showToast: true });
-    }
+      const { onResult, onError } = useQuery(GET_ASSUREUR_MISSIONS_ENHANCED_QUERY)
+
+      onResult((queryResult) => {
+        if(queryResult.data) {
+          mission.value = queryResult.data.getAssureurMissionsEnhanced
+        }
+      })
+
+      onError((error) => {
+        console.error('Error fetching missions:', error);
+        handleGraphQLError(error, 'Fetch Missions', { showToast: true });
+      })
   };
 
   const getMissionDetails = (missionId: string) => {
@@ -124,19 +141,18 @@ export const useAssureurStore = defineStore('assureur', () => {
 
   // Communication requests management
   const fetchCommunicationRequests = async () => {
-    try {
-      const result = await client.query({
-        query: GET_COMMUNICATION_REQUESTS_QUERY,
-        fetchPolicy: 'network-only'
-      });
-      
-      if (result?.data?.getCommunicationRequests) {
-        communicationRequests.value = result.data.getCommunicationRequests;
-      }
-    } catch (error) {
-      console.error('Error fetching communication requests:', error);
-      handleGraphQLError(error, 'Get Communication Requests', { showToast: true });
-    }
+      const {onResult, onError} = useQuery(GET_COMMUNICATION_REQUESTS_QUERY)
+
+      onResult((queryResult) => {
+        if (queryResult.data) {
+          communicationRequests.value = queryResult.data.getCommunicationRequests;
+        }
+      })
+
+      onError((err) => {
+        handleGraphQLError(err, 'Get Communication Requests', { showToast: true });
+        throw new Error('Erreur lors de la récupération des détails de la mission.');
+      })
   };
 
   const sendCommRequest = async (input: CommunicationRequestInput) => {

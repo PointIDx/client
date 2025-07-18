@@ -111,7 +111,7 @@ function extractErrorCode(error: any): string | undefined {
  */
 export function handleGraphQLError(error: any, context: string, options: ErrorHandlerOptions = {}): ErrorInfo {
   const customMessage = getGraphQLErrorMessage(error)
-  
+  toast.error(error)
   return handleError(error, context, {
     ...options,
     customMessage
