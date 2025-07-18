@@ -109,7 +109,7 @@ import placeholderImage from '@/assets/placeholder.svg'
       <div class="flex space-x-2 pt-2">
         <Dialog>
           <DialogTrigger as-child>
-            <Button variant="outline" size="sm" class="flex-1 bg-transparent">
+            <Button variant="outline" size="sm" class="flex-1 bg-transparent" data-testid="view-prestataire-profile-button">
               <Eye class="w-4 h-4 mr-1" />
               Voir fiche
             </Button>
@@ -252,12 +252,12 @@ import placeholderImage from '@/assets/placeholder.svg'
           </DialogContent>
         </Dialog>
 
-        <Button size="sm" class="flex-1" @click="handleContact">
+        <Button size="sm" class="flex-1" @click="handleContact" data-testid="contact-prestataire-button">
           <MessageCircle class="w-4 h-4 mr-1" />
           Contacter
         </Button>
 
-        <Button size="sm" variant="default" @click="handleCreateMission">
+        <Button size="sm" variant="default" @click="handleCreateMission" data-testid="create-mission-button">
           <Plus class="w-4 h-4 mr-1" />
           Mission
         </Button>
