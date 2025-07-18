@@ -8,11 +8,11 @@ import { AuthUtils } from '@/utils/auth'
 const wsLink = new GraphQLWsLink(
   createClient({
     url: import.meta.env.VITE_SERVER_GRAPHQL_WS_URL || 'ws://localhost:3000/graphql/ws',
-    connectionParams: () => {
-      const tokens = AuthUtils.getTokens()
+    connectionParams: async () => {
+      const tokens = await AuthUtils.getTokens();
       return {
-        authorization: tokens?.token ? `Bearer ${tokens.token}` : ''
-      }
+        authorization: tokens?.token ? `Bearer ${tokens.token}` : '',
+      };
     },
     lazy: true,
     keepAlive: 1
@@ -25,14 +25,14 @@ const httpLink = createHttpLink({
 })
 
 const authLink = setContext(async (_, { headers }) => {
-  const tokens = AuthUtils.getTokens()
+  const tokens = await AuthUtils.getTokens();
   return {
     headers: {
       ...headers,
-      authorization: tokens?.token ? `Bearer ${tokens.token}` : ''
-    }
-  }
-})
+      authorization: tokens?.token ? `Bearer ${tokens.token}` : '',
+    },
+  };
+});
 
 const link = split(
   ({ query }) => {

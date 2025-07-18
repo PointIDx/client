@@ -228,7 +228,7 @@ const goToNextTab = () => {
 
 <template>
   <Dialog :open="props.open" @update:open="onOpenChange">
-    <DialogContent class="max-w-4xl max-h-[90vh] overflow-y-auto bg-white">
+    <DialogContent class="max-w-4xl max-h-[90vh] overflow-y-auto bg-white" data-testid="mission-creation-dialog">
       <DialogHeader>
         <DialogTitle class="flex items-center space-x-3">
           <Briefcase class="w-6 h-6" />
@@ -243,7 +243,7 @@ const goToNextTab = () => {
       </DialogHeader>
 
       <!-- Prestataire sélectionné -->
-      <Card v-if="props.prestataire" class="bg-blue-50 border-blue-200">
+      <Card v-if="props.prestataire" class="bg-blue-50 border-blue-200" data-testid="prestataire-selected-card">
         <CardContent class="p-4">
           <div class="flex items-center space-x-3">
             <Avatar>
@@ -281,23 +281,23 @@ const goToNextTab = () => {
 
       <Tabs v-model:model-value="currentTab" class="space-y-4">
         <TabsList class="grid w-full grid-cols-5">
-          <TabsTrigger value="client" class="flex items-center space-x-1">
+          <TabsTrigger value="client" class="flex items-center space-x-1" data-testid="tab-client">
             <User class="w-4 h-4" />
             <span>Client</span>
           </TabsTrigger>
-          <TabsTrigger value="chantier" class="flex items-center space-x-1">
+          <TabsTrigger value="chantier" class="flex items-center space-x-1" data-testid="tab-chantier">
             <Home class="w-4 h-4" />
             <span>Chantier</span>
           </TabsTrigger>
-          <TabsTrigger value="sinistre" class="flex items-center space-x-1">
+          <TabsTrigger value="sinistre" class="flex items-center space-x-1" data-testid="tab-sinistre">
             <AlertTriangle class="w-4 h-4" />
             <span>Sinistre</span>
           </TabsTrigger>
-          <TabsTrigger value="mission" class="flex items-center space-x-1">
+          <TabsTrigger value="mission" class="flex items-center space-x-1" data-testid="tab-mission">
             <Briefcase class="w-4 h-4" />
             <span>Mission</span>
           </TabsTrigger>
-          <TabsTrigger value="validation" class="flex items-center space-x-1">
+          <TabsTrigger value="validation" class="flex items-center space-x-1" data-testid="tab-validation">
             <CheckCircle class="w-4 h-4" />
             <span>Validation</span>
           </TabsTrigger>
@@ -316,6 +316,7 @@ const goToNextTab = () => {
                   <Label for="civilite">Civilité *</Label>
                   <Select
                     v-model="formData.client.civilite"
+                    data-testid="client-civilite-select"
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Sélectionnez" />
@@ -334,6 +335,7 @@ const goToNextTab = () => {
                     id="nom"
                     v-model="formData.client.nom"
                     placeholder="Nom de famille"
+                    data-testid="client-nom-input"
                   />
                 </div>
 
@@ -343,6 +345,7 @@ const goToNextTab = () => {
                     id="prenom"
                     v-model="formData.client.prenom"
                     placeholder="Prénom"
+                    data-testid="client-prenom-input"
                   />
                 </div>
               </div>
@@ -355,6 +358,7 @@ const goToNextTab = () => {
                     type="tel"
                     v-model="formData.client.telephone"
                     placeholder="06 12 34 56 78"
+                    data-testid="client-telephone-input"
                   />
                 </div>
 
@@ -365,6 +369,7 @@ const goToNextTab = () => {
                     type="email"
                     v-model="formData.client.email"
                     placeholder="client@email.com"
+                    data-testid="client-email-input"
                   />
                 </div>
               </div>
@@ -375,6 +380,7 @@ const goToNextTab = () => {
                   id="adresseClient"
                   v-model="formData.client.adresse"
                   placeholder="Adresse complète"
+                  data-testid="client-adresse-input"
                 />
               </div>
 
@@ -385,6 +391,7 @@ const goToNextTab = () => {
                     id="codePostalClient"
                     v-model="formData.client.codePostal"
                     placeholder="75001"
+                    data-testid="client-codepostal-input"
                   />
                 </div>
 
@@ -394,6 +401,7 @@ const goToNextTab = () => {
                     id="villeClient"
                     v-model="formData.client.ville"
                     placeholder="Paris"
+                    data-testid="client-ville-input"
                   />
                 </div>
               </div>
@@ -414,6 +422,7 @@ const goToNextTab = () => {
                   id="memeAdresse"
                   v-model:checked="formData.chantier.memeAdresseClient"
                   @update:checked="copyClientAddress"
+                  data-testid="chantier-meme-adresse-checkbox"
                 />
                 <Label for="memeAdresse">Même adresse que le client</Label>
               </div>
@@ -425,6 +434,7 @@ const goToNextTab = () => {
                   v-model="formData.chantier.adresse"
                   placeholder="Adresse complète du lieu d'intervention"
                   :disabled="formData.chantier.memeAdresseClient"
+                  data-testid="chantier-adresse-input"
                 />
               </div>
 
@@ -436,6 +446,7 @@ const goToNextTab = () => {
                     v-model="formData.chantier.codePostal"
                     placeholder="75001"
                     :disabled="formData.chantier.memeAdresseClient"
+                    data-testid="chantier-codepostal-input"
                   />
                 </div>
 
@@ -446,6 +457,7 @@ const goToNextTab = () => {
                     v-model="formData.chantier.ville"
                     placeholder="Paris"
                     :disabled="formData.chantier.memeAdresseClient"
+                    data-testid="chantier-ville-input"
                   />
                 </div>
               </div>
@@ -455,6 +467,7 @@ const goToNextTab = () => {
                   <Label for="typeAcces">Type d'accès</Label>
                   <Select
                     v-model="formData.chantier.typeAcces"
+                    data-testid="chantier-typeacces-select"
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Sélectionnez" />
@@ -473,6 +486,7 @@ const goToNextTab = () => {
                     id="etage"
                     v-model="formData.chantier.etage"
                     placeholder="RDC, 1er, 2ème..."
+                    data-testid="chantier-etage-input"
                   />
                 </div>
               </div>
@@ -484,6 +498,7 @@ const goToNextTab = () => {
                   v-model="formData.chantier.contraintes"
                   placeholder="Précisez les contraintes particulières (horaires, parking, ascenseur...)"
                   rows="3"
+                  data-testid="chantier-contraintes-textarea"
                 />
               </div>
             </CardContent>
@@ -503,6 +518,7 @@ const goToNextTab = () => {
                   <Label for="typeSinistre">Type de sinistre *</Label>
                   <Select
                     v-model="formData.sinistre.type"
+                    data-testid="sinistre-type-select"
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Sélectionnez le type" />
@@ -521,6 +537,7 @@ const goToNextTab = () => {
                     id="numeroSinistre"
                     v-model="formData.sinistre.numeroSinistre"
                     placeholder="Numéro de dossier sinistre"
+                    data-testid="sinistre-numero-input"
                   />
                 </div>
               </div>
@@ -530,6 +547,7 @@ const goToNextTab = () => {
                 <RadioGroup
                   v-model="formData.sinistre.urgence"
                   class="flex space-x-6 mt-2"
+                  data-testid="sinistre-urgence-radiogroup"
                 >
                   <div v-for="niveau in niveauxUrgence" :key="niveau.value" class="flex items-center space-x-2">
                     <RadioGroupItem :value="niveau.value" :id="niveau.value" />
@@ -547,6 +565,7 @@ const goToNextTab = () => {
                     id="dateSinistre"
                     type="date"
                     v-model="formData.sinistre.dateSinistre"
+                    data-testid="sinistre-date-input"
                   />
                 </div>
 
@@ -556,6 +575,7 @@ const goToNextTab = () => {
                     id="dateIntervention"
                     type="date"
                     v-model="formData.sinistre.dateIntervention"
+                    data-testid="sinistre-date-intervention-input"
                   />
                 </div>
               </div>
@@ -567,6 +587,7 @@ const goToNextTab = () => {
                   v-model="formData.sinistre.description"
                   placeholder="Décrivez précisément les dégâts constatés et les travaux à réaliser..."
                   rows="4"
+                  data-testid="sinistre-description-textarea"
                 />
               </div>
             </CardContent>
@@ -587,6 +608,7 @@ const goToNextTab = () => {
                   id="titreMission"
                   v-model="formData.mission.titre"
                   placeholder="Ex: Réparation dégât des eaux - Salle de bain"
+                  data-testid="mission-titre-input"
                 />
               </div>
 
@@ -597,6 +619,7 @@ const goToNextTab = () => {
                   v-model="formData.mission.description"
                   placeholder="Décrivez précisément les travaux à réaliser, les prestations attendues..."
                   rows="4"
+                  data-testid="mission-description-textarea"
                 />
               </div>
 
@@ -610,6 +633,7 @@ const goToNextTab = () => {
                       v-model="formData.mission.budgetEstime"
                       placeholder="Montant estimé"
                       class="pl-10"
+                      data-testid="mission-budget-input"
                     />
                   </div>
                 </div>
@@ -620,6 +644,7 @@ const goToNextTab = () => {
                     id="delaiSouhaite"
                     v-model="formData.mission.delaiSouhaite"
                     placeholder="Ex: 2 semaines, 1 mois..."
+                    data-testid="mission-delai-input"
                   />
                 </div>
               </div>
@@ -630,6 +655,7 @@ const goToNextTab = () => {
                   id="horaires"
                   v-model="formData.mission.horaires"
                   placeholder="Ex: 8h-17h du lundi au vendredi"
+                  data-testid="mission-horaires-input"
                 />
               </div>
 
@@ -640,6 +666,7 @@ const goToNextTab = () => {
                   v-model="formData.mission.materiaux"
                   placeholder="Précisez si les matériaux sont fournis par le client, le prestataire, ou autres modalités..."
                   rows="2"
+                  data-testid="mission-materiaux-textarea"
                 />
               </div>
 
@@ -650,6 +677,7 @@ const goToNextTab = () => {
                   v-model="formData.mission.normes"
                   placeholder="Normes techniques à respecter, réglementations particulières..."
                   rows="2"
+                  data-testid="mission-normes-textarea"
                 />
               </div>
 
@@ -660,6 +688,7 @@ const goToNextTab = () => {
                   v-model="formData.mission.conditionsParticulieres"
                   placeholder="Autres conditions ou remarques importantes..."
                   rows="2"
+                  data-testid="mission-conditions-textarea"
                 />
               </div>
 
@@ -682,17 +711,18 @@ const goToNextTab = () => {
                       class="hidden"
                       accept=".pdf,.jpg,.jpeg,.png"
                       @change="handleFileUpload"
+                      data-testid="mission-documents-input"
                     />
                   </div>
                 </div>
 
                 <div v-if="formData.documents.length > 0" class="mt-4 space-y-2">
-                  <div v-for="(file, index) in formData.documents" :key="index" class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                  <div v-for="(file, index) in formData.documents" :key="index" class="flex items-center justify-between p-2 bg-gray-50 rounded" :data-testid="`mission-document-item-${index}`">
                     <div class="flex items-center space-x-2">
                       <FileText class="w-4 h-4 text-gray-500" />
                       <span class="text-sm">{{ file.name }}</span>
                     </div>
-                    <Button variant="ghost" size="sm" @click="removeDocument(index)">
+                    <Button variant="ghost" size="sm" @click="removeDocument(index)" :data-testid="`mission-document-remove-button-${index}`">
                       Supprimer
                     </Button>
                   </div>
@@ -715,6 +745,7 @@ const goToNextTab = () => {
                   <Checkbox
                     id="emailClient"
                     v-model:checked="formData.notifications.emailClient"
+                    data-testid="validation-email-checkbox"
                   />
                   <Label for="emailClient">Envoyer un email de notification au client</Label>
                 </div>
@@ -723,6 +754,7 @@ const goToNextTab = () => {
                   <Checkbox
                     id="smsClient"
                     v-model:checked="formData.notifications.smsClient"
+                    data-testid="validation-sms-checkbox"
                   />
                   <Label for="smsClient">Envoyer un SMS de notification au client</Label>
                 </div>
@@ -731,12 +763,13 @@ const goToNextTab = () => {
                   <Checkbox
                     id="creerAccesClient"
                     v-model:checked="formData.notifications.creerAccesClient"
+                    data-testid="validation-access-checkbox"
                   />
                   <Label for="creerAccesClient">Créer un accès client pour le suivi du dossier</Label>
                 </div>
               </div>
 
-              <Alert v-if="formData.notifications.creerAccesClient">
+              <Alert v-if="formData.notifications.creerAccesClient" data-testid="validation-access-alert">
                 <CheckCircle class="h-4 w-4" />
                 <AlertDescription>
                   Un email sera automatiquement envoyé au client avec ses identifiants de connexion pour suivre
@@ -747,7 +780,7 @@ const goToNextTab = () => {
           </Card>
 
           <!-- Récapitulatif -->
-          <Card>
+          <Card data-testid="validation-recap-card">
             <CardHeader>
               <CardTitle class="text-lg">Récapitulatif de la mission</CardTitle>
             </CardHeader>
@@ -799,6 +832,7 @@ const goToNextTab = () => {
           variant="outline"
           @click="goToPreviousTab"
           :disabled="currentTab === 'client'"
+          data-testid="previous-tab-button"
         >
           Précédent
         </Button>
@@ -808,10 +842,11 @@ const goToNextTab = () => {
             v-if="currentTab !== 'validation'"
             @click="goToNextTab"
             :disabled="!validateCurrentTab"
+            data-testid="next-tab-button"
           >
             Suivant
           </Button>
-          <Button v-else @click="handleSubmit" :disabled="!validateCurrentTab">
+          <Button v-else @click="handleSubmit" :disabled="!validateCurrentTab" data-testid="create-mission-button">
             <Send class="w-4 h-4 mr-2" />
             Créer la mission
           </Button>

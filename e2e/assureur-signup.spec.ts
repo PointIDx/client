@@ -1,73 +1,35 @@
 import { test, expect } from '@playwright/test';
-import { loginAsAssureur, uploadFile, TestData } from './utils/test-utils.js';
+import { loginAsAssureur, uploadFile, TestData, createLiveAssureur, TEST_SIRET, TEST_COMPANY_INFO } from './utils/test-utils.js';
 
-test.describe('Assureur Signup Flow', () => {
-  test('should allow an assureur to register successfully', async ({ page }) => {
-    test.setTimeout(90000); // Increased timeout for complex flow
+test.describe('Assureur Signup Flow - Live Mode', () => {
+  test('should allow an assureur to register successfully with live data', async ({ page }) => {
+    test.setTimeout(120000); // Increased timeout for real server operations
     
-    await page.goto('/pro-registration');
-    await page.click('text="S\'inscrire comme Assureur"');
-    await expect(page.locator('h1')).toContainText('Inscription Assureur');
-
-
-    // Step 1:  Siret validation - Use original SIRET (constraint removed)
-    await page.fill('[data-testid="siret-input"]', "80391760800017");
-    await page.click('[data-testid="verify-siret-button"]');
-    await expect(page.locator('[data-testid="raison-sociale-input"]')).toHaveValue("PRINCE ONDONDA");
-    await expect(page.locator('[data-testid="adresse-input"]')).toHaveValue("APPARTEMENT RDC 03, 50 AVENUE DE SAVIGNY")
-    await expect(page.locator('[data-testid="code-postal-input"]')).toHaveValue("93600")
-    await expect(page.locator('[data-testid="ville-input"]')).toHaveValue("AULNAY-SOUS-BOIS")
-    await expect(page.locator('[data-testid="forme-juridique-trigger"]')).toHaveText("EI");
-    await page.click('[data-testid="next-button"]');
+    // Create a new assureur account using live data helper
+    const credentials = await createLiveAssureur(page);
     
-
-    // Step 2: Documents (now required)
-    await uploadFile(page, '[data-testid="kbis-upload"]', 'test-kbis.pdf', 'PDF content for KBIS', 'application/pdf');
-    await uploadFile(page, '[data-testid="assurance-upload"]', 'test-assurance.pdf', 'PDF content for insurance', 'application/pdf');
-    await uploadFile(page, '[data-testid="agrement-upload"]', 'test-agrement.pdf', 'PDF content for agreement', 'application/pdf');
-    await page.click('[data-testid="next-button"]');
-
-    // Step 4: Contact Info
-    await page.fill('[data-testid="contact-prenom-input"]', 'John');
-    await page.fill('[data-testid="contact-nom-input"]', 'Doe');
-    await page.fill('[data-testid="contact-email-input"]', `john.doe.${Date.now()}@construction.com`);
-    await page.fill('[data-testid="contact-telephone-input"]', '0123456789');
-    await page.click('[data-testid="next-button"]');
-
-    // Step 4: Insurer Info // Responsabilité Civile Professionnelle
-    await page.fill('[data-testid="agrement-input"]', 'AGR123456789');
-    await page.locator('[data-testid="type-assurance-checkbox"][value="Responsabilité Civile Professionnelle"]').check();
-    await page.fill('[data-testid="garanties-proposees-input"]', 'Habitation');
-    await page.locator('[data-testid="zone-couverture-checkbox"][value="Île-de-France"]').check();
-
-    await page.click('[data-testid="next-button"]');
-
-    // Step 5: Account Creation
-    await page.fill('[data-testid="email-login-input"]', `assureur-${Date.now()}@test.com`);
-    await page.fill('[data-testid="password-input"]', 'password123');
-    await page.fill('[data-testid="confirm-password-input"]', 'password123');
-    await page.click('[data-testid="next-button"]');
-
-    // Step 6: Confirmation - Check for successful redirect to dashboard
-    // Wait for potential redirect and check URL or dashboard elements
+    // After successful registration, verify we're redirected to dashboard or login
     await page.waitForTimeout(3000);
-    
     const currentUrl = page.url();
-    console.log('Current URL after signup:', currentUrl);
     
-    // Check for dashboard-related text or URL
-    const isDashboard = currentUrl.includes('dashboard') || 
-                       currentUrl.includes('assureur') ||
-                       await page.getByText('Dashboard').isVisible().catch(() => false) ||
-                       await page.getByText('Rechercher').isVisible().catch(() => false);
-                       
-    if (!isDashboard) {
-      // Log page content for debugging
+    // Check for successful account creation indicators
+    const isSuccess = currentUrl.includes('dashboard') || 
+                     currentUrl.includes('assureur') ||
+                     currentUrl.includes('login') ||
+                     await page.getByText('Dashboard').isVisible().catch(() => false) ||
+                     await page.getByText('Rechercher').isVisible().catch(() => false) ||
+                     await page.getByText('Inscription réussie').isVisible().catch(() => false);
+    
+    if (!isSuccess) {
       const pageContent = await page.textContent('body');
-      console.log('Page content after signup:', pageContent?.substring(0, 500));
+      console.log('Registration may have failed. Current URL:', currentUrl);
+      console.log('Page content:', pageContent?.substring(0, 500));
     }
     
-    console.log('Signup success - reached dashboard:', isDashboard);
+    expect(isSuccess).toBe(true);
+    
+    // Store credentials for potential use in other tests
+    console.log('Created assureur account:', credentials.email);
   });
 
   test('should allow an assureur to log in after registration', async ({ page }) => {
@@ -81,7 +43,7 @@ test.describe('Assureur Signup Flow', () => {
     console.log('Login success - reached dashboard:', isDashboard);
   });
 
-  test('should validate required fields during assureur signup', async ({ page }) => {
+  test('should validate SIRET and auto-fill company information', async ({ page }) => {
     await page.goto('/pro-registration');
     
     // Select assureur account type
@@ -90,19 +52,87 @@ test.describe('Assureur Signup Flow', () => {
     // Wait for form to load
     await expect(page.locator('[data-testid="siret-input"]')).toBeVisible();
     
-    // Verify next button is disabled when required fields are empty
-    await expect(page.locator('[data-testid="next-button"][disabled]')).toBeVisible();
+    // Test SIRET validation with live server
+    await page.fill('[data-testid="siret-input"]', TEST_SIRET);
+    await page.click('[data-testid="verify-siret-button"]');
     
-    // Try focusing and then clicking outside to trigger validation
-    await page.focus('[data-testid="siret-input"]');
-    await page.click('body'); // Click outside to blur
+    // Wait for SIRET validation response from live server
+    await page.waitForTimeout(3000);
     
-    // Should show validation error or button should remain disabled
-    const hasError = await page.locator('text="Ce champ est requis"').count() > 0;
-    const buttonDisabled = await page.locator('[data-testid="next-button"][disabled]').count() > 0;
+    // Verify company information is auto-filled from live API
+    await expect(page.locator('[data-testid="raison-sociale-input"]')).toHaveValue(TEST_COMPANY_INFO.raisonSociale);
+    await expect(page.locator('[data-testid="adresse-input"]')).toHaveValue(TEST_COMPANY_INFO.adresse);
+    await expect(page.locator('[data-testid="code-postal-input"]')).toHaveValue(TEST_COMPANY_INFO.codePostal);
+    await expect(page.locator('[data-testid="ville-input"]')).toHaveValue(TEST_COMPANY_INFO.ville);
     
-    if (hasError) {
-      await expect(page.locator('text="Ce champ est requis"')).toBeVisible();
+    // Verify next button becomes enabled after successful SIRET validation
+    await expect(page.locator('[data-testid="next-button"]:not([disabled])')).toBeVisible();
+  });
+  
+  test('should handle invalid SIRET with live validation', async ({ page }) => {
+    await page.goto('/pro-registration');
+    await page.click('text="S\'inscrire comme Assureur"');
+    
+    // Test with invalid SIRET
+    await page.fill('[data-testid="siret-input"]', '12345678901234');
+    await page.click('[data-testid="verify-siret-button"]');
+    
+    // Wait for validation response
+    await page.waitForTimeout(5000);
+    
+    // Check if any error indicators are present (more flexible approach)
+    const hasError = await page.locator('.text-red-500').count() > 0 ||
+                     await page.locator('.text-destructive').count() > 0 ||
+                     await page.locator('[data-testid="error-message"]').count() > 0 ||
+                     await page.locator('text="SIRET invalide"').count() > 0 ||
+                     await page.locator('text="Ce SIRET n\'existe pas"').count() > 0 ||
+                     await page.locator('text="Erreur"').count() > 0;
+    
+    // If no error found, log page content for debugging
+    if (!hasError) {
+      const pageContent = await page.textContent('body');
+      console.log('No error found after invalid SIRET. Page content:', pageContent?.substring(0, 1000));
     }
-  })
-})
+    
+    // For invalid SIRET, either show error or keep button disabled
+    const nextButtonDisabled = await page.locator('[data-testid="next-button"][disabled]').count() > 0;
+    const hasValidationIssue = hasError || nextButtonDisabled;
+    
+    expect(hasValidationIssue).toBe(true);
+  });
+  
+  test('should handle form validation errors in live mode', async ({ page }) => {
+    await page.goto('/pro-registration');
+    await page.click('text="S\'inscrire comme Assureur"');
+    
+    // Fill valid SIRET but skip required fields in later steps
+    await page.fill('[data-testid="siret-input"]', TEST_SIRET);
+    await page.click('[data-testid="verify-siret-button"]');
+    await page.waitForTimeout(2000);
+    await page.click('[data-testid="next-button"]');
+    
+    // Skip document upload and go to contact info
+    await page.click('[data-testid="next-button"]');
+    
+    // Check if next button is disabled (which indicates validation is working)
+    const nextButtonDisabled = await page.locator('[data-testid="next-button"][disabled]').count() > 0;
+    
+    // If button is not disabled, try to click it and check for validation errors
+    if (!nextButtonDisabled) {
+      await page.click('[data-testid="next-button"]');
+      await page.waitForTimeout(1000);
+      
+      // Should show validation errors for required fields
+      const hasValidationErrors = await page.locator('[data-testid="error-message"]').count() > 0 ||
+                                 await page.locator('text="Ce champ est requis"').count() > 0 ||
+                                 await page.locator('.text-red-500').count() > 0 ||
+                                 await page.locator('.text-destructive').count() > 0;
+      
+      expect(hasValidationErrors).toBe(true);
+    } else {
+      // If button is disabled, that's also validation working correctly
+      console.log('Next button is disabled, validation is working correctly');
+      expect(nextButtonDisabled).toBe(true);
+    }
+  });
+});

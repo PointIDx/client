@@ -2,7 +2,7 @@ import type { JWTTokens } from '@/interfaces/auth'
 import apolloClient from '@/apollo-client'
 import { REFRESH_TOKEN_MUTATION } from '@/graphql/mutations/refresh-token'
 
-const TOKEN_KEY = 'pointid_tokens'
+const TOKEN_KEY = 'pointid_tokens';
 const USER_KEY = 'pointid_user'
 
 export class AuthUtils {
@@ -10,14 +10,14 @@ export class AuthUtils {
     localStorage.setItem(TOKEN_KEY, JSON.stringify(tokens))
   }
 
-  static getTokens(): JWTTokens | null {
-    const stored = localStorage.getItem(TOKEN_KEY)
-    if (!stored) return null
-    
+  static async getTokens(): Promise<JWTTokens | null> {
+    const stored = localStorage.getItem(TOKEN_KEY);
+    if (!stored) return null;
+
     try {
-      return JSON.parse(stored)
+      return JSON.parse(stored);
     } catch {
-      return null
+      return null;
     }
   }
 
@@ -69,45 +69,28 @@ export class AuthUtils {
     }
   }
 
-  static getAuthHeaders(): Record<string, string> {
-    const tokens = this.getTokens()
-    if (!tokens) return {}
+  static async getAuthHeaders(): Promise<Record<string, string>> {
+    const tokens = await this.getTokens();
+    if (!tokens) return {};
 
     return {
       'Authorization': `Bearer ${tokens.token}`,
-    }
+    };
   }
 
   static async makeAuthenticatedGraphQLRequest<T>(
     mutation: any,
     variables?: Record<string, any>
   ): Promise<T | null> {
-    let tokens = this.getTokens()
-    
-    if (!tokens) {
-      throw new Error('No authentication tokens available')
-    }
-
-    // Check if token is expired and refresh if needed
-    if (this.isTokenExpired(tokens.token)) {
-      const newTokens = await this.refreshTokens(tokens.refreshToken)
-      if (!newTokens) {
-        this.clearTokens()
-        throw new Error('Failed to refresh authentication tokens')
-      }
-      tokens = newTokens
-      this.saveTokens(tokens)
-    }
-
     try {
-      const { data } = await apolloClient.mutate({
+      const { data } = await apolloClient.mutate<T>({
         mutation,
         variables,
-      })
-      return data as T
+      });
+      return data;
     } catch (error) {
-      console.error('Authenticated GraphQL request failed:', error)
-      throw error
+      console.error('Authenticated GraphQL request failed:', error);
+      throw error;
     }
   }
 }
