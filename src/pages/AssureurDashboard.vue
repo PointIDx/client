@@ -196,8 +196,16 @@ const telechargerDocument = async (documentName: string) => {
 }
 
 const handleContactClick = (prestataire: Prestataire) => {
-  selectedPrestataire.value = prestataire;
-  showCommDialog.value = true;
+  // Navigate to chat page with prestataire context
+  router.push({
+    path: '/chat',
+    query: {
+      prestataireId: prestataire.id,
+      contactName: prestataire.nom || prestataire.raisonSociale,
+      contactPerson: prestataire.nom,
+      type: 'prestataire'
+    }
+  })
 };
 
 const handleMissionClick = (prestataire: Prestataire) => {

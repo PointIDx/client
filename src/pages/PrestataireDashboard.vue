@@ -128,6 +128,19 @@ const changerStatutMission = async (missionId: string, nouveauStatut: MissionSta
 const viewMissionDetails = (missionId: string) => {
   router.push(`/mission/${missionId}`)
 }
+
+const openChat = (mission: any) => {
+  // Navigate to chat page with mission context
+  router.push({
+    path: '/chat',
+    query: {
+      missionId: mission.id,
+      contactName: mission.assureur.companyName,
+      contactPerson: mission.assureur.contactPerson,
+      type: 'mission'
+    }
+  })
+}
 </script>
 
 <template>
@@ -231,7 +244,7 @@ const viewMissionDetails = (missionId: string) => {
                     size="sm"
                     class="flex-1 bg-white border-gray-400 text-gray-700 hover:bg-gray-100 hover:border-gray-500 min-w-0 px-2"
                     variant="outline"
-                    @click="() => { selectedMission = mission; showChat = true; }"
+                    @click.stop="openChat(mission)"
                     data-testid="chat-button"
                   >
                     <MessageCircle class="w-4 h-4 mr-1 flex-shrink-0" />
@@ -319,7 +332,7 @@ const viewMissionDetails = (missionId: string) => {
                     size="sm"
                     class="flex-1 bg-white border-gray-400 text-gray-700 hover:bg-gray-100 hover:border-gray-500 min-w-0 px-2"
                     variant="outline"
-                    @click="() => { selectedMission = mission; showChat = true; }"
+                    @click.stop="openChat(mission)"
                     data-testid="chat-button"
                   >
                     <MessageCircle class="w-4 h-4 mr-1 flex-shrink-0" />
@@ -407,7 +420,7 @@ const viewMissionDetails = (missionId: string) => {
                     size="sm"
                     class="flex-1 bg-white border-gray-400 text-gray-700 hover:bg-gray-100 hover:border-gray-500 min-w-0 px-2"
                     variant="outline"
-                    @click="() => { selectedMission = mission; showChat = true; }"
+                    @click.stop="openChat(mission)"
                     data-testid="chat-button"
                   >
                     <MessageCircle class="w-4 h-4 mr-1 flex-shrink-0" />

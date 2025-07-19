@@ -172,7 +172,7 @@ const onSubmit = handleSubmit(async (values) => {
         urgence: values.sinistre_urgence === 'faible' ? 'FAIBLE' : 
                  values.sinistre_urgence === 'moyenne' ? 'MOYENNE' : 
                  values.sinistre_urgence === 'elevee' ? 'HAUTE' : 'MOYENNE',
-        societaireDossier: values.numeroSinistre || 'AUTO-GENERATED',
+        societaireDossier: values.numeroSinistre || 'AUTO-GENERATED-34567',
         location: {
           street: values.chantier_adresse,
           city: values.chantier_ville,

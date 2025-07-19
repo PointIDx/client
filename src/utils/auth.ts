@@ -55,7 +55,11 @@ export class AuthUtils {
     try {
       const { data } = await apolloClient.mutate({
         mutation: REFRESH_TOKEN_MUTATION,
-        variables: { refreshToken },
+        variables: { 
+          input: { 
+            refreshToken 
+          } 
+        },
       })
 
       if (!data?.refreshToken) {

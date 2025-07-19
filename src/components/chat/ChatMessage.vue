@@ -15,10 +15,10 @@
 </template>
 
 <script setup lang="ts">
-import type { ChatMessage } from '@/interfaces/chat'
+import type { Message } from '@/interfaces/chat'
 
 interface Props {
-  message: ChatMessage
+  message: Message
 }
 
 defineProps<Props>()

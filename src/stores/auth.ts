@@ -104,8 +104,8 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   // Initialize from localStorage on app start
-  function initAuth() {
-    const storedTokens = AuthUtils.getTokens();
+  async function initAuth() {
+    const storedTokens = await AuthUtils.getTokens();
     const storedUser = AuthUtils.getUser();
     
     if (storedTokens && storedUser) {
@@ -113,8 +113,20 @@ export const useAuthStore = defineStore('auth', () => {
         tokens.value = storedTokens;
         user.value = storedUser;
       } else {
-        // Try to refresh expired token
-        refreshTokens();
+        // Try to refresh expired token using stored refresh token
+        try {
+          const newTokens = await AuthUtils.refreshTokens(storedTokens.refreshToken);
+          if (newTokens) {
+            tokens.value = newTokens;
+            user.value = storedUser;
+            AuthUtils.saveTokens(newTokens);
+          } else {
+            logout();
+          }
+        } catch (error) {
+          console.error('Token refresh during init failed:', error);
+          logout();
+        }
       }
     }
   }

@@ -266,7 +266,7 @@ const availableActions = computed(() => {
   <div class="min-h-screen bg-gray-50">
     <!-- Header -->
     <div class="bg-white border-b">
-      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16">
           <div class="flex items-center space-x-4">
             <Button variant="ghost" @click="goBack" class="flex items-center space-x-2">
@@ -293,7 +293,7 @@ const availableActions = computed(() => {
     </div>
 
     <!-- Content -->
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Loading State -->
       <div v-if="loading" class="flex items-center justify-center py-12">
         <div class="text-center">
@@ -381,7 +381,7 @@ const availableActions = computed(() => {
           <!-- Sidebar -->
           <div class="space-y-6">
             <!-- Client Info -->
-            <Card>
+            <Card v-if="mission.societaire">
               <CardHeader>
                 <CardTitle class="flex items-center space-x-2">
                   <User class="w-5 h-5" />

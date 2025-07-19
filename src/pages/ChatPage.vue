@@ -1,11 +1,60 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import ChatSidebar from '@/components/chat/ChatSidebar.vue'
 import ChatHeader from '@/components/chat/ChatHeader.vue'
 import ChatMessage from '@/components/chat/ChatMessage.vue'
 import ChatInput from '@/components/chat/ChatInput.vue'
 import TypingIndicator from '@/components/chat/TypingIndicator.vue'
 import type { Chat, Message } from '@/interfaces/chat'
+
+const route = useRoute()
+
+// Initialize chat based on route parameters
+const initializeChatFromRoute = () => {
+  const { missionId, prestataireId, contactName, contactPerson, type } = route.query
+  
+  if (contactName && type) {
+    const newChat: Chat = {
+      id: Date.now(), // Generate temporary ID
+      name: contactName as string,
+      avatar: "/placeholder.svg?height=40&width=40",
+      lastMessage: type === 'mission' ? 'Discussion sur la mission' : 'Nouvelle conversation',
+      time: "maintenant",
+      hasNewMessage: false,
+      newMessageCount: 0,
+    }
+    
+    // Add to chat list if not already present
+    const existingChatIndex = recentChats.value.findIndex(chat => 
+      chat.name === contactName
+    )
+    
+    if (existingChatIndex === -1) {
+      recentChats.value.unshift(newChat)
+    }
+    
+    // Set as selected chat
+    selectedChat.value = newChat
+    
+    // Add initial message based on context
+    const initialMessage: Message = {
+      id: 1,
+      sender: "System",
+      message: type === 'mission' 
+        ? `Discussion démarrée concernant la mission ${missionId}`
+        : `Conversation démarrée avec ${contactPerson || contactName}`,
+      time: new Date().toLocaleTimeString('en-US', { 
+        hour: 'numeric', 
+        minute: '2-digit', 
+        hour12: true 
+      }),
+      isOwn: false,
+    }
+    
+    chatMessages.value = [initialMessage]
+  }
+}
 
 // Mock data for recent chats
 const recentChats = ref<Chat[]>([
@@ -147,8 +196,12 @@ const handleShowMore = () => {
   console.log("Showing more options for", selectedChat.value.name)
 }
 
-// Simulate typing indicator
+// Initialize chat and simulate typing indicator
 onMounted(() => {
+  // Initialize chat from route parameters
+  initializeChatFromRoute()
+  
+  // Simulate typing indicator
   setTimeout(() => {
     isTyping.value = true
     setTimeout(() => {
