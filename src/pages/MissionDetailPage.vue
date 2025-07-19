@@ -220,9 +220,22 @@ const openRatingDialog = () => {
 }
 
 const handleCommentAdded = (newComment: any) => {
-  // Add the new comment to the mission data
+  // Create a new array to avoid mutating the read-only GraphQL result
   if (mission.value) {
-    mission.value.commentaires.push(newComment)
+    mission.value = {
+      ...mission.value,
+      commentaires: [...mission.value.commentaires, newComment]
+    }
+  }
+}
+
+const handleDocumentAdded = (newDocument: any) => {
+  // Create a new array to avoid mutating the read-only GraphQL result
+  if (mission.value) {
+    mission.value = {
+      ...mission.value,
+      documents: [...mission.value.documents, newDocument]
+    }
   }
 }
 
@@ -547,6 +560,7 @@ const availableActions = computed(() => {
               :mission-id="missionId"
               :can-upload="true"
               :can-delete="isAssureur"
+              @document-added="handleDocumentAdded"
             />
           </TabsContent>
 

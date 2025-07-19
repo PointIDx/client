@@ -11,6 +11,7 @@ import {
   SEND_FILE_WITH_MESSAGE_MUTATION
 } from '@/graphql/mutations/mission-comments'
 import { handleGraphQLError, showSuccess } from '@/utils/error-handling'
+import { useAuthStore } from '@/stores/auth'
 
 export const useMissionOperationsStore = defineStore('mission-operations', () => {
   // Document management mutations
@@ -40,11 +41,83 @@ export const useMissionOperationsStore = defineStore('mission-operations', () =>
 
   const uploadMissionFile = async (input: any) => {
     try {
-      const result = await uploadMissionFileMutation({ input })
+      // Use direct fetch for file upload with multipart/form-data
+      const formData = new FormData()
       
-      if (result?.data?.uploadMissionFile) {
+      // Add the GraphQL operation
+      formData.append('operations', JSON.stringify({
+        query: `
+          mutation UploadMissionFile($input: MissionDocumentUploadInput!) {
+            uploadMissionFile(input: $input) {
+              id
+              filename
+              url
+              contentType
+              size
+              uploadDate
+              description
+              uploadedBy
+            }
+          }
+        `,
+        variables: {
+          input: {
+            missionId: input.missionId,
+            file: null,
+            description: input.description
+          }
+        }
+      }))
+      
+      // Map the file to the correct variable
+      formData.append('map', JSON.stringify({
+        '0': ['variables.input.file']
+      }))
+      
+      // Add the actual file
+      formData.append('0', input.file)
+      
+      // Get auth token
+      const authStore = useAuthStore()
+      const tokens = authStore.tokens
+      
+      // Make the request
+      const response = await fetch(import.meta.env.VITE_APP_SERVER_GRAPHQL_URL || '/graphql', {
+        method: 'POST',
+        headers: {
+          'Authorization': tokens?.token ? `Bearer ${tokens.token}` : ''
+        },
+        body: formData
+      })
+      
+      // Check if the response is ok
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Upload response not ok:', response.status, response.statusText, errorText)
+        throw new Error(`Upload failed with status ${response.status}: ${response.statusText}`)
+      }
+      
+      // Get response text first to debug
+      const responseText = await response.text()
+      console.log('Upload response text:', responseText)
+      
+      // Try to parse as JSON
+      let result
+      try {
+        result = JSON.parse(responseText)
+      } catch (parseError) {
+        console.error('Failed to parse response as JSON:', parseError)
+        console.error('Response was:', responseText)
+        throw new Error(`Server returned invalid JSON response: ${responseText.substring(0, 200)}`)
+      }
+      
+      if (result.data?.uploadMissionFile) {
         showSuccess('Fichier téléchargé avec succès')
         return result.data.uploadMissionFile
+      } else if (result.errors) {
+        throw new Error(result.errors[0]?.message || 'Upload failed')
+      } else {
+        throw new Error('Unknown upload error')
       }
     } catch (error) {
       handleGraphQLError(error, 'Upload File', { showToast: true })

@@ -158,6 +158,10 @@ const props = withDefaults(defineProps<Props>(), {
   canDelete: false
 })
 
+const emit = defineEmits<{
+  'document-added': [document: any]
+}>()
+
 const authStore = useAuthStore()
 const missionOpsStore = useMissionOperationsStore()
 
@@ -199,7 +203,13 @@ const refreshDocuments = () => {
 }
 
 const handleUploadComplete = (newDocuments: any[]) => {
-  documents.value.push(...newDocuments)
+  // Create a new array to avoid mutating read-only arrays
+  documents.value = [...documents.value, ...newDocuments]
+  
+  // Emit event for each new document to update parent component
+  newDocuments.forEach(doc => {
+    emit('document-added', doc)
+  })
 }
 
 const formatFileSize = (bytes: number): string => {

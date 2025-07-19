@@ -61,13 +61,13 @@ test.describe('Mission Creation and Assignment - Live Mode', () => {
     // Step 2: Chantier (Worksite)
     await page.click('[data-testid="copy-address-button"]'); // Copy client address
     await page.selectOption('[data-testid="access-type"]', 'Libre');
-    await page.fill('[data-testid="access-instructions"]', 'Accès par l\\'entrée principale');
+    await page.fill('[data-testid="access-instructions"]', 'Accès par l\'entrée principale');
     await page.click('[data-testid="next-step-button"]');
     
     // Step 3: Sinistre (Incident)
     await page.selectOption('[data-testid="sinistre-type"]', 'Dégât des eaux');
     await page.selectOption('[data-testid="urgence-level"]', 'MOYENNE');
-    await page.fill('[data-testid="sinistre-description"]', 'Fuite d\\'eau dans la salle de bain nécessitant une intervention rapide');
+    await page.fill('[data-testid="sinistre-description"]', 'Fuite d\'eau dans la salle de bain nécessitant une intervention rapide');
     await page.click('[data-testid="next-step-button"]');
     
     // Step 4: Mission Details

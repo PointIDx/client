@@ -312,13 +312,7 @@ test.describe('Live Mission Details Tests', () => {
       await page.waitForTimeout(5000);
       
       // Check if content loads after refresh
-      const contentAfterRefresh = await page.getByText('Documents').or(
-        page.getByText('Messages').or(
-          page.getByText('Historique').or(
-            page.getByText('Informations de la mission')
-          )
-        )
-      ).isVisible();
+      const contentAfterRefresh = await page.locator('[role="tablist"]').isVisible();
       
       console.log('📄 Content visible after refresh:', contentAfterRefresh);
       
@@ -481,19 +475,19 @@ test.describe('Live Mission Details Tests', () => {
             },
             body: JSON.stringify({
               query: `
-                mutation SendComment($input: SendCommentInput!) {
+                mutation SendComment($input: CommentInput!) {
                   sendComment(input: $input) {
                     id
-                    contenu
-                    dateEnvoi
-                    expediteur
+                    content
+                    createdAt
+                    author
                   }
                 }
               `,
               variables: {
                 input: {
                   missionId: missionId,
-                  contenu: comment
+                  content: comment
                 }
               }
             })
@@ -688,7 +682,7 @@ test.describe('Live Mission Details Tests', () => {
           const formData = new FormData();
           formData.append('operations', JSON.stringify({
             query: `
-              mutation UploadMissionDocument($input: UploadMissionDocumentInput!) {
+              mutation UploadMissionDocument($input: MissionDocumentInput!) {
                 uploadMissionDocument(input: $input) {
                   id
                   filename
@@ -700,12 +694,14 @@ test.describe('Live Mission Details Tests', () => {
             variables: {
               input: {
                 missionId: missionId,
+                filename: "test-upload.txt",
+                contentType: "text/plain",
+                size: fileContent.length,
                 description: "Test file upload from E2E test"
               }
             }
           }));
-          formData.append('map', JSON.stringify({ "0": ["variables.input.file"] }));
-          formData.append('0', blob, 'test-upload.txt');
+          formData.append('file', blob, 'test-upload.txt');
           
           const response = await fetch('http://localhost:8000/graphql', {
             method: 'POST',
@@ -753,17 +749,12 @@ test.describe('Live Mission Details Tests', () => {
             },
             body: JSON.stringify({
               query: `
-                mutation DeleteDocument($input: DeleteDocumentInput!) {
-                  deleteDocument(input: $input) {
-                    success
-                    message
-                  }
+                mutation DeleteDocument($documentId: UUID!) {
+                  deleteDocument(documentId: $documentId)
                 }
               `,
               variables: {
-                input: {
-                  documentId: docId
-                }
+                documentId: docId
               }
             })
           });
@@ -781,9 +772,9 @@ test.describe('Live Mission Details Tests', () => {
       
       console.log('📊 Direct GraphQL file deletion result:', deleteResult);
       
-      if (deleteResult.success && deleteResult.data?.deleteDocument) {
+      if (deleteResult.success && deleteResult.data?.deleteDocument === true) {
         console.log('✅ File deleted successfully via direct GraphQL!');
-        console.log('📄 Deletion details:', deleteResult.data.deleteDocument);
+        console.log('📄 Deletion result:', deleteResult.data.deleteDocument);
       } else {
         console.log('❌ File deletion failed:', deleteResult.errors || deleteResult.error);
       }
