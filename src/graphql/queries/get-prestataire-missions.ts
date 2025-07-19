@@ -1,28 +1,19 @@
 import { gql } from 'graphql-tag'
 
 export const GET_PRESTATAIRE_MISSIONS_QUERY = gql`
-  query GetPrestataireMissions {
-    getPrestataireMissions {
+  query GetPrestataireMissionsEnhanced {
+    getPrestataireMissionsEnhanced {
       id
-      reference
-      title
-      description
-      statut
-      urgence
-      assureurId
-      prestataireId
-      societaireDossier
-      createdAt
-      updatedAt
-      deadline
-      location {
-        street
-        city
-        postalCode
-        country
+      missionStatus
+      dossier
+      assureur {
+        id
+        companyName
+        contactPerson
+        phone
+        email
       }
-      estimatedCost
-      actualCost
+      dateCreation
     }
   }
 `

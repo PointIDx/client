@@ -29,37 +29,55 @@ import {
 
 import { usePrestataireStore } from '@/stores/prestataire'
 import { onMounted, computed, ref, watch, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import { MissionStatutPrestataire } from '@/enums/mission-statut-prestataire'
 import { MessageExpediteur } from '@/enums/message-expediteur'
 import type { MissionPrestataire } from '@/interfaces/mission-prestataire'
-import { getPrestataireMissionStatusBadge } from '@/utils/status-badges'
+import { getMissionStatusBadge } from '@/utils/status-badges'
 import { handleError } from '@/utils/error-handling'
+
+const router = useRouter()
 
 const prestataireStore = usePrestataireStore()
 
-onMounted(() => {
-  prestataireStore.getMissions()
+onMounted(async () => {
+  console.log('🔧 Prestataire dashboard mounted, fetching missions...')
+  try {
+    await prestataireStore.getMissions()
+    console.log('✅ Missions fetch completed')
+  } catch (error) {
+    console.error('❌ Failed to fetch missions:', error)
+  }
   prestataireStore.fetchNotifications()
 })
 
 const missions = computed(() => prestataireStore.missions)
 
-const filteredMissions = (status: MissionStatutPrestataire) => {
-  return missions.value.filter((mission) => mission.missionStatus === status)
-}
-
-const nouvellesMissions = computed(() => filteredMissions(MissionStatutPrestataire.Nouvelle))
+// Filter missions by GraphQL MissionStatut values
+const nouvellesMissions = computed(() => {
+  const nouvelles = missions.value.filter((mission) => mission.missionStatus === 'EN_ATTENTE')
+  console.log('🎯 Nouvelles missions count:', nouvelles.length, 'from total:', missions.value.length)
+  if (missions.value.length > 0) {
+    console.log('📋 All mission statuses:', missions.value.map(m => m.missionStatus))
+  }
+  return nouvelles
+})
 const missionsEnCours = computed(() => {
-  return missions.value.filter((mission) => 
-    mission.missionStatus === MissionStatutPrestataire.EnCours ||
-    mission.missionStatus === MissionStatutPrestataire.Acceptee
+  const enCours = missions.value.filter((mission) => 
+    mission.missionStatus === 'EN_COURS' ||
+    mission.missionStatus === 'ASSIGNEE'
   )
+  console.log('🎯 Missions en cours count:', enCours.length)
+  return enCours
 })
 const missionsTerminees = computed(() => {
-  return missions.value.filter((mission) => 
-    mission.missionStatus === MissionStatutPrestataire.Terminee ||
-    mission.missionStatus === MissionStatutPrestataire.Refusee
+  const terminees = missions.value.filter((mission) => 
+    mission.missionStatus === 'TERMINEE' ||
+    mission.missionStatus === 'ANNULEE' ||
+    mission.missionStatus === 'SUSPENDUE'
   )
+  console.log('🎯 Missions terminées count:', terminees.length)
+  return terminees
 })
 
 const messages = computed(() => prestataireStore.messages)
@@ -92,7 +110,7 @@ watch(selectedMission, (newMission) => {
 })
 
 // Using shared utilities for status badges
-const getStatutBadge = getPrestataireMissionStatusBadge
+const getStatutBadge = getMissionStatusBadge
 
 const changerStatutMission = async (missionId: string, nouveauStatut: MissionStatutPrestataire) => {
   try {
@@ -105,6 +123,10 @@ const changerStatutMission = async (missionId: string, nouveauStatut: MissionSta
   } catch (error) {
     handleError(error, 'Update Mission Status', { showToast: true })
   }
+}
+
+const viewMissionDetails = (missionId: string) => {
+  router.push(`/mission/${missionId}`)
 }
 </script>
 
@@ -172,12 +194,12 @@ const changerStatutMission = async (missionId: string, nouveauStatut: MissionSta
         <!-- Onglet Nouvelles demandes -->
         <TabsContent value="nouvelles" data-testid="nouvelles-missions-list">
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <Card v-for="mission in nouvellesMissions" :key="mission.id" class="hover:shadow-lg transition-shadow border-gray-300" data-testid="mission-card">
+            <Card v-for="mission in nouvellesMissions" :key="mission.id" class="hover:shadow-lg transition-shadow border-gray-300 cursor-pointer" data-testid="mission-card" @click="viewMissionDetails(mission.id)">
               <CardHeader class="pb-3">
                 <div class="flex items-start justify-between">
                   <div>
-                    <CardTitle class="text-lg text-black">{{ mission.dossier.type }}</CardTitle>
-                    <CardDescription class="text-sm text-gray-700">Mission #{{ mission.dossier.dossierNumber }}</CardDescription>
+                    <CardTitle class="text-lg text-black">Mission</CardTitle>
+                    <CardDescription class="text-sm text-gray-700">Dossier #{{ mission.dossier }}</CardDescription>
                   </div>
                   <Badge :class="getStatutBadge(mission.missionStatus)?.class">
                     <component :is="getStatutBadge(mission.missionStatus)?.icon" class="w-3 h-3 mr-1" />
@@ -187,63 +209,23 @@ const changerStatutMission = async (missionId: string, nouveauStatut: MissionSta
               </CardHeader>
               <CardContent class="space-y-3">
                 <div class="flex items-center space-x-2">
-                  <MapPin class="w-4 h-4 text-gray-600" />
-                  <span class="text-sm text-gray-700">{{ mission.dossier.address }}</span>
-                </div>
-                <div class="flex items-center space-x-2">
                   <User class="w-4 h-4 text-gray-600" />
                   <span class="text-sm text-gray-700">{{ mission.assureur.companyName }}</span>
                 </div>
+                <div class="flex items-center space-x-2">
+                  <span class="text-sm text-gray-700">Contact: {{ mission.assureur.contactPerson }}</span>
+                </div>
                 <div class="flex items-center space-x-2 pt-2">
-                  <Dialog>
-                    <DialogTrigger as-child>
-                      <Button variant="outline" size="sm" class="flex-1 bg-white border-gray-400 text-gray-700 hover:bg-gray-100 hover:border-gray-500 min-w-0 px-2" data-testid="details-button">
-                        <Eye class="w-4 h-4 mr-1 flex-shrink-0" />
-                        <span class="truncate">Détails</span>
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent class="max-w-2xl max-h-[80vh] overflow-y-auto bg-white border-gray-300">
-                      <DialogHeader>
-                        <DialogTitle class="text-black">Mission #{{ mission.dossier.dossierNumber }}</DialogTitle>
-                        <DialogDescription class="text-gray-700">{{ mission.dossier.description }}</DialogDescription>
-                      </DialogHeader>
-
-                      <div class="space-y-6">
-                        <!-- Statut et actions -->
-                        <div class="flex items-center justify-between">
-                          <Badge :class="getStatutBadge(mission.missionStatus)?.class">
-                            <component :is="getStatutBadge(mission.missionStatus)?.icon" class="w-3 h-3 mr-1" />
-                            {{ getStatutBadge(mission.missionStatus)?.text }}
-                          </Badge>
-                          <div class="flex space-x-2">
-                            <template v-if="mission.missionStatus === MissionStatutPrestataire.Nouvelle">
-                              <Button size="sm" class="bg-black text-white hover:bg-gray-800 min-w-0 px-3" @click="changerStatutMission(mission.id, MissionStatutPrestataire.Acceptee)" data-testid="accept-mission-button">
-                                <Check class="w-4 h-4 mr-1 flex-shrink-0" />
-                                <span class="truncate">Accepter</span>
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                class="border-gray-400 text-gray-700 hover:bg-gray-100 hover:border-gray-500 min-w-0 px-3"
-                                @click="changerStatutMission(mission.id, MissionStatutPrestataire.Refusee)"
-                                data-testid="refuse-mission-button"
-                              >
-                                <X class="w-4 h-4 mr-1 flex-shrink-0" />
-                                <span class="truncate">Refuser</span>
-                              </Button>
-                            </template>
-                            <Button v-else-if="mission.missionStatus === MissionStatutPrestataire.Acceptee" size="sm" class="bg-black text-white hover:bg-gray-800 min-w-0 px-3" @click="changerStatutMission(mission.id, MissionStatutPrestataire.EnCours)" data-testid="start-mission-button">
-                              <span class="truncate">Démarrer</span>
-                            </Button>
-                            <Button v-else-if="mission.missionStatus === MissionStatutPrestataire.EnCours" size="sm" class="bg-black text-white hover:bg-gray-800 min-w-0 px-3" @click="changerStatutMission(mission.id, MissionStatutPrestataire.Terminee)" data-testid="finish-mission-button">
-                              <span class="truncate">Terminer</span>
-                            </Button>
-                          </div>
-                        </div>
-                        <!-- The rest of the dialog content -->
-                      </div>
-                    </DialogContent>
-                  </Dialog>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    class="flex-1 bg-white border-gray-400 text-gray-700 hover:bg-gray-100 hover:border-gray-500 min-w-0 px-2" 
+                    data-testid="details-button"
+                    @click.stop="viewMissionDetails(mission.id)"
+                  >
+                    <Eye class="w-4 h-4 mr-1 flex-shrink-0" />
+                    <span class="truncate">Voir détails</span>
+                  </Button>
 
                   <Button
                     size="sm"
@@ -264,12 +246,12 @@ const changerStatutMission = async (missionId: string, nouveauStatut: MissionSta
         <!-- Onglet Missions en cours -->
         <TabsContent value="en-cours" data-testid="en-cours-missions-list">
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <Card v-for="mission in missionsEnCours" :key="mission.id" class="hover:shadow-lg transition-shadow" data-testid="mission-card">
+            <Card v-for="mission in missionsEnCours" :key="mission.id" class="hover:shadow-lg transition-shadow cursor-pointer" data-testid="mission-card" @click="viewMissionDetails(mission.id)">
               <CardHeader class="pb-3">
                 <div class="flex items-start justify-between">
                   <div>
-                    <CardTitle class="text-lg">{{ mission.dossier.type }}</CardTitle>
-                    <CardDescription class="text-sm">Mission #{{ mission.dossier.dossierNumber }}</CardDescription>
+                    <CardTitle class="text-lg">Mission</CardTitle>
+                    <CardDescription class="text-sm">Dossier #{{ mission.dossier }}</CardDescription>
                   </div>
                   <Badge :class="getStatutBadge(mission.missionStatus)?.class">
                     <component :is="getStatutBadge(mission.missionStatus)?.icon" class="w-3 h-3 mr-1" />
@@ -278,10 +260,6 @@ const changerStatutMission = async (missionId: string, nouveauStatut: MissionSta
                 </div>
               </CardHeader>
               <CardContent class="space-y-3">
-                <div class="flex items-center space-x-2">
-                  <MapPin class="w-4 h-4 text-gray-500" />
-                  <span class="text-sm text-gray-600">{{ mission.dossier.address }}</span>
-                </div>
                 <div class="flex items-center space-x-2">
                   <User class="w-4 h-4 text-gray-500" />
                   <span class="text-sm">{{ mission.assureur.companyName }}</span>
@@ -296,8 +274,8 @@ const changerStatutMission = async (missionId: string, nouveauStatut: MissionSta
                     </DialogTrigger>
                     <DialogContent class="max-w-2xl max-h-[80vh] overflow-y-auto bg-white border-gray-300">
                       <DialogHeader>
-                        <DialogTitle class="text-black">Mission #{{ mission.dossier.dossierNumber }}</DialogTitle>
-                        <DialogDescription class="text-gray-700">{{ mission.dossier.description }}</DialogDescription>
+                        <DialogTitle class="text-black">Mission #{{ mission.dossier }}</DialogTitle>
+                        <DialogDescription class="text-gray-700">Détails de la mission</DialogDescription>
                       </DialogHeader>
 
                       <div class="space-y-6">
@@ -356,12 +334,12 @@ const changerStatutMission = async (missionId: string, nouveauStatut: MissionSta
         <!-- Onglet Missions terminées -->
         <TabsContent value="terminees" data-testid="terminees-missions-list">
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <Card v-for="mission in missionsTerminees" :key="mission.id" class="hover:shadow-lg transition-shadow" data-testid="mission-card">
+            <Card v-for="mission in missionsTerminees" :key="mission.id" class="hover:shadow-lg transition-shadow cursor-pointer" data-testid="mission-card" @click="viewMissionDetails(mission.id)">
               <CardHeader class="pb-3">
                 <div class="flex items-start justify-between">
                   <div>
-                    <CardTitle class="text-lg">{{ mission.dossier.type }}</CardTitle>
-                    <CardDescription class="text-sm">Mission #{{ mission.dossier.dossierNumber }}</CardDescription>
+                    <CardTitle class="text-lg">Mission</CardTitle>
+                    <CardDescription class="text-sm">Dossier #{{ mission.dossier }}</CardDescription>
                   </div>
                   <Badge :class="getStatutBadge(mission.missionStatus)?.class">
                     <component :is="getStatutBadge(mission.missionStatus)?.icon" class="w-3 h-3 mr-1" />
@@ -370,10 +348,6 @@ const changerStatutMission = async (missionId: string, nouveauStatut: MissionSta
                 </div>
               </CardHeader>
               <CardContent class="space-y-3">
-                <div class="flex items-center space-x-2">
-                  <MapPin class="w-4 h-4 text-gray-500" />
-                  <span class="text-sm text-gray-600">{{ mission.dossier.address }}</span>
-                </div>
                 <div class="flex items-center space-x-2">
                   <User class="w-4 h-4 text-gray-500" />
                   <span class="text-sm">{{ mission.assureur.companyName }}</span>
@@ -388,8 +362,8 @@ const changerStatutMission = async (missionId: string, nouveauStatut: MissionSta
                     </DialogTrigger>
                     <DialogContent class="max-w-2xl max-h-[80vh] overflow-y-auto bg-white border-gray-300">
                       <DialogHeader>
-                        <DialogTitle class="text-black">Mission #{{ mission.dossier.dossierNumber }}</DialogTitle>
-                        <DialogDescription class="text-gray-700">{{ mission.dossier.description }}</DialogDescription>
+                        <DialogTitle class="text-black">Mission #{{ mission.dossier }}</DialogTitle>
+                        <DialogDescription class="text-gray-700">Détails de la mission</DialogDescription>
                       </DialogHeader>
 
                       <div class="space-y-6">
@@ -454,9 +428,9 @@ const changerStatutMission = async (missionId: string, nouveauStatut: MissionSta
           <DialogHeader>
             <DialogTitle class="flex items-center space-x-2 text-black">
               <MessageCircle class="w-5 h-5" />
-              <span>Chat - Mission #{{ selectedMission.dossier.dossierNumber }}</span>
+              <span>Chat - Mission #{{ selectedMission.dossier }}</span>
             </DialogTitle>
-            <DialogDescription class="text-gray-700">{{ selectedMission.dossier.description }}</DialogDescription>
+            <DialogDescription class="text-gray-700">Conversation pour cette mission</DialogDescription>
           </DialogHeader>
 
           <div class="flex flex-col h-96">

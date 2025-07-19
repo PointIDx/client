@@ -19,6 +19,63 @@ export interface StatusBadgeConfig {
 }
 
 /**
+ * Gets badge configuration for GraphQL mission status (used in prestataire dashboard)
+ */
+export function getMissionStatusBadge(status: string): StatusBadgeConfig {
+  switch (status) {
+    case 'EN_ATTENTE':
+      return {
+        text: 'Nouvelle',
+        class: 'bg-gray-100 text-gray-800 border-gray-300',
+        icon: Bell,
+        variant: 'outline'
+      }
+    case 'ASSIGNEE':
+      return {
+        text: 'Assignée',
+        class: 'bg-blue-100 text-blue-800 border-blue-300',
+        icon: CheckCircle,
+        variant: 'default'
+      }
+    case 'EN_COURS':
+      return {
+        text: 'En cours',
+        class: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+        icon: PlayCircle,
+        variant: 'default'
+      }
+    case 'TERMINEE':
+      return {
+        text: 'Terminée',
+        class: 'bg-green-100 text-green-800 border-green-300',
+        icon: CheckCircle,
+        variant: 'default'
+      }
+    case 'ANNULEE':
+      return {
+        text: 'Annulée',
+        class: 'bg-red-100 text-red-800 border-red-300',
+        icon: XCircle,
+        variant: 'destructive'
+      }
+    case 'SUSPENDUE':
+      return {
+        text: 'Suspendue',
+        class: 'bg-orange-100 text-orange-800 border-orange-300',
+        icon: AlertTriangle,
+        variant: 'secondary'
+      }
+    default:
+      return {
+        text: 'Inconnue',
+        class: 'bg-gray-100 text-gray-800 border-gray-300',
+        icon: AlertTriangle,
+        variant: 'outline'
+      }
+  }
+}
+
+/**
  * Gets badge configuration for prestataire mission status
  */
 export function getPrestataireMissionStatusBadge(status: MissionStatutPrestataire): StatusBadgeConfig {

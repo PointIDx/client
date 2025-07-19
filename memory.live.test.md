@@ -181,3 +181,160 @@ The migration from MSW to live server testing is complete and working. Tests now
 - **Error handling:** Graceful handling of form validation and navigation errors
 
 The live E2E test suite now provides comprehensive coverage of the complete user journey from search to mission creation with real backend integration.
+
+## 🔄 Recent GraphQL Schema Updates
+
+### ✅ Enhanced Mission Lifecycle Support (2025-01-19)
+
+#### New Input Types Added to `graphql.schema.graphql`:
+- **AcceptMissionInput** - Enhanced mission acceptance with completion date and comment
+- **RefuseMissionInput** - Mission refusal with reason requirement
+- **StartMissionInput** - Starting missions with optional start comment
+- **CompleteMissionInput** - Mission completion with details, cost, and photos
+- **CancelMissionInput** - Mission cancellation with reason and canceller tracking
+- **SuspendMissionInput** - Mission suspension with reason and expected resume date
+- **ResumeMissionInput** - Resuming suspended missions with optional comment
+
+#### New Mutations Added:
+- **acceptMissionEnhanced()** - Enhanced acceptance with completion date
+- **refuseMission()** - Refuse missions with reason (prestataire only)
+- **startMission()** - Start accepted missions (prestataire only) 
+- **completeMission()** - Complete missions with details (prestataire only)
+- **cancelMission()** - Cancel missions (both assureur and prestataire)
+- **suspendMission()** - Suspend missions (assureur only)
+- **resumeMission()** - Resume suspended missions (assureur only)
+- **validateMissionCompletion()** - Validate completed work (assureur only)
+
+#### Mission Status Flow Implementation:
+```
+EN_ATTENTE → ASSIGNEE → EN_COURS → TERMINEE
+    ↓         ↓         ↓         ↓
+  ANNULEE   ANNULEE   ANNULEE   (Final)
+    ↓         ↓         ↓
+ SUSPENDUE SUSPENDUE SUSPENDUE
+    ↓         ↓         ↓
+  Resume to previous status
+```
+
+#### Role-Based Action Matrix:
+**Prestataire Actions:**
+- Accept missions (EN_ATTENTE → ASSIGNEE)
+- Refuse missions (EN_ATTENTE → ANNULEE) 
+- Start missions (ASSIGNEE → EN_COURS)
+- Complete missions (EN_COURS → TERMINEE)
+- Cancel own missions (any status → ANNULEE)
+
+**Assureur Actions:**
+- Create missions (initial EN_ATTENTE status)
+- Suspend missions (any status → SUSPENDUE)
+- Resume missions (SUSPENDUE → previous status)
+- Validate completion (TERMINEE confirmation)
+- Cancel missions (any status → ANNULEE)
+
+### 🚀 Next Implementation Phase:
+- Mission detail page lifecycle UI integration
+- GraphQL mutation implementations in Vue components
+- Status-specific action buttons based on user role
+- Real-time status updates and notifications
+
+## 🏗️ Store Architecture Refactoring (2025-01-19)
+
+### ✅ Mission Operations Store Implementation
+
+#### Problem Identified:
+The user correctly pointed out that document and comment management functions were duplicated across both assureur and prestataire stores, violating DRY principles and creating maintenance overhead.
+
+#### Solution Implemented:
+Created a dedicated `useMissionOperationsStore` for all shared mission-related operations.
+
+#### 📁 New Store Structure:
+
+**Created:** `/src/stores/mission-operations.ts`
+- **uploadMissionDocument()** - Document upload with success feedback
+- **uploadMissionFile()** - File upload functionality  
+- **deleteDocument()** - Document deletion with confirmation
+- **updateDocumentMetadata()** - Metadata updates
+- **sendComment()** - Comment posting with success feedback
+- **sendFileWithMessage()** - File sharing with message attachment
+
+#### 🔧 Store Cleanup:
+
+**Updated:** `/src/stores/assureur.ts`
+- ❌ Removed duplicated document management functions
+- ❌ Removed duplicated comment management functions
+- ✅ Kept assureur-specific mission lifecycle functions
+- ✅ Maintained communication and notification management
+
+**Updated:** `/src/stores/prestataire.ts`
+- ❌ Removed duplicated document management functions
+- ❌ Removed duplicated comment management functions  
+- ✅ Kept prestataire-specific mission lifecycle functions
+- ✅ Maintained profile and availability management
+
+#### 🎯 Component Integration:
+
+**Updated:** `/src/components/MissionDocuments.vue`
+- Now uses `useMissionOperationsStore` instead of user-specific stores
+- Simplified deletion logic - no longer needs user type checking
+- Cleaner, more maintainable code
+
+**Updated:** `/src/components/MissionComments.vue`
+- Uses shared `sendComment()` function from mission operations store
+- Eliminated user type-based conditionals
+- Single source of truth for comment operations
+
+**Updated:** `/src/components/DocumentUpload.vue`
+- Uses shared `uploadMissionFile()` function
+- No longer duplicates upload logic across user types
+- Consistent upload behavior for all users
+
+#### 🎉 Benefits Achieved:
+
+1. **Single Source of Truth** - All mission operations centralized
+2. **DRY Principle** - No code duplication between stores
+3. **Better Separation of Concerns** - User-specific vs mission-specific operations
+4. **Easier Maintenance** - Changes only need to be made in one place
+5. **Type Safety** - Consistent interfaces across all components
+6. **Cleaner Architecture** - Each store has focused responsibilities
+
+#### 📊 Architecture Comparison:
+
+**Before:**
+```
+AssureurStore: [Mission Ops] + [User Ops] + [Lifecycle Ops]
+PrestataireStore: [Mission Ops] + [User Ops] + [Lifecycle Ops]
+                    ↑ DUPLICATED ↑
+```
+
+**After:**
+```
+MissionOperationsStore: [Document Ops] + [Comment Ops]
+AssureurStore: [User-specific Ops] + [Assureur Lifecycle]
+PrestataireStore: [User-specific Ops] + [Prestataire Lifecycle]
+                    ↑ CLEAN SEPARATION ↑
+```
+
+#### 🛠️ Technical Implementation Notes:
+
+- **GraphQL Integration:** All GraphQL mutations properly wrapped with error handling
+- **Success Feedback:** Consistent success messages across all operations
+- **Error Management:** Centralized error handling with user-friendly messages
+- **Type Safety:** Proper TypeScript interfaces maintained
+- **Performance:** No impact on performance, improved maintainability
+
+#### ✅ Validation:
+- All components successfully updated to use new store
+- No breaking changes to existing functionality
+- Cleaner, more maintainable codebase
+- Better adherence to Vue.js/Pinia best practices
+
+### 📋 Files Modified:
+- **NEW:** `/src/stores/mission-operations.ts` - Centralized mission operations
+- **UPDATED:** `/src/stores/assureur.ts` - Removed duplicated functions
+- **UPDATED:** `/src/stores/prestataire.ts` - Removed duplicated functions
+- **UPDATED:** `/src/components/MissionDocuments.vue` - Uses mission-operations store
+- **UPDATED:** `/src/components/MissionComments.vue` - Uses mission-operations store  
+- **UPDATED:** `/src/components/DocumentUpload.vue` - Uses mission-operations store
+
+### 🎯 Result:
+The store architecture now follows best practices with clear separation of concerns, eliminating code duplication while maintaining all existing functionality. This refactoring makes the codebase more maintainable and follows the Single Responsibility Principle more effectively.

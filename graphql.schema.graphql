@@ -587,6 +587,60 @@ input MissionStatusUpdateInput {
 	comment: String
 }
 
+# Enhanced mission acceptance with completion date
+input AcceptMissionInput {
+	missionId: UUID!
+	estimatedCompletionDate: DateTime
+	comment: String
+}
+
+# Mission refusal with reason
+input RefuseMissionInput {
+	missionId: UUID!
+	reason: String!
+}
+
+# Starting a mission
+input StartMissionInput {
+	missionId: UUID!
+	startComment: String
+}
+
+# Completing a mission with details
+input CompleteMissionInput {
+	missionId: UUID!
+	completionComment: String!
+	actualCost: Float
+	completionPhotos: [String!]  # URLs or file IDs
+}
+
+# Cancelling a mission
+input CancelMissionInput {
+	missionId: UUID!
+	cancellationReason: String!
+	cancelledBy: String!  # "assureur" or "prestataire"
+}
+
+# Suspending a mission (assureur only)
+input SuspendMissionInput {
+	missionId: UUID!
+	suspensionReason: String!
+	expectedResumeDate: DateTime
+}
+
+# Resuming a suspended mission
+input ResumeMissionInput {
+	missionId: UUID!
+	resumeComment: String
+}
+
+# Rating a prestataire after mission completion
+input RatePrestaireInput {
+	missionId: UUID!
+	rating: Int! # 1-5 stars
+	comment: String
+}
+
 enum MissionStatut {
 	EN_ATTENTE
 	ASSIGNEE
@@ -657,6 +711,42 @@ type MutationRoot {
 	Update mission status
 	"""
 	updateMissionStatus(input: MissionStatusUpdateInput!): Mission!
+	"""
+	Enhanced mission acceptance with completion date
+	"""
+	acceptMissionEnhanced(input: AcceptMissionInput!): Mission!
+	"""
+	Refuse a mission with reason (prestataire)
+	"""
+	refuseMission(input: RefuseMissionInput!): Mission!
+	"""
+	Start a mission (prestataire)
+	"""
+	startMission(input: StartMissionInput!): Mission!
+	"""
+	Complete a mission with details (prestataire)
+	"""
+	completeMission(input: CompleteMissionInput!): Mission!
+	"""
+	Cancel a mission (both assureur and prestataire)
+	"""
+	cancelMission(input: CancelMissionInput!): Mission!
+	"""
+	Suspend a mission (assureur only)
+	"""
+	suspendMission(input: SuspendMissionInput!): Mission!
+	"""
+	Resume a suspended mission (assureur)
+	"""
+	resumeMission(input: ResumeMissionInput!): Mission!
+	"""
+	Validate mission completion (assureur)
+	"""
+	validateMissionCompletion(missionId: UUID!, validationComment: String): Mission!
+	"""
+	Rate a prestataire after mission completion (assureur only)
+	"""
+	ratePrestataire(input: RatePrestaireInput!): PrestataireRating!
 	"""
 	Send a message in a conversation
 	"""
@@ -970,6 +1060,14 @@ type PrestataireStatistics {
 	missionsThisWeek: Int!
 	upcomingMissions: [MissionSummary!]!
 	overduePayments: [PaymentSummary!]!
+}
+
+type PrestataireRating {
+	id: UUID!
+	missionId: UUID!
+	rating: Int!
+	comment: String
+	createdAt: DateTime!
 }
 
 type QueryRoot {

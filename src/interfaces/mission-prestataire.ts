@@ -1,21 +1,14 @@
-import type { MissionStatutPrestataire } from '@/enums/mission-statut-prestataire';
-
+// Interface that matches the GraphQL MissionAssignment type from the schema
 export interface MissionPrestataire {
   id: string
-  missionStatus: MissionStatutPrestataire
-  dossier: {
-    id: string
-    dossierNumber: string
-    description: string
-    address: string
-    type: string
-  }
+  missionStatus: string // Uses MissionStatut from GraphQL schema: EN_ATTENTE, ASSIGNEE, EN_COURS, TERMINEE, ANNULEE, SUSPENDUE
+  dossier: string
   assureur: {
     id: string
     companyName: string
+    contactPerson: string
+    phone: string
+    email: string
   }
   dateCreation: string
-  dateReponse?: string
-  dateFinPrevue?: string
-  nouveauxMessages: number
 }

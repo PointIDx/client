@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -41,299 +42,27 @@ import {
   FileText,
   Briefcase,
 } from 'lucide-vue-next'
-import type { IMission } from '@/interfaces/IMission'
+import type { MissionDetails } from '@/interfaces/MissionDetails'
 import { useAssureurStore } from '@/stores/assureur'
+
+const router = useRouter()
 
 const assureurStore = useAssureurStore()
 
 // Props
 interface Props {
-  missions?: IMission[]
+  missions?: MissionDetails[]
 }
 
 const props = withDefaults(defineProps<Props>(), {
   missions: () => []
 })
 
-// Données mockées pour la démonstration (utilisées si pas de props)
-const mockMissions: IMission[] = [
-  {
-    id: "1",
-    numeroMission: "M240001",
-    prestataire: {
-      id: "1",
-      nom: "Martin",
-      prenom: "Dubois",
-      raisonSociale: "DUBOIS MAÇONNERIE SARL",
-      telephone: "04 78 12 34 56",
-      email: "contact@dubois-maconnerie.fr",
-      ville: "Lyon",
-    },
-    client: {
-      civilite: "M",
-      nom: "Dupont",
-      prenom: "Jean",
-      telephone: "06 12 34 56 78",
-      email: "jean.dupont@email.com",
-      adresse: "15 Rue de la Paix",
-      codePostal: "69001",
-      ville: "Lyon",
-    },
-    chantier: {
-      adresse: "15 Rue de la Paix",
-      ville: "Lyon",
-      codePostal: "69001",
-      typeAcces: "Libre",
-      etage: "RDC",
-      contraintes: "Aucune",
-    },
-    mission: {
-      titre: "Réparation fissures mur porteur",
-      description: "Réparation de fissures importantes sur mur porteur suite à tassement",
-      budgetEstime: "2500",
-      delaiSouhaite: "2 semaines",
-      horaires: "8h-17h",
-      materiaux: "Fournis par le prestataire",
-      normes: "Normes DTU",
-      conditionsParticulieres: "Accès facile",
-    },
-    sinistre: {
-      type: "Fissures",
-      description: "Réparation de fissures importantes sur mur porteur suite à tassement",
-      urgence: "elevee",
-      numeroSinistre: "SIN2024001",
-      dateSinistre: "2024-01-10",
-      dateIntervention: "2024-01-15",
-    },
-    statut: "en_cours",
-    dateCreation: "2024-01-15T10:30:00Z",
-    documents: [],
-    dateEnvoi: "2024-01-15T11:00:00Z",
-    dateReponse: "2024-01-16T09:15:00Z",
-    dateFinPrevue: "2024-02-15T17:00:00Z",
-  },
-  {
-    id: "2",
-    numeroMission: "M240002",
-    prestataire: {
-      id: "2",
-      nom: "Sophie",
-      prenom: "Moreau",
-      raisonSociale: "MOREAU PLOMBERIE",
-      telephone: "04 91 23 45 67",
-      email: "sophie@moreau-plomberie.fr",
-      ville: "Marseille",
-    },
-    client: {
-      civilite: "Mme",
-      nom: "Martin",
-      prenom: "Claire",
-      telephone: "06 98 76 54 32",
-      email: "claire.martin@email.com",
-      adresse: "8 Avenue des Fleurs",
-      codePostal: "13008",
-      ville: "Marseille",
-    },
-    chantier: {
-      adresse: "8 Avenue des Fleurs",
-      ville: "Marseille",
-      codePostal: "13008",
-      typeAcces: "Clés chez gardien",
-      etage: "3ème",
-      contraintes: "Prévenir le gardien",
-    },
-    mission: {
-      titre: "Dégât des eaux - Réparation canalisation",
-      description: "Réparation urgente de canalisation suite à dégât des eaux dans salle de bain",
-      budgetEstime: "800",
-      delaiSouhaite: "2 jours",
-      horaires: "Urgence",
-      materiaux: "Fournis par le prestataire",
-      normes: "Normes plomberie",
-      conditionsParticulieres: "Accès rapide nécessaire",
-    },
-    sinistre: {
-      type: "Dégât des eaux",
-      description: "Réparation urgente de canalisation suite à dégât des eaux dans salle de bain",
-      urgence: "elevee",
-      numeroSinistre: "SIN2024002",
-      dateSinistre: "2024-01-18",
-      dateIntervention: "2024-01-20",
-    },
-    statut: "acceptee",
-    dateCreation: "2024-01-20T14:20:00Z",
-    documents: [],
-    dateEnvoi: "2024-01-20T14:30:00Z",
-    dateReponse: "2024-01-20T16:45:00Z",
-  },
-  {
-    id: "3",
-    numeroMission: "M240003",
-    prestataire: {
-      id: "3",
-      nom: "Pierre",
-      prenom: "Leroy",
-      raisonSociale: "LEROY ÉLECTRICITÉ",
-      telephone: "05 61 12 34 56",
-      email: "pierre@leroy-electricite.fr",
-      ville: "Toulouse",
-    },
-    client: {
-      civilite: "M",
-      nom: "Bernard",
-      prenom: "Paul",
-      telephone: "06 11 22 33 44",
-      email: "paul.bernard@email.com",
-      adresse: "22 Rue du Commerce",
-      codePostal: "31000",
-      ville: "Toulouse",
-    },
-    chantier: {
-      adresse: "22 Rue du Commerce",
-      ville: "Toulouse",
-      codePostal: "31000",
-      typeAcces: "Libre",
-      etage: "1er",
-      contraintes: "Aucune",
-    },
-    mission: {
-      titre: "Remise aux normes installation électrique",
-      description: "Mise aux normes complète de l'installation électrique suite à contrôle",
-      budgetEstime: "3200",
-      delaiSouhaite: "1 mois",
-      horaires: "9h-18h",
-      materiaux: "Fournis par le prestataire",
-      normes: "Normes NFC 15-100",
-      conditionsParticulieres: "Coupure électrique à prévoir",
-    },
-    sinistre: {
-      type: "Autre",
-      description: "Mise aux normes complète de l'installation électrique suite à contrôle",
-      urgence: "moyenne",
-      numeroSinistre: "SIN2024003",
-      dateSinistre: "2024-01-20",
-      dateIntervention: "2024-01-25",
-    },
-    statut: "envoyee",
-    dateCreation: "2024-01-25T09:00:00Z",
-    documents: [],
-    dateEnvoi: "2024-01-25T09:15:00Z",
-  },
-  {
-    id: "4",
-    numeroMission: "M240004",
-    prestataire: {
-      id: "1",
-      nom: "Martin",
-      prenom: "Dubois",
-      raisonSociale: "DUBOIS MAÇONNERIE SARL",
-      telephone: "04 78 12 34 56",
-      email: "contact@dubois-maconnerie.fr",
-      ville: "Lyon",
-    },
-    client: {
-      civilite: "Mme",
-      nom: "Rousseau",
-      prenom: "Marie",
-      telephone: "06 55 44 33 22",
-      email: "marie.rousseau@email.com",
-      adresse: "5 Place de la Mairie",
-      codePostal: "69100",
-      ville: "Villeurbanne",
-    },
-    chantier: {
-      adresse: "5 Place de la Mairie",
-      ville: "Villeurbanne",
-      codePostal: "69100",
-      typeAcces: "Libre",
-      etage: "RDC",
-      contraintes: "Aucune",
-    },
-    mission: {
-      titre: "Réparation toiture après tempête",
-      description: "Réparation de tuiles et gouttières endommagées par la tempête",
-      budgetEstime: "1800",
-      delaiSouhaite: "1 semaine",
-      horaires: "8h-17h",
-      materiaux: "Fournis par le prestataire",
-      normes: "Normes DTU",
-      conditionsParticulieres: "Accès par l'extérieur",
-    },
-    sinistre: {
-      type: "Tempête",
-      description: "Réparation de tuiles et gouttières endommagées par la tempête",
-      urgence: "moyenne",
-      numeroSinistre: "SIN2024004",
-      dateSinistre: "2024-01-05",
-      dateIntervention: "2024-01-10",
-    },
-    statut: "terminee",
-    dateCreation: "2024-01-10T08:30:00Z",
-    documents: [],
-    dateEnvoi: "2024-01-10T09:00:00Z",
-    dateReponse: "2024-01-10T14:20:00Z",
-    dateFinPrevue: "2024-01-20T17:00:00Z",
-  },
-  {
-    id: "5",
-    numeroMission: "M240005",
-    prestataire: {
-      id: "2",
-      nom: "Sophie",
-      prenom: "Moreau",
-      raisonSociale: "MOREAU PLOMBERIE",
-      telephone: "04 91 23 45 67",
-      email: "sophie@moreau-plomberie.fr",
-      ville: "Marseille",
-    },
-    client: {
-      civilite: "M",
-      nom: "Petit",
-      prenom: "Luc",
-      telephone: "06 77 88 99 00",
-      email: "luc.petit@email.com",
-      adresse: "12 Boulevard de la Liberté",
-      codePostal: "13001",
-      ville: "Marseille",
-    },
-    chantier: {
-      adresse: "12 Boulevard de la Liberté",
-      ville: "Marseille",
-      codePostal: "13001",
-      typeAcces: "Code d'accès",
-      etage: "2ème",
-      contraintes: "Code 1234",
-    },
-    mission: {
-      titre: "Installation chaudière",
-      description: "Installation d'une nouvelle chaudière gaz condensation",
-      budgetEstime: "4500",
-      delaiSouhaite: "3 jours",
-      horaires: "9h-17h",
-      materiaux: "Fournis par le prestataire",
-      normes: "Normes gaz",
-      conditionsParticulieres: "Ancienne chaudière à déposer",
-    },
-    sinistre: {
-      type: "Chauffage",
-      description: "Installation d'une nouvelle chaudière gaz condensation",
-      urgence: "faible",
-      numeroSinistre: "SIN2024005",
-      dateSinistre: "2024-01-25",
-      dateIntervention: "2024-01-28",
-    },
-    statut: "refusee",
-    dateCreation: "2024-01-28T11:00:00Z",
-    documents: [],
-    dateEnvoi: "2024-01-28T11:30:00Z",
-    dateReponse: "2024-01-29T08:45:00Z",
-  },
-]
 
-type SortField = "dateCreation" | "prestataire" | "client" | "statut" | "urgence" | "budget"
+type SortField = "dateDeCreation" | "prestataire" | "client" | "status" | "urgence" | "budget"
 type SortDirection = "asc" | "desc"
 
-const missions = computed(() => props.missions.length > 0 ? props.missions : mockMissions)
+const missions = computed(() => props.missions)
 const searchTerm = ref("")
 const selectedStatut = ref("all")
 const selectedPrestataire = ref("all")
@@ -341,27 +70,27 @@ const selectedUrgence = ref("all")
 const selectedType = ref("all")
 const dateDebut = ref("")
 const dateFin = ref("")
-const sortField = ref<SortField>("dateCreation")
+const sortField = ref<SortField>("dateDeCreation")
 const sortDirection = ref<SortDirection>("desc")
-const selectedMission = ref<IMission | null>(null)
+const selectedMission = ref<MissionDetails | null>(null)
 
 // Options pour les filtres
 const statutOptions = [
   { value: "all", label: "Tous les statuts" },
-  { value: "brouillon", label: "Brouillon" },
-  { value: "envoyee", label: "Envoyée" },
-  { value: "acceptee", label: "Acceptée" },
-  { value: "refusee", label: "Refusée" },
-  { value: "en_cours", label: "En cours" },
-  { value: "terminee", label: "Terminée" },
-  { value: "annulee", label: "Annulée" },
+  { value: "EN_ATTENTE", label: "En attente" },
+  { value: "ASSIGNEE", label: "Assignée" },
+  { value: "EN_COURS", label: "En cours" },
+  { value: "TERMINEE", label: "Terminée" },
+  { value: "ANNULEE", label: "Annulée" },
+  { value: "SUSPENDUE", label: "Suspendue" },
 ]
 
 const urgenceOptions = [
   { value: "all", label: "Toutes urgences" },
-  { value: "faible", label: "Faible" },
-  { value: "moyenne", label: "Moyenne" },
-  { value: "elevee", label: "Élevée" },
+  { value: "FAIBLE", label: "Faible" },
+  { value: "MOYENNE", label: "Moyenne" },
+  { value: "HAUTE", label: "Haute" },
+  { value: "CRITIQUE", label: "Critique" },
 ]
 
 const typeOptions = [
@@ -376,8 +105,8 @@ const typeOptions = [
 // Prestataires uniques pour le filtre
 const prestataires = computed(() => {
   const uniquePrestataires = missions.value.reduce(
-    (acc: IMission["prestataire"][], mission) => {
-      if (!acc.find((p) => p.id === mission.prestataire.id)) {
+    (acc: Array<{ id: string; companyName: string; contactPerson: string }>, mission) => {
+      if (mission.prestataire && !acc.find((p) => p.id === mission.prestataire!.id)) {
         acc.push(mission.prestataire)
       }
       return acc
@@ -395,42 +124,36 @@ const filteredAndSortedMissions = computed(() => {
   if (searchTerm.value) {
     filtered = filtered.filter(
       (mission) =>
-        mission.numeroMission.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
-        mission.prestataire.nom.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
-        mission.prestataire.raisonSociale.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
-        mission.client.nom.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
-        mission.client.prenom.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
-        mission.mission.titre.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
-        mission.sinistre.type.toLowerCase().includes(searchTerm.value.toLowerCase()),
+        mission.reference.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
+        (mission.prestataire?.contactPerson || '').toLowerCase().includes(searchTerm.value.toLowerCase()) ||
+        (mission.prestataire?.companyName || '').toLowerCase().includes(searchTerm.value.toLowerCase()) ||
+        mission.societaire.lastName.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
+        mission.societaire.firstName.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
+        mission.description.toLowerCase().includes(searchTerm.value.toLowerCase()),
     )
   }
 
   // Filtre par statut
   if (selectedStatut.value !== "all") {
-    filtered = filtered.filter((mission) => mission.statut === selectedStatut.value)
+    filtered = filtered.filter((mission) => mission.status === selectedStatut.value)
   }
 
   // Filtre par prestataire
   if (selectedPrestataire.value !== "all") {
-    filtered = filtered.filter((mission) => mission.prestataire.id === selectedPrestataire.value)
+    filtered = filtered.filter((mission) => mission.prestataire?.id === selectedPrestataire.value)
   }
 
   // Filtre par urgence
   if (selectedUrgence.value !== "all") {
-    filtered = filtered.filter((mission) => mission.sinistre.urgence === selectedUrgence.value)
-  }
-
-  // Filtre par type
-  if (selectedType.value !== "all") {
-    filtered = filtered.filter((mission) => mission.sinistre.type === selectedType.value)
+    filtered = filtered.filter((mission) => mission.urgence === selectedUrgence.value)
   }
 
   // Filtre par date
   if (dateDebut.value) {
-    filtered = filtered.filter((mission) => new Date(mission.dateCreation) >= new Date(dateDebut.value))
+    filtered = filtered.filter((mission) => new Date(mission.dateDeCreation) >= new Date(dateDebut.value))
   }
   if (dateFin.value) {
-    filtered = filtered.filter((mission) => new Date(mission.dateCreation) <= new Date(dateFin.value))
+    filtered = filtered.filter((mission) => new Date(mission.dateDeCreation) <= new Date(dateFin.value))
   }
 
   // Tri
@@ -439,34 +162,34 @@ const filteredAndSortedMissions = computed(() => {
     let bValue: any
 
     switch (sortField.value) {
-      case "dateCreation":
-        aValue = new Date(a.dateCreation)
-        bValue = new Date(b.dateCreation)
+      case "dateDeCreation":
+        aValue = new Date(a.dateDeCreation)
+        bValue = new Date(b.dateDeCreation)
         break
       case "prestataire":
-        aValue = a.prestataire.nom
-        bValue = b.prestataire.nom
+        aValue = a.prestataire?.contactPerson || ''
+        bValue = b.prestataire?.contactPerson || ''
         break
       case "client":
-        aValue = `${a.client.nom} ${a.client.prenom}`
-        bValue = `${b.client.nom} ${b.client.prenom}`
+        aValue = `${a.societaire.lastName} ${a.societaire.firstName}`
+        bValue = `${b.societaire.lastName} ${b.societaire.firstName}`
         break
-      case "statut":
-        aValue = a.statut
-        bValue = b.statut
+      case "status":
+        aValue = a.status
+        bValue = b.status
         break
       case "urgence":
-        const urgenceOrder: { [key: string]: number } = { faible: 1, moyenne: 2, elevee: 3 }
-        aValue = urgenceOrder[a.sinistre.urgence]
-        bValue = urgenceOrder[b.sinistre.urgence]
+        const urgenceOrder: { [key: string]: number } = { FAIBLE: 1, MOYENNE: 2, HAUTE: 3, CRITIQUE: 4 }
+        aValue = urgenceOrder[a.urgence]
+        bValue = urgenceOrder[b.urgence]
         break
       case "budget":
-        aValue = Number.parseFloat(a.mission.budgetEstime || "0")
-        bValue = Number.parseFloat(b.mission.budgetEstime || "0")
+        aValue = a.estimatedCost || 0
+        bValue = b.estimatedCost || 0
         break
       default:
-        aValue = a.dateCreation
-        bValue = b.dateCreation
+        aValue = a.dateDeCreation
+        bValue = b.dateDeCreation
     }
 
     if (aValue < bValue) return sortDirection.value === "asc" ? -1 : 1
@@ -496,55 +219,48 @@ const resetFilters = () => {
   dateFin.value = ""
 }
 
-const getStatutBadge = (statut: IMission["statut"]) => {
+const getStatutBadge = (statut: string) => {
   switch (statut) {
-    case "brouillon":
-      return `
-        <Badge variant="secondary">
-          <FileText class="w-3 h-3 mr-1" />
-          Brouillon
-        </Badge>
-      `
-    case "envoyee":
+    case "EN_ATTENTE":
       return `
         <Badge variant="outline">
           <Clock class="w-3 h-3 mr-1" />
-          Envoyée
+          En attente
         </Badge>
       `
-    case "acceptee":
+    case "ASSIGNEE":
       return `
         <Badge variant="default">
           <CheckCircle class="w-3 h-3 mr-1" />
-          Acceptée
+          Assignée
         </Badge>
       `
-    case "refusee":
-      return `
-        <Badge variant="destructive">
-          <XCircle class="w-3 h-3 mr-1" />
-          Refusée
-        </Badge>
-      `
-    case "en_cours":
+    case "EN_COURS":
       return `
         <Badge class="bg-blue-100 text-blue-800">
           <Clock class="w-3 h-3 mr-1" />
           En cours
         </Badge>
       `
-    case "terminee":
+    case "TERMINEE":
       return `
         <Badge class="bg-green-100 text-green-800">
           <CheckCircle class="w-3 h-3 mr-1" />
           Terminée
         </Badge>
       `
-    case "annulee":
+    case "ANNULEE":
       return `
         <Badge variant="destructive">
           <XCircle class="w-3 h-3 mr-1" />
           Annulée
+        </Badge>
+      `
+    case "SUSPENDUE":
+      return `
+        <Badge variant="secondary">
+          <AlertTriangle class="w-3 h-3 mr-1" />
+          Suspendue
         </Badge>
       `
     default:
@@ -552,14 +268,16 @@ const getStatutBadge = (statut: IMission["statut"]) => {
   }
 }
 
-const getUrgenceBadge = (urgence: IMission["sinistre"]["urgence"]) => {
+const getUrgenceBadge = (urgence: string) => {
   switch (urgence) {
-    case "faible":
+    case "FAIBLE":
       return `<Badge class="bg-green-100 text-green-800">Faible</Badge>`
-    case "moyenne":
+    case "MOYENNE":
       return `<Badge class="bg-yellow-100 text-yellow-800">Moyenne</Badge>`
-    case "elevee":
-      return `<Badge class="bg-red-100 text-red-800">Élevée</Badge>`
+    case "HAUTE":
+      return `<Badge class="bg-orange-100 text-orange-800">Haute</Badge>`
+    case "CRITIQUE":
+      return `<Badge class="bg-red-100 text-red-800">Critique</Badge>`
     default:
       return ``
   }
@@ -595,6 +313,10 @@ const handleExportMissionDetails = async (missionId: string) => {
     console.error('Erreur lors de l\'export de la mission:', error)
   }
 }
+
+const viewMissionDetails = (missionId: string) => {
+  router.push(`/mission/${missionId}`)
+}
 </script>
 
 <template>
@@ -619,7 +341,7 @@ const handleExportMissionDetails = async (missionId: string) => {
             <div>
               <p class="text-sm text-gray-600">En cours</p>
               <p class="text-2xl font-bold">
-                {{ missions.filter((m) => m.statut === "en_cours" || m.statut === "acceptee").length }}
+                {{ missions.filter((m) => m.status === "EN_COURS" || m.status === "ASSIGNEE").length }}
               </p>
             </div>
             </div>
@@ -631,7 +353,7 @@ const handleExportMissionDetails = async (missionId: string) => {
               <CheckCircle class="w-5 h-5 text-green-600" />
               <div>
                 <p class="text-sm text-gray-600">Terminées</p>
-                <p class="text-2xl font-bold">{{ missions.filter((m) => m.statut === "terminee").length }}</p>
+                <p class="text-2xl font-bold">{{ missions.filter((m) => m.status === "TERMINEE").length }}</p>
               </div>
             </div>
           </CardContent>
@@ -642,7 +364,7 @@ const handleExportMissionDetails = async (missionId: string) => {
               <AlertTriangle class="w-5 h-5 text-red-600" />
               <div>
                 <p class="text-sm text-gray-600">Urgentes</p>
-                <p class="text-2xl font-bold">{{ missions.filter((m) => m.sinistre.urgence === "elevee").length }}</p>
+                <p class="text-2xl font-bold">{{ missions.filter((m) => m.urgence === "HAUTE" || m.urgence === "CRITIQUE").length }}</p>
               </div>
             </div>
           </CardContent>
@@ -698,7 +420,7 @@ const handleExportMissionDetails = async (missionId: string) => {
                 <SelectContent>
                   <SelectItem value="all">Tous les prestataires</SelectItem>
                   <SelectItem v-for="prestataire in prestataires" :key="prestataire.id" :value="prestataire.id">
-                    {{ prestataire.nom }}
+                    {{ prestataire.contactPerson }}
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -775,9 +497,9 @@ const handleExportMissionDetails = async (missionId: string) => {
             <TableHeader>
               <TableRow>
                 <TableHead>
-                  <Button variant="ghost" @click="handleSort('dateCreation')" class="h-auto p-0">
+                  <Button variant="ghost" @click="handleSort('dateDeCreation')" class="h-auto p-0">
                     N° Mission / Date
-                    <component :is="getSortIcon('dateCreation')" class="w-4 h-4" />
+                    <component :is="getSortIcon('dateDeCreation')" class="w-4 h-4" />
                   </Button>
                 </TableHead>
                 <TableHead>
@@ -806,65 +528,69 @@ const handleExportMissionDetails = async (missionId: string) => {
                   </Button>
                 </TableHead>
                 <TableHead>
-                  <Button variant="ghost" @click="handleSort('statut')" class="h-auto p-0">
+                  <Button variant="ghost" @click="handleSort('status')" class="h-auto p-0">
                     Statut
-                    <component :is="getSortIcon('statut')" class="w-4 h-4" />
+                    <component :is="getSortIcon('status')" class="w-4 h-4" />
                   </Button>
                 </TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              <TableRow v-for="mission in filteredAndSortedMissions" :key="mission.id" class="hover:bg-gray-50">
+              <TableRow 
+                v-for="mission in filteredAndSortedMissions" 
+                :key="mission.id" 
+                class="hover:bg-gray-50 cursor-pointer"
+                @click="viewMissionDetails(mission.id)"
+              >
                 <TableCell>
                   <div>
-                    <p class="font-medium">{{ mission.numeroMission }}</p>
-                    <p class="text-sm text-gray-500">{{ new Date(mission.dateCreation).toLocaleDateString() }}</p>
+                    <p class="font-medium">{{ mission.reference }}</p>
+                    <p class="text-sm text-gray-500">{{ new Date(mission.dateDeCreation).toLocaleDateString() }}</p>
                   </div>
                 </TableCell>
                 <TableCell>
-                  <div class="flex items-center space-x-2">
+                  <div v-if="mission.prestataire" class="flex items-center space-x-2">
                     <Avatar class="w-8 h-8">
                       <AvatarFallback class="text-xs">
-                        {{ mission.prestataire.nom.split(' ').map((n) => n[0]).join('') }}
+                        {{ mission.prestataire.contactPerson.split(' ').map((n) => n[0]).join('') }}
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p class="font-medium text-sm">{{ mission.prestataire.nom }}</p>
-                      <p class="text-xs text-gray-500">{{ mission.prestataire.ville }}</p>
+                      <p class="font-medium text-sm">{{ mission.prestataire.contactPerson }}</p>
+                      <p class="text-xs text-gray-500">{{ mission.location?.city || '' }}</p>
                     </div>
                   </div>
+                  <div v-else class="text-xs text-gray-500">Non assignée</div>
                 </TableCell>
                 <TableCell>
                   <div>
                     <p class="font-medium text-sm">
-                      {{ mission.client.civilite }} {{ mission.client.prenom }} {{ mission.client.nom }}
+                      {{ mission.societaire?.firstName || '' }} {{ mission.societaire?.lastName || '' }}
                     </p>
-                    <p class="text-xs text-gray-500">{{ mission.chantier.ville }}</p>
+                    <p class="text-xs text-gray-500">{{ mission.location?.city || '' }}</p>
                   </div>
                 </TableCell>
                 <TableCell>
                   <div>
-                    <p class="font-medium text-sm">{{ mission.mission.titre }}</p>
-                    <p class="text-xs text-gray-500 max-w-xs truncate">{{ mission.mission.description }}</p>
+                    <p class="font-medium text-sm">{{ mission.description }}</p>
+                    <p class="text-xs text-gray-500 max-w-xs truncate">{{ mission.description }}</p>
                   </div>
                 </TableCell>
                 <TableCell>
                   <div class="space-y-1">
-                    <Badge variant="outline" class="text-xs">
-                      {{ mission.sinistre.type }}
-                    </Badge>
-                    <div v-html="getUrgenceBadge(mission.sinistre.urgence)"></div>
+                    <div v-html="getUrgenceBadge(mission.urgence)"></div>
                   </div>
                 </TableCell>
                 <TableCell>
-                  <div v-if="mission.mission.budgetEstime" class="flex items-center">
+                  <div v-if="mission.estimatedCost" class="flex items-center">
                     <Euro class="w-3 h-3 mr-1 text-gray-500" />
-                    <span class="font-medium">{{ mission.mission.budgetEstime }}</span>
+                    <span class="font-medium">{{ mission.estimatedCost }}€</span>
                   </div>
+                  <div v-else class="text-xs text-gray-500">-</div>
                 </TableCell>
-                <TableCell><div v-html="getStatutBadge(mission.statut)"></div></TableCell>
-                <TableCell>
+                <TableCell><div v-html="getStatutBadge(mission.status)"></div></TableCell>
+                <TableCell @click.stop>
                   <DropdownMenu>
                     <DropdownMenuTrigger as-child>
                       <Button variant="ghost" size="sm">
@@ -872,7 +598,7 @@ const handleExportMissionDetails = async (missionId: string) => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem @click="selectedMission = mission">
+                      <DropdownMenuItem @click="viewMissionDetails(mission.id)">
                         <Eye class="w-4 h-4 mr-2" />
                         Voir détails
                       </DropdownMenuItem>

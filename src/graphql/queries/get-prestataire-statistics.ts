@@ -12,22 +12,19 @@ export const GET_PRESTATAIRE_STATISTICS_QUERY = gql`
       monthlyEarnings
       missionsThisMonth
       missionsThisWeek
-      upcomingMissions
-      overduePayments
+      upcomingMissions {
+        id
+        reference
+        title
+        deadline
+        estimatedCost
+      }
+      overduePayments {
+        missionId
+        amount
+        dueDate
+        daysOverdue
+      }
     }
   }
 `
-
-export interface PrestataireStatistics {
-  totalMissions: number
-  completedMissions: number
-  pendingMissions: number
-  acceptanceRate: number
-  averageRating: number
-  totalEarnings: number
-  monthlyEarnings: number
-  missionsThisMonth: number
-  missionsThisWeek: number
-  upcomingMissions: number
-  overduePayments: number
-}

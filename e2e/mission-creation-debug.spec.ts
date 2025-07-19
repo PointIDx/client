@@ -3,6 +3,7 @@ import {
   createLiveAssureur, 
   createLivePrestataire, 
   loginAsAssureur, 
+  loginAsPrestataire,
   waitForGraphQLOperation
 } from './utils/test-utils.js';
 
@@ -36,10 +37,23 @@ test.describe('Mission Creation Debug', () => {
     await context.close();
   });
 
-  test('Debug next button functionality', async ({ page }) => {
+  test('Debug form submission with new simplified structure', async ({ page }) => {
     test.setTimeout(180000);
     
     console.log('Starting debug test...');
+    
+    // Listen for console messages and network errors
+    page.on('console', msg => {
+      if (msg.text().includes('Form validation') || msg.text().includes('Validation error') || msg.text().includes('Current form values') || msg.text().includes('Mission') || msg.text().includes('createMission') || msg.type() === 'error') {
+        console.log('BROWSER LOG:', msg.text());
+      }
+    });
+    
+    page.on('response', response => {
+      if (response.url().includes('graphql') && response.request().method() === 'POST') {
+        console.log('GraphQL POST request made:', response.status());
+      }
+    });
     
     await loginAsAssureur(page, assureurCredentials);
     
@@ -54,153 +68,240 @@ test.describe('Mission Creation Debug', () => {
     
     console.log('✅ Successfully navigated to mission creation page');
     
-    // Check initial state
-    const nextButton = page.locator('[data-testid="next-tab-button"]');
-    const isInitiallyDisabled = await nextButton.isDisabled();
-    console.log(`Next button initially disabled: ${isInitiallyDisabled}`);
+    // Check initial state of create button
+    const createButton = page.locator('[data-testid="create-mission-button"]');
+    const isInitiallyDisabled = await createButton.isDisabled();
+    console.log(`Create button initially disabled: ${isInitiallyDisabled}`);
     
-    // Fill client form step by step
-    console.log('Filling client form...');
+    // Fill required fields step by step
+    console.log('Filling required form fields...');
     
+    // Client information
     await page.fill('[data-testid="client-nom-input"]', 'TestNom');
-    await page.waitForTimeout(500);
-    
-    let isDisabled = await nextButton.isDisabled();
-    console.log(`After nom: disabled = ${isDisabled}`);
-    
     await page.fill('[data-testid="client-prenom-input"]', 'TestPrenom');
-    await page.waitForTimeout(500);
+    await page.fill('[data-testid="client-telephone-input"]', '0123456789');
     
-    isDisabled = await nextButton.isDisabled();
-    console.log(`After prenom: disabled = ${isDisabled}`);
-    
-    // Handle civilité select - now with SelectTrigger
-    console.log('Looking for civilité select...');
-    
+    // Handle civilité select
+    console.log('Selecting civilité...');
     await page.click('[data-testid="client-civilite-select"]');
     await page.waitForTimeout(1000);
     
-    // Try different approaches to select the option
-    let selected = false;
+    // Try clicking the first option
+    try {
+      await page.locator('[role="option"]').first().click();
+      console.log('Selected civilité via role option');
+    } catch (error) {
+      console.log('Could not select civilité:', error.message);
+    }
     
-    // Method 1: Try clicking the SelectItem directly
-    if (await page.locator('[data-value="M"]').isVisible()) {
-      await page.click('[data-value="M"]');
-      selected = true;
-      console.log('Selected via data-value');
+    await page.waitForTimeout(500);
+    
+    // Chantier information (required fields)
+    await page.fill('[data-testid="chantier-adresse-input"]', 'Test Chantier Address');
+    await page.fill('[data-testid="chantier-codepostal-input"]', '75001');
+    await page.fill('[data-testid="chantier-ville-input"]', 'Paris');
+    
+    // Sinistre information (required fields)
+    await page.click('[data-testid="sinistre-type-select"]');
+    await page.waitForTimeout(1000);
+    try {
+      await page.locator('[role="option"]').first().click();
+      console.log('Selected sinistre type');
+    } catch (error) {
+      console.log('Could not select sinistre type:', error.message);
     }
-    // Method 2: Try clicking the specific select item span
-    else if (await page.locator('span:has-text("Monsieur")').last().isVisible()) {
-      await page.click('span:has-text("Monsieur")');
-      selected = true;
-      console.log('Selected via span');
-    }
-    // Method 3: Try clicking any visible option
-    else {
-      const options = await page.locator('[role="option"]').count();
-      console.log(`Found ${options} options`);
-      if (options > 0) {
-        await page.locator('[role="option"]').first().click();
-        selected = true;
-        console.log('Selected first option');
+    
+    await page.fill('[data-testid="sinistre-description-textarea"]', 'Test sinistre description');
+    
+    // Select urgence level
+    console.log('Selecting urgence level...');
+    try {
+      await page.locator('[data-testid="sinistre-urgence-radiogroup"] [value="moyenne"]').click();
+      console.log('Selected urgence level via value attribute');
+    } catch (error) {
+      console.log('Could not select urgence level:', error.message);
+      // Try alternative approach
+      try {
+        await page.locator('[data-testid="sinistre-urgence-radiogroup"] label').nth(1).click();
+        console.log('Selected urgence level via label click');
+      } catch (error2) {
+        console.log('Could not select urgence level via label:', error2.message);
       }
     }
     
-    if (!selected) {
-      console.log('Could not select option, continuing...');
-    }
+    // Mission information (required fields)
+    await page.fill('[data-testid="mission-titre-input"]', 'Test Mission Title');
+    await page.fill('[data-testid="mission-description-textarea"]', 'Test mission description');
     
-    await page.waitForTimeout(500);
+    console.log('All required fields filled, checking create button state...');
     
-    isDisabled = await nextButton.isDisabled();
-    console.log(`After civilité: disabled = ${isDisabled}`);
+    // Check if create button is now enabled
+    const isButtonEnabled = await createButton.isEnabled();
+    console.log(`Create button enabled: ${isButtonEnabled}`);
     
-    await page.fill('[data-testid="client-telephone-input"]', '0123456789');
-    await page.waitForTimeout(500);
-    
-    isDisabled = await nextButton.isDisabled();
-    console.log(`After telephone: disabled = ${isDisabled}`);
-    
-    // Try to click next button
-    if (!isDisabled) {
-      console.log('✅ Next button is enabled, clicking...');
-      await nextButton.click();
-      await page.waitForTimeout(1000);
+    if (isButtonEnabled) {
+      console.log('✅ Create button is enabled, attempting to submit...');
+      await createButton.click();
       
-      // Check if we moved to next tab
-      const currentTab = await page.locator('[data-testid="tab-chantier"]').getAttribute('data-state');
-      console.log(`Current tab state: ${currentTab}`);
+      // Wait for GraphQL operation
+      try {
+        await waitForGraphQLOperation(page, 'CreateMission');
+        console.log('✅ GraphQL CreateMission operation completed');
+      } catch (error) {
+        console.log('❌ GraphQL CreateMission operation failed or timed out:', error.message);
+      }
       
-      if (currentTab === 'active') {
-        console.log('✅ Successfully moved to chantier tab');
+      // Wait for form submission and navigation
+      await page.waitForTimeout(3000);
+      
+      // Check if we were redirected to dashboard
+      const currentUrl = page.url();
+      console.log(`Current URL after submission: ${currentUrl}`);
+      
+      if (currentUrl.includes('assureur-dashboard')) {
+        console.log('✅ Successfully redirected to dashboard after mission creation');
         
-        // Test chantier form
-        console.log('Testing chantier form...');
+        // Navigate to missions tab to verify the created mission appears
+        console.log('Navigating to missions tab to verify mission appears...');
+        await page.getByRole('tab').filter({ hasText: 'Mes Missions' }).click();
         
-        const chantierNextButton = page.locator('[data-testid="next-tab-button"]');
-        let chantierDisabled = await chantierNextButton.isDisabled();
-        console.log(`Chantier next button initially disabled: ${chantierDisabled}`);
+        // Wait for missions to load
+        await page.waitForTimeout(3000);
         
-        await page.fill('[data-testid="chantier-adresse-input"]', 'Test Address');
-        await page.waitForTimeout(500);
+        // Check if missions table is visible and has content
+        const missionsTable = page.locator('table');
+        const hasTable = await missionsTable.isVisible().catch(() => false);
         
-        chantierDisabled = await chantierNextButton.isDisabled();
-        console.log(`After chantier address: disabled = ${chantierDisabled}`);
-        
-        await page.fill('[data-testid="chantier-codepostal-input"]', '75001');
-        await page.waitForTimeout(500);
-        
-        chantierDisabled = await chantierNextButton.isDisabled();
-        console.log(`After chantier code postal: disabled = ${chantierDisabled}`);
-        
-        await page.fill('[data-testid="chantier-ville-input"]', 'Paris');
-        await page.waitForTimeout(500);
-        
-        chantierDisabled = await chantierNextButton.isDisabled();
-        console.log(`After chantier ville: disabled = ${chantierDisabled}`);
-        
-        if (!chantierDisabled) {
-          console.log('✅ Chantier form is complete and valid');
-          await chantierNextButton.click();
-          await page.waitForTimeout(1000);
+        if (hasTable) {
+          const missionRows = await page.locator('table tbody tr').count();
+          console.log(`Found ${missionRows} missions in the table`);
           
-          // Check if we moved to sinistre tab
-          const sinistreTab = await page.locator('[data-testid="tab-sinistre"]').getAttribute('data-state');
-          console.log(`Sinistre tab state: ${sinistreTab}`);
-          
-          if (sinistreTab === 'active') {
-            console.log('✅ Successfully moved to sinistre tab');
-            console.log('🎉 Form navigation is working correctly!');
+          if (missionRows > 0) {
+            console.log('✅ Missions found in the missions tab');
+            
+            // Log the first few missions for debugging
+            for (let i = 0; i < Math.min(missionRows, 3); i++) {
+              const missionText = await page.locator('table tbody tr').nth(i).innerText();
+              const missionRef = missionText.split('\n')[0];
+              console.log(`Mission ${i + 1}: ${missionRef}`);
+            }
+            
+            // Now test prestataire side - login as the prestataire who received the mission
+            console.log('🔄 Testing prestataire workflow...');
+            
+            // Use a new browser context for prestataire login to avoid session conflicts
+            const prestataireContext = await page.context().browser()!.newContext();
+            const prestatairePage = await prestataireContext.newPage();
+            
+            // Login as prestataire using utility function
+            console.log('👤 Logging in as prestataire...');
+            await loginAsPrestataire(prestatairePage, prestataireCredentials);
+            
+            // Check if redirected to prestataire dashboard
+            const prestataireUrl = prestatairePage.url();
+            console.log(`Prestataire current URL: ${prestataireUrl}`);
+            
+            if (prestataireUrl.includes('prestataire-dashboard')) {
+              console.log('✅ Successfully logged in as prestataire');
+              
+              // Navigate to missions tab - try different variations
+              console.log('Navigating to prestataire missions tab...');
+              await prestatairePage.waitForTimeout(2000);
+              
+              // Debug: Log available tabs
+              const availableTabs = await prestatairePage.locator('[role="tab"]').allTextContents();
+              console.log('Available tabs:', availableTabs);
+              
+              // Try different mission tab text variations
+              const missionTabSelectors = [
+                'Nouvelles demandes',
+                'Missions en cours', 
+                'Missions terminées',
+                'Mes Missions',
+                'Missions',
+                'Mission',
+                'Missions assignées'
+              ];
+              
+              let missionTabFound = false;
+              for (const tabText of missionTabSelectors) {
+                try {
+                  const tabElement = prestatairePage.getByRole('tab').filter({ hasText: tabText });
+                  if (await tabElement.isVisible()) {
+                    console.log(`Found missions tab with text: "${tabText}"`);
+                    await tabElement.click();
+                    missionTabFound = true;
+                    break;
+                  }
+                } catch (error) {
+                  console.log(`Tab "${tabText}" not found, trying next...`);
+                }
+              }
+              
+              if (!missionTabFound) {
+                console.log('❌ Could not find missions tab, checking if missions are already visible');
+              }
+              
+              await prestatairePage.waitForTimeout(3000);
+              
+              // Check if missions table is visible and has content
+              const prestataireMissionsTable = prestatairePage.locator('table');
+              const hasPrestataireTable = await prestataireMissionsTable.isVisible().catch(() => false);
+              
+              if (hasPrestataireTable) {
+                const prestataireMissionRows = await prestatairePage.locator('table tbody tr').count();
+                console.log(`Found ${prestataireMissionRows} missions in prestataire dashboard`);
+                
+                if (prestataireMissionRows > 0) {
+                  console.log('✅ Prestataire can see missions');
+                  
+                  // Log the missions visible to prestataire
+                  for (let i = 0; i < Math.min(prestataireMissionRows, 3); i++) {
+                    const missionText = await prestatairePage.locator('table tbody tr').nth(i).innerText();
+                    const missionRef = missionText.split('\n')[0];
+                    console.log(`Prestataire Mission ${i + 1}: ${missionRef}`);
+                  }
+                } else {
+                  console.log('❌ No missions found in prestataire dashboard');
+                }
+              } else {
+                console.log('❌ Prestataire missions table not visible');
+              }
+            } else {
+              console.log('❌ Failed to login as prestataire or redirect to dashboard');
+            }
+            
+            // Clean up prestataire context
+            await prestataireContext.close();
           } else {
-            console.log('❌ Failed to move to sinistre tab');
+            console.log('❌ No missions found in the table');
           }
         } else {
-          console.log('❌ Chantier form validation failed');
+          console.log('❌ Missions table not visible');
+          
+          // Check if there's a "no missions" message
+          const noMissionsMessage = await page.getByText('Aucune mission trouvée').isVisible().catch(() => false);
+          if (noMissionsMessage) {
+            console.log('Found "no missions" message - missions are not being loaded from backend');
+          }
         }
       } else {
-        console.log('❌ Failed to move to chantier tab');
+        console.log('❌ Did not redirect to dashboard');
       }
     } else {
-      console.log('❌ Next button is still disabled after filling required fields');
+      console.log('❌ Create button is still disabled after filling required fields');
       
-      // Let's check form values
+      // Debug form state
       const formValues = await page.evaluate(() => {
-        const inputs = document.querySelectorAll('[data-testid*="client-"]');
+        const inputs = document.querySelectorAll('input, select, textarea');
         const values: any = {};
         inputs.forEach((input: any) => {
-          values[input.getAttribute('data-testid')] = input.value;
+          const testId = input.getAttribute('data-testid');
+          if (testId) {
+            values[testId] = input.value;
+          }
         });
         return values;
-      });
-      
-      // Also check the actual form state if possible
-      const formState = await page.evaluate(() => {
-        // Try to get the Vue component data if available
-        const app = (window as any).__VUE_DEVTOOLS_GLOBAL_HOOK__?.apps?.[0];
-        if (app) {
-          return 'Vue app found';
-        }
-        return 'No Vue app found';
       });
       
       console.log('Form values:', formValues);

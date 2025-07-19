@@ -58,6 +58,12 @@ const router = createRouter({
       component: () => import('../pages/MissionCreationPage.vue'),
       props: true,
     },
+    {
+      path: '/mission/:id',
+      name: 'mission-detail',
+      component: () => import('../pages/MissionDetailPage.vue'),
+      props: true,
+    },
   ],
 })
 

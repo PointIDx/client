@@ -13,6 +13,13 @@ import type { MissionPrestataire } from '@/interfaces/mission-prestataire'
 import type { Mission } from '@/interfaces/mission'
 
 import { UPDATE_MISSION_STATUS_MUTATION } from '@/graphql/mutations/update-mission-status'
+import { 
+  ACCEPT_MISSION_ENHANCED_MUTATION,
+  REFUSE_MISSION_MUTATION,
+  START_MISSION_MUTATION,
+  COMPLETE_MISSION_MUTATION,
+  CANCEL_MISSION_MUTATION
+} from '@/graphql/mutations/mission-lifecycle'
 import { MissionStatutPrestataire } from '@/enums/mission-statut-prestataire'
 
 import { SEND_COMMENT_MUTATION } from '@/graphql/mutations/send-comment'
@@ -130,7 +137,14 @@ export const usePrestataireStore = defineStore('prestataire', () => {
 
     onResult((queryResult) => {
       if(queryResult.data) {
-        missions.value = queryResult.data.getPrestataireMissions
+        console.log('🔍 Prestataire missions from GraphQL:', queryResult.data.getPrestataireMissionsEnhanced);
+        console.log('📊 Number of prestataire missions:', queryResult.data.getPrestataireMissionsEnhanced.length);
+        if (queryResult.data.getPrestataireMissionsEnhanced.length > 0) {
+          console.log('📋 First prestataire mission sample:', queryResult.data.getPrestataireMissionsEnhanced[0]);
+          console.log('📋 Mission status:', queryResult.data.getPrestataireMissionsEnhanced[0].missionStatus);
+        }
+        missions.value = queryResult.data.getPrestataireMissionsEnhanced;
+        console.log('✅ Updated prestataire missions store, length:', missions.value.length);
       }
     })
 
@@ -167,6 +181,102 @@ export const usePrestataireStore = defineStore('prestataire', () => {
       showSuccess('Statut de la mission mis à jour avec succès');
     } catch (error) {
       handleGraphQLError(error, 'Update Mission Status', { showToast: true });
+      throw error;
+    }
+  }
+
+  // Enhanced mission lifecycle functions
+  const { mutate: acceptMissionEnhancedMutation } = useMutation(ACCEPT_MISSION_ENHANCED_MUTATION);
+  const { mutate: refuseMissionMutation } = useMutation(REFUSE_MISSION_MUTATION);
+  const { mutate: startMissionMutation } = useMutation(START_MISSION_MUTATION);
+  const { mutate: completeMissionMutation } = useMutation(COMPLETE_MISSION_MUTATION);
+  const { mutate: cancelMissionMutation } = useMutation(CANCEL_MISSION_MUTATION);
+
+  async function acceptMissionEnhanced(missionId: string, estimatedCompletionDate?: string, comment?: string) {
+    try {
+      await acceptMissionEnhancedMutation({
+        input: {
+          missionId,
+          estimatedCompletionDate,
+          comment
+        }
+      });
+      
+      await getMissions();
+      showSuccess('Mission acceptée avec succès');
+    } catch (error) {
+      handleGraphQLError(error, 'Accept Mission', { showToast: true });
+      throw error;
+    }
+  }
+
+  async function refuseMission(missionId: string, reason: string) {
+    try {
+      await refuseMissionMutation({
+        input: {
+          missionId,
+          reason
+        }
+      });
+      
+      await getMissions();
+      showSuccess('Mission refusée');
+    } catch (error) {
+      handleGraphQLError(error, 'Refuse Mission', { showToast: true });
+      throw error;
+    }
+  }
+
+  async function startMission(missionId: string, startComment?: string) {
+    try {
+      await startMissionMutation({
+        input: {
+          missionId,
+          startComment
+        }
+      });
+      
+      await getMissions();
+      showSuccess('Mission démarrée');
+    } catch (error) {
+      handleGraphQLError(error, 'Start Mission', { showToast: true });
+      throw error;
+    }
+  }
+
+  async function completeMission(missionId: string, completionComment: string, actualCost?: number, completionPhotos?: string[]) {
+    try {
+      await completeMissionMutation({
+        input: {
+          missionId,
+          completionComment,
+          actualCost,
+          completionPhotos
+        }
+      });
+      
+      await getMissions();
+      showSuccess('Mission terminée avec succès');
+    } catch (error) {
+      handleGraphQLError(error, 'Complete Mission', { showToast: true });
+      throw error;
+    }
+  }
+
+  async function cancelMission(missionId: string, cancellationReason: string) {
+    try {
+      await cancelMissionMutation({
+        input: {
+          missionId,
+          cancellationReason,
+          cancelledBy: 'prestataire'
+        }
+      });
+      
+      await getMissions();
+      showSuccess('Mission annulée');
+    } catch (error) {
+      handleGraphQLError(error, 'Cancel Mission', { showToast: true });
       throw error;
     }
   }
@@ -411,6 +521,7 @@ export const usePrestataireStore = defineStore('prestataire', () => {
     }
   }
 
+
   // Real-time subscriptions
   function subscribeToNotifications() {
     const { onResult, onError } = useSubscription(ON_PRESTATAIRE_NOTIFICATION_SUBSCRIPTION);
@@ -476,6 +587,11 @@ export const usePrestataireStore = defineStore('prestataire', () => {
     getMissions,
     getMissionDetails,
     updateMissionStatus,
+    acceptMissionEnhanced,
+    refuseMission,
+    startMission,
+    completeMission,
+    cancelMission,
     sendMessage,
     sendFile,
     fetchMessages,
