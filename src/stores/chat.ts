@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { useApolloClient, useMutation, useQuery, useSubscription } from '@vue/apollo-composable'
-import { 
+import { useApolloClient, useMutation, useQuery } from '@vue/apollo-composable'
+import type { 
   ChatRoom, 
   ChatMessage, 
   RoomParticipant, 
@@ -13,7 +13,10 @@ import {
   SetTypingIndicatorInput,
   AddParticipantInput,
   RemoveParticipantInput,
-  UpdateRoomInput,
+  UpdateRoomInput
+} from '@/interfaces/chat'
+
+import {
   RoomType,
   ChatMessageType,
   ParticipantRole
@@ -34,8 +37,6 @@ import { MARK_MESSAGE_AS_READ } from '@/graphql/mutations/mark-message-as-read'
 import { MARK_ROOM_MESSAGES_AS_READ } from '@/graphql/mutations/mark-room-messages-as-read'
 import { SET_TYPING_INDICATOR } from '@/graphql/mutations/set-typing-indicator'
 
-import { CHAT_ROOM_EVENTS } from '@/graphql/subscriptions/chat-room-events'
-import { NEW_MESSAGES } from '@/graphql/subscriptions/new-messages'
 
 export const useChatStore = defineStore('chat', () => {
   // State
@@ -47,8 +48,7 @@ export const useChatStore = defineStore('chat', () => {
   const error = ref<string | null>(null)
   const typingUsers = ref<string[]>([])
 
-  // Apollo client
-  const { client } = useApolloClient()
+  // Apollo client - will be obtained when needed in methods
 
   // Computed
   const totalUnreadCount = computed(() => {
@@ -65,21 +65,57 @@ export const useChatStore = defineStore('chat', () => {
    * Load all chat rooms for the current user
    */
   const loadChatRooms = async () => {
+    console.log('🎯 STORE: loadChatRooms method called')
     try {
       isLoading.value = true
       error.value = null
+      console.log('🎯 STORE: About to make GraphQL request')
 
-      const { data } = await client.query({
+      // Get Apollo client within the method call
+      const { client } = useApolloClient()
+      console.log('🎯 STORE: Apollo client instance:', client ? 'EXISTS' : 'NULL')
+      console.log('🎯 STORE: GET_CHAT_ROOMS query:', GET_CHAT_ROOMS ? 'EXISTS' : 'NULL')
+
+      if (!client) {
+        console.error('🚨 STORE: Apollo client is null/undefined!')
+        throw new Error('Apollo client not available')
+      }
+
+      if (!GET_CHAT_ROOMS) {
+        console.error('🚨 STORE: GET_CHAT_ROOMS query is null/undefined!')
+        throw new Error('GET_CHAT_ROOMS query not available')
+      }
+
+      console.log('🎯 STORE: Starting client.query call...')
+      const result = await client.query({
         query: GET_CHAT_ROOMS,
         fetchPolicy: 'network-only'
       })
+      console.log('🎯 STORE: client.query completed, result:', result)
 
-      chatRooms.value = data.getChatRooms || []
+      const { data } = result
+      console.log('🎯 STORE: GraphQL request completed, data:', data)
+
+      if (data && data.getChatRooms) {
+        console.log('🎯 STORE: Processing getChatRooms data, count:', data.getChatRooms.length)
+        // Transform ChatRoomWithLastMessage to ChatRoomWithLastMessage for our store
+        chatRooms.value = data.getChatRooms.map((item: any) => ({
+          ...item.room,
+          lastMessage: item.lastMessage,
+          unreadCount: item.unreadCount
+        }))
+        console.log('🎯 STORE: Chat rooms set, count:', chatRooms.value.length)
+      } else {
+        console.warn('🎯 STORE: No chat rooms data received from GraphQL')
+        chatRooms.value = []
+      }
     } catch (err: any) {
       error.value = err.message || 'Failed to load chat rooms'
-      console.error('Error loading chat rooms:', err)
+      console.error('🚨 STORE: Error loading chat rooms:', err)
+      console.error('🚨 STORE: Error stack:', err.stack)
     } finally {
       isLoading.value = false
+      console.log('🎯 STORE: loadChatRooms finally block, isLoading set to false')
     }
   }
 
@@ -91,14 +127,23 @@ export const useChatStore = defineStore('chat', () => {
       isLoading.value = true
       error.value = null
 
+      // Get Apollo client within the method call
+      const { client } = useApolloClient()
+
       const { data } = await client.query({
         query: GET_CHAT_ROOM,
         variables: { roomId },
         fetchPolicy: 'network-only'
       })
 
-      currentRoom.value = data.getChatRoom
-      return data.getChatRoom
+      if (data && data.getChatRoom) {
+        currentRoom.value = data.getChatRoom
+        return data.getChatRoom
+      } else {
+        console.warn('No chat room data received from GraphQL')
+        currentRoom.value = null
+        return null
+      }
     } catch (err: any) {
       error.value = err.message || 'Failed to load chat room'
       console.error('Error loading chat room:', err)
@@ -113,8 +158,14 @@ export const useChatStore = defineStore('chat', () => {
    */
   const loadMessages = async (roomId: string, limit = 50, offset = 0) => {
     try {
+      console.log('📨 Loading messages for room:', roomId, 'limit:', limit, 'offset:', offset)
       isLoading.value = true
       error.value = null
+
+      // Get Apollo client within the method call
+      const { client } = useApolloClient()
+      console.log('📨 STORE: Apollo client instance:', client ? 'EXISTS' : 'NULL')
+      console.log('📨 STORE: GET_CHAT_MESSAGES query:', GET_CHAT_MESSAGES ? 'EXISTS' : 'NULL')
 
       const { data } = await client.query({
         query: GET_CHAT_MESSAGES,
@@ -122,16 +173,20 @@ export const useChatStore = defineStore('chat', () => {
         fetchPolicy: 'network-only'
       })
 
+      console.log('📨 Messages response:', data)
+
       if (offset === 0) {
         currentMessages.value = data.getChatMessages || []
+        console.log('📨 Set current messages:', currentMessages.value.length, 'messages')
       } else {
         currentMessages.value = [...(data.getChatMessages || []), ...currentMessages.value]
+        console.log('📨 Added messages to existing:', currentMessages.value.length, 'total messages')
       }
 
       return data.getChatMessages || []
     } catch (err: any) {
       error.value = err.message || 'Failed to load messages'
-      console.error('Error loading messages:', err)
+      console.error('❌ Error loading messages:', err)
       return []
     } finally {
       isLoading.value = false
@@ -143,6 +198,9 @@ export const useChatStore = defineStore('chat', () => {
    */
   const loadParticipants = async (roomId: string) => {
     try {
+      // Get Apollo client within the method call
+      const { client } = useApolloClient()
+
       const { data } = await client.query({
         query: GET_ROOM_PARTICIPANTS,
         variables: { roomId },
@@ -166,21 +224,34 @@ export const useChatStore = defineStore('chat', () => {
       isLoading.value = true
       error.value = null
 
+      // Get Apollo client within the method call
+      const { client } = useApolloClient()
+
       const { data } = await client.query({
         query: GET_OR_CREATE_DIRECT_ROOM,
         variables: { otherUserId },
         fetchPolicy: 'network-only'
       })
 
-      const room = data.getOrCreateDirectRoom
-      
-      // Add to rooms list if not already there
-      const existingRoomIndex = chatRooms.value.findIndex(r => r.id === room.id)
-      if (existingRoomIndex === -1) {
-        chatRooms.value.unshift(room)
-      }
+      if (data && data.getOrCreateDirectRoom) {
+        const room = data.getOrCreateDirectRoom
+        
+        // Add to rooms list if not already there (as ChatRoomWithLastMessage format)
+        const existingRoomIndex = chatRooms.value.findIndex(r => r.id === room.id)
+        if (existingRoomIndex === -1) {
+          const roomWithLastMessage = {
+            ...room,
+            lastMessage: null,
+            unreadCount: room.unreadCount || 0
+          }
+          chatRooms.value.unshift(roomWithLastMessage)
+        }
 
-      return room
+        return room
+      } else {
+        console.warn('No direct room data received from GraphQL')
+        return null
+      }
     } catch (err: any) {
       error.value = err.message || 'Failed to get or create direct room'
       console.error('Error getting or creating direct room:', err)
@@ -227,13 +298,16 @@ export const useChatStore = defineStore('chat', () => {
 
       if (result?.data?.sendChatMessage) {
         const newMessage = result.data.sendChatMessage
-        currentMessages.value.push(newMessage)
+        currentMessages.value = [...currentMessages.value, newMessage]
 
-        // Update room's last message
+        // Update room's last message by replacing the room object
         const roomIndex = chatRooms.value.findIndex(r => r.id === input.roomId)
         if (roomIndex !== -1) {
-          chatRooms.value[roomIndex].lastMessage = newMessage
-          chatRooms.value[roomIndex].lastMessageAt = newMessage.sentAt
+          chatRooms.value[roomIndex] = {
+            ...chatRooms.value[roomIndex],
+            lastMessage: newMessage,
+            lastMessageAt: newMessage.sentAt
+          }
         }
 
         return newMessage
@@ -294,28 +368,31 @@ export const useChatStore = defineStore('chat', () => {
   /**
    * Mark all messages in a room as read
    */
-  const markRoomMessagesAsRead = async (roomId: string) => {
-    try {
-      const { mutate } = useMutation(MARK_ROOM_MESSAGES_AS_READ)
-      await mutate({ roomId })
+const markRoomMessagesAsRead = async (roomId: string) => {
+  try {
+    const { mutate } = useMutation(MARK_ROOM_MESSAGES_AS_READ)
+    await mutate({ roomId })
 
-      // Update local state
-      currentMessages.value.forEach(message => {
-        if (message.roomId === roomId) {
-          message.isRead = true
-        }
-      })
+    currentMessages.value = currentMessages.value.map(message =>
+      message.roomId === roomId
+        ? { ...message, isRead: true }
+        : message
+    )
 
-      // Update room unread count
-      const roomIndex = chatRooms.value.findIndex(r => r.id === roomId)
-      if (roomIndex !== -1) {
-        chatRooms.value[roomIndex].unreadCount = 0
-      }
-    } catch (err: any) {
-      error.value = err.message || 'Failed to mark room messages as read'
-      console.error('Error marking room messages as read:', err)
+    const roomIndex = chatRooms.value.findIndex(r => r.id === roomId)
+    if (roomIndex !== -1) {
+      chatRooms.value = chatRooms.value.map((room, index) =>
+        index === roomIndex
+          ? { ...room, unreadCount: 0 }
+          : room
+      )
     }
+  } catch (err: any) {
+    error.value = err.message || 'Failed to mark room messages as read'
+    console.error('Error marking room messages as read:', err)
   }
+}
+
 
   /**
    * Set typing indicator
@@ -334,6 +411,9 @@ export const useChatStore = defineStore('chat', () => {
    */
   const searchMessages = async (query: string, roomId?: string, limit = 20) => {
     try {
+      // Get Apollo client within the method call
+      const { client } = useApolloClient()
+
       const { data } = await client.query({
         query: SEARCH_CHAT_MESSAGES,
         variables: { query, roomId, limit },
@@ -352,10 +432,15 @@ export const useChatStore = defineStore('chat', () => {
    * Set current room and load its data
    */
   const setCurrentRoom = async (roomId: string) => {
+    console.log('🔄 Setting current room:', roomId)
     await loadChatRoom(roomId)
+    console.log('📨 Loading messages for room:', roomId)
     await loadMessages(roomId)
+    console.log('👥 Loading participants for room:', roomId)
     await loadParticipants(roomId)
+    console.log('✅ Marking messages as read for room:', roomId)
     await markRoomMessagesAsRead(roomId)
+    console.log('🏁 Current room setup completed')
   }
 
   /**
@@ -368,34 +453,6 @@ export const useChatStore = defineStore('chat', () => {
     typingUsers.value = []
   }
 
-  /**
-   * Initialize subscriptions for real-time updates
-   */
-  const initializeSubscriptions = () => {
-    // Subscribe to new messages
-    useSubscription(NEW_MESSAGES, null, {
-      onResult: (result) => {
-        if (result.data?.newMessages) {
-          const newMessage = result.data.newMessages
-          
-          // Add to current messages if it's for the current room
-          if (currentRoom.value && newMessage.roomId === currentRoom.value.id) {
-            currentMessages.value.push(newMessage)
-          }
-
-          // Update room's last message
-          const roomIndex = chatRooms.value.findIndex(r => r.id === newMessage.roomId)
-          if (roomIndex !== -1) {
-            chatRooms.value[roomIndex].lastMessage = newMessage
-            chatRooms.value[roomIndex].lastMessageAt = newMessage.sentAt
-            if (currentRoom.value?.id !== newMessage.roomId) {
-              chatRooms.value[roomIndex].unreadCount = (chatRooms.value[roomIndex].unreadCount || 0) + 1
-            }
-          }
-        }
-      }
-    })
-  }
 
   return {
     // State
@@ -425,7 +482,6 @@ export const useChatStore = defineStore('chat', () => {
     setTypingIndicator,
     searchMessages,
     setCurrentRoom,
-    clearCurrentRoom,
-    initializeSubscriptions
+    clearCurrentRoom
   }
 })

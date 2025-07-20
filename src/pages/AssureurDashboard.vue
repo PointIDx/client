@@ -196,17 +196,23 @@ const telechargerDocument = async (documentName: string) => {
 }
 
 const handleContactClick = (prestataire: Prestataire) => {
-  // Navigate to chat page with prestataire context
+  // Navigate to chat page with prestataire context (using userId for chat)
   router.push({
     path: '/chat',
     query: {
-      prestataireId: prestataire.id,
+      prestataireId: prestataire.userId, // Use userId for chat room creation
       contactName: prestataire.nom || prestataire.raisonSociale,
       contactPerson: prestataire.nom,
       type: 'prestataire'
     }
   })
 };
+
+const navigateToChat = () => {
+  router.push({
+    path: '/chat',
+  })
+}
 
 const handleMissionClick = (prestataire: Prestataire) => {
   // Navigate to mission creation page with prestataire data in query params
@@ -238,11 +244,13 @@ import placeholderImage from '@/assets/placeholder.svg'
             <p class="text-gray-700">Recherchez et contactez des prestataires qualifiés</p>
           </div>
           <div class="flex items-center space-x-4">
+            <Button size="icon" class="bg-transparent shadow-none hover:shadow-none focus:shadow-none" @click="navigateToChat">
+              <MessageCircle class="w-6 h-6 mr-2" />
+            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger as-child>
-                <Button variant="outline" size="sm" class="bg-transparent border-gray-400 text-gray-700 hover:bg-gray-100 hover:border-gray-500 relative">
-                  <Bell class="w-4 h-4 mr-2" />
-                  Notifications
+                <Button  size="icon" class="bg-transparent  text-gray-700 relative shadow-none hover:shadow-none focus:shadow-none">
+                  <Bell class="w-6 h-6 mr-2" />
                   <Badge v-if="notifications.length > 0" class="absolute -top-2 -right-2 px-1 min-w-[1.2rem] h-5 bg-black text-white border-black">
                     {{ notifications.length }}
                   </Badge>
@@ -358,7 +366,7 @@ import placeholderImage from '@/assets/placeholder.svg'
                 </div>
 
                 <div class="flex items-end space-x-2">
-                  <Button @click="applyFilters" class="flex-1" data-testid="search-button">
+                  <Button class="flex-1 bg-black border-black text-white" @click="applyFilters" data-testid="search-button">
                     Rechercher
                   </Button>
                   <Button variant="outline" @click="resetFilters" data-testid="reset-filters-button">
@@ -503,7 +511,7 @@ import placeholderImage from '@/assets/placeholder.svg'
 
                     <Button
                       size="sm"
-                      class="flex-1"
+                      class="flex-1 bg-black border-black text-white"
                       @click="handleContactClick(prestataire)"
                     >
                       <MessageCircle class="w-4 h-4 mr-1" />
@@ -512,7 +520,7 @@ import placeholderImage from '@/assets/placeholder.svg'
 
                     <Button
                       size="sm"
-                      variant="default"
+                      class="bg-black border-black text-white"
                       @click="handleMissionClick(prestataire)"
                     >
                       <Plus class="w-4 h-4 mr-1" />

@@ -1,5 +1,6 @@
 export interface Prestataire {
   id: string;
+  userId: string;
   companyName: string;
   contactPerson: string;
   email: string;

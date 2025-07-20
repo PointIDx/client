@@ -9,12 +9,8 @@ export const SEND_CHAT_MESSAGE = gql`
       content
       messageType
       sentAt
-      editedAt
-      replyToId
-      fileAttachments
       isRead
-      senderName
-      senderAvatar
+      fileAttachments
     }
   }
 `

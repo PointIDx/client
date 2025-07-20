@@ -3,19 +3,20 @@ import { gql } from '@apollo/client/core'
 export const GET_CHAT_ROOMS = gql`
   query GetChatRooms {
     getChatRooms {
-      id
-      roomType
-      participants
-      name
-      description
-      avatarUrl
-      createdBy
-      createdAt
-      updatedAt
-      lastMessageId
-      lastMessageAt
-      isArchived
-      unreadCount
+      room {
+        id
+        roomType
+        participants
+        name
+        description
+        avatarUrl
+        createdBy
+        createdAt
+        updatedAt
+        lastMessageId
+        lastMessageAt
+        isArchived
+      }
       lastMessage {
         id
         content
@@ -24,6 +25,7 @@ export const GET_CHAT_ROOMS = gql`
         senderName
         senderAvatar
       }
+      unreadCount
     }
   }
 `

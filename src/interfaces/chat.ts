@@ -5,10 +5,10 @@ export enum RoomType {
 }
 
 export enum ChatMessageType {
-  TEXT = 'TEXT',
-  FILE = 'FILE',
-  IMAGE = 'IMAGE',
-  SYSTEM = 'SYSTEM'
+  TEXT = 'text',
+  FILE = 'file',
+  IMAGE = 'image',
+  SYSTEM = 'system'
 }
 
 export enum ParticipantRole {
@@ -140,7 +140,7 @@ export interface UpdateRoomInput {
 
 // Legacy interfaces for compatibility (will be phased out)
 export interface Chat {
-  id: number
+  id: string // Changed from number to string to match backend
   name: string
   avatar?: string
   lastMessage: string
@@ -150,7 +150,7 @@ export interface Chat {
 }
 
 export interface Message {
-  id: number
+  id: string // Changed from number to string to match backend
   sender: string
   message: string
   time: string
@@ -158,7 +158,7 @@ export interface Message {
 }
 
 export interface ChatUser {
-  id: number
+  id: string // Changed from number to string to match backend
   name: string
   avatar?: string
   status?: 'online' | 'offline' | 'away' | 'busy'
@@ -166,6 +166,6 @@ export interface ChatUser {
 
 export interface ExtendedChatMessage extends Message {
   attachments?: ChatFileAttachment[]
-  readBy?: number[]
+  readBy?: string[] // Changed from number[] to string[] to match backend
   editedAt?: string
 }
