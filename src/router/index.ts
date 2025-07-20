@@ -27,11 +27,6 @@ const router = createRouter({
       props: true,
     },
     {
-      path: '/societaire-login',
-      name: 'societaire-login',
-      component: () => import('../pages/SocietaireLogin.vue'),
-    },
-    {
       path: '/societaire-dashboard',
       name: 'societaire-dashboard',
       component: () => import('../pages/SocietaireDashboard.vue'),
@@ -46,11 +41,6 @@ const router = createRouter({
       path: '/prestataire-dashboard',
       name: 'prestataire-dashboard',
       component: () => import('../pages/PrestataireDashboard.vue'),
-    },
-    {
-      path: '/societaire-app',
-      name: 'societaire-app',
-      component: () => import('../pages/SocietaireApp.vue'),
     },
     {
       path: '/mission-creation',
