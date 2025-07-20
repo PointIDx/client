@@ -6,6 +6,7 @@ import type { User, JWTTokens, AuthResponse, LoginInput, SignupInput } from '@/i
 import { AuthUtils } from '@/utils/auth';
 import { useGraphQL } from '@/composables/useGraphQL';
 import { toast } from 'vue-sonner';
+import { handleError } from '@/utils/error-handling';
 
 export const useAuthStore = defineStore('auth', () => {
   const tokens = ref<JWTTokens | null>(AuthUtils.getTokens());
@@ -34,7 +35,7 @@ export const useAuthStore = defineStore('auth', () => {
       );
 
       if (!result?.login) {
-        toast.error('Login failed');
+
         throw new Error('Login failed');
       }
 
@@ -45,7 +46,7 @@ export const useAuthStore = defineStore('auth', () => {
       return true;
       
     } catch (error: string | any) {
-      toast.error('Login failed', error);
+      handleError(error, 'Login', { showToast: true });
       console.error('Login failed:', error);
       return false;
     }
