@@ -215,7 +215,7 @@ const uploadFiles = async () => {
     for (let i = 0; i < files.value.length; i++) {
       const file = files.value[i]
       
-      const result = await missionOpsStore.uploadMissionFile({
+      const result = await missionOpsStore.uploadMissionDocument({
         missionId: props.missionId,
         file: file,
         description: description.value || undefined

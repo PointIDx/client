@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { useChatStore } from '@/stores/chat'
+import { useAuthStore } from '@/stores/auth'
 import ChatSidebar from '@/components/chat/ChatSidebar.vue'
 import ChatHeader from '@/components/chat/ChatHeader.vue'
 import ChatMessage from '@/components/chat/ChatMessage.vue'
 import ChatInput from '@/components/chat/ChatInput.vue'
 import TypingIndicator from '@/components/chat/TypingIndicator.vue'
-import type { Chat, Message } from '@/interfaces/chat'
+import type { Chat, Message, ChatMessageType, RoomType } from '@/interfaces/chat'
 
 const route = useRoute()
 

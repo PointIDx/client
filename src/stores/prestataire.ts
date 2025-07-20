@@ -35,12 +35,14 @@ import { GET_COMMUNICATION_REQUESTS_FOR_PRESTATAIRE_QUERY, RESPOND_TO_COMMUNICAT
 import { GET_PRESTATAIRE_STATISTICS_QUERY, type PrestataireStatistics } from '@/graphql/queries/get-prestataire-statistics'
 import { EXPORT_PRESTATAIRE_MISSIONS_QUERY, EXPORT_PRESTATAIRE_REPORT_QUERY, type PrestataireExportFilters, type ReportPeriod, type ExportFormat } from '@/graphql/queries/export-prestataire-missions'
 import { UPDATE_PRESTATAIRE_PROFILE_MUTATION, UPDATE_PRESTATAIRE_AVAILABILITY_MUTATION, type PrestataireProfileUpdateInput, type AvailabilityStatus } from '@/graphql/mutations/update-prestataire-profile'
-import { SEND_FILE_WITH_MESSAGE_MUTATION, UPLOAD_MISSION_DOCUMENT_MUTATION, type FileMessageInput, type MissionDocumentInput } from '@/graphql/mutations/send-file-with-message'
+import { SEND_FILE_WITH_MESSAGE_MUTATION, type FileMessageInput } from '@/graphql/mutations/send-file-with-message'
+import { UPLOAD_MISSION_DOCUMENT_MUTATION } from '@/graphql/mutations/mission-documents'
 import { ON_PRESTATAIRE_NOTIFICATION_SUBSCRIPTION, ON_NEW_MISSION_ASSIGNMENT_SUBSCRIPTION, ON_COMMUNICATION_REQUEST_SUBSCRIPTION } from '@/graphql/subscriptions/on-prestataire-notification'
 
 // Import new utilities
 import { fetchSiretInfo } from '@/utils/siret'
 import { handleError, handleGraphQLError, showSuccess } from '@/utils/error-handling'
+import { useAuthStore } from '@/stores/auth'
 
 export const usePrestataireStore = defineStore('prestataire', () => {
   const companyInfo = ref<CompanyInfo | null>(null)
@@ -508,16 +510,89 @@ export const usePrestataireStore = defineStore('prestataire', () => {
 
   const { mutate: uploadMissionDocumentMutation } = useMutation(UPLOAD_MISSION_DOCUMENT_MUTATION);
 
-  async function uploadMissionDocument(input: MissionDocumentInput) {
+  async function uploadMissionDocument(input: any) {
     try {
-      const result = await uploadMissionDocumentMutation({ input });
-      if (result && result.data) {
-        showSuccess('Document uploadé avec succès');
-        return result.data.uploadMissionDocument;
+      // Use direct fetch for file upload with multipart/form-data
+      const formData = new FormData()
+      
+      // Add the GraphQL operation
+      formData.append('operations', JSON.stringify({
+        query: `
+          mutation UploadMissionDocument($input: MissionDocumentUploadInput!) {
+            uploadMissionDocument(input: $input) {
+              id
+              filename
+              url
+              contentType
+              size
+              uploadDate
+              description
+              uploadedBy
+            }
+          }
+        `,
+        variables: {
+          input: {
+            missionId: input.missionId,
+            file: null,
+            description: input.description
+          }
+        }
+      }))
+      
+      // Map the file to the correct variable
+      formData.append('map', JSON.stringify({
+        '0': ['variables.input.file']
+      }))
+      
+      // Add the actual file
+      formData.append('0', input.file)
+      
+      // Get auth token
+      const authStore = useAuthStore() // Assuming useAuthStore is available in this scope
+      const tokens = authStore.tokens
+      
+      // Make the request
+      const response = await fetch(import.meta.env.VITE_APP_SERVER_GRAPHQL_URL || '/graphql', {
+        method: 'POST',
+        headers: {
+          'Authorization': tokens?.token ? `Bearer ${tokens.token}` : ''
+        },
+        body: formData
+      })
+      
+      // Check if the response is ok
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Upload response not ok:', response.status, response.statusText, errorText)
+        throw new Error(`Upload failed with status ${response.status}: ${response.statusText}`)
+      }
+      
+      // Get response text first to debug
+      const responseText = await response.text()
+      console.log('Upload response text:', responseText)
+      
+      // Try to parse as JSON
+      let result
+      try {
+        result = JSON.parse(responseText)
+      } catch (parseError) {
+        console.error('Failed to parse response as JSON:', parseError)
+        console.error('Response was:', responseText)
+        throw new Error(`Server returned invalid JSON response: ${responseText.substring(0, 200)}`)
+      }
+      
+      if (result.data?.uploadMissionDocument) {
+        showSuccess('Document uploadé avec succès')
+        return result.data.uploadMissionDocument
+      } else if (result.errors) {
+        throw new Error(result.errors[0]?.message || 'Upload failed')
+      } else {
+        throw new Error('Unknown upload error')
       }
     } catch (error) {
-      handleGraphQLError(error, 'Upload Mission Document', { showToast: true });
-      throw error;
+      handleGraphQLError(error, 'Upload Mission Document', { showToast: true })
+      throw error
     }
   }
 
