@@ -147,6 +147,8 @@ export interface Chat {
   time: string
   hasNewMessage: boolean
   newMessageCount: number
+  isMuted?: boolean
+  isOnline?: boolean
 }
 
 export interface Message {
@@ -155,6 +157,13 @@ export interface Message {
   message: string
   time: string
   isOwn: boolean
+  isRead?: boolean
+  editedAt?: string
+  replyTo?: {
+    id: string
+    sender: string
+    content: string
+  }
 }
 
 export interface ChatUser {

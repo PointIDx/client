@@ -125,19 +125,25 @@ const changerStatutMission = async (missionId: string, nouveauStatut: MissionSta
   }
 }
 
+const navigateToChat = () => {
+  router.push({
+    path: '/chat',
+  })
+}
+
 const viewMissionDetails = (missionId: string) => {
   router.push(`/mission/${missionId}`)
 }
 
 const openChat = (mission: any) => {
-  // Navigate to chat page with mission context
+  // Navigate to chat page with mission context using userId for chat room creation
   router.push({
     path: '/chat',
     query: {
-      missionId: mission.id,
+      prestataireId: mission.assureur.userId, // Use userId for chat room creation
       contactName: mission.assureur.companyName,
       contactPerson: mission.assureur.contactPerson,
-      type: 'mission'
+      type: 'prestataire'
     }
   })
 }
@@ -154,11 +160,13 @@ const openChat = (mission: any) => {
             <p class="text-gray-700">Gérez vos missions et communications</p>
           </div>
           <div class="flex items-center space-x-4">
+            <Button data-testid="nav_chat_button"  size="icon" class="bg-transparent shadow-none hover:shadow-none focus:shadow-none" @click="navigateToChat">
+              <MessageCircle class="w-6 h-6 mr-2" />
+            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger as-child>
-                <Button variant="outline" size="sm" class="relative bg-white border-gray-400 text-gray-700 hover:bg-gray-100 hover:border-gray-500">
-                  <Bell class="w-4 h-4 mr-2" />
-                  Notifications
+                <Button  size="icon" class="bg-transparent  text-gray-700 relative shadow-none hover:shadow-none focus:shadow-none">
+                  <Bell class="w-6 h-6 mr-2" />
                   <Badge v-if="notifications.length > 0" class="absolute -top-2 -right-2 px-1 min-w-[1.2rem] h-5 bg-black text-white border-black">
                     {{ notifications.length }}
                   </Badge>

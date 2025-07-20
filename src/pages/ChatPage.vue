@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, watch, onUnmounted } from 'vue'
-import { useSubscription } from '@vue/apollo-composable'
+import { ref, onMounted, computed, watch, onUnmounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { useChatStore } from '@/stores/chat'
 import { useAuthStore } from '@/stores/auth'
@@ -11,7 +10,6 @@ import ChatInput from '@/components/chat/ChatInput.vue'
 import TypingIndicator from '@/components/chat/TypingIndicator.vue'
 import type { Chat, Message } from '@/interfaces/chat'
 import { ChatMessageType, RoomType } from '@/interfaces/chat'
-import { CHAT_EVENTS } from '@/graphql/subscriptions/new-messages'
 
 console.log('🚀 ChatPage setup function started')
 
@@ -20,60 +18,6 @@ const chatStore = useChatStore()
 const authStore = useAuthStore()
 
 console.log('✅ ChatPage stores initialized')
-
-// Subscription state
-const subscriptionEnabled = ref(false)
-const currentRoomIds = computed(() => chatStore.chatRooms.map(room => room.id))
-
-// Initialize subscription with proper Vue scope
-const { onResult: onChatEvent } = useSubscription(
-  CHAT_EVENTS,
-  () => ({ roomIds: currentRoomIds.value }),
-  () => ({ enabled: subscriptionEnabled.value && currentRoomIds.value.length > 0 })
-)
-
-// Handle chat events
-onChatEvent((result: any) => {
-  console.log('📡 Subscription result received:', result)
-  
-  if (result.data?.chatEvents) {
-    const event = result.data.chatEvents
-    console.log('🎯 Chat event received:', event)
-    
-    // Handle different event types
-    if (event.eventType === 'NEW_MESSAGE') {
-      try {
-        const messageData = JSON.parse(event.data)
-        console.log('💬 New message data:', messageData)
-        
-        // Add to current messages if it's for the current room
-        if (chatStore.currentRoom && event.roomId === chatStore.currentRoom.id) {
-          console.log('➕ Adding message to current room messages')
-          chatStore.currentMessages.push(messageData)
-        } else {
-          console.log('📤 Message for different room or no current room')
-        }
-
-        // Update room's last message
-        const roomIndex = chatStore.chatRooms.findIndex(r => r.id === event.roomId)
-        if (roomIndex !== -1) {
-          const currentUnreadCount = chatStore.chatRooms[roomIndex].unreadCount || 0
-          const newUnreadCount = chatStore.currentRoom?.id !== event.roomId ? currentUnreadCount + 1 : currentUnreadCount
-          
-          console.log('🔄 Updating room last message in sidebar')
-          chatStore.chatRooms[roomIndex] = {
-            ...chatStore.chatRooms[roomIndex],
-            lastMessage: messageData,
-            lastMessageAt: messageData.sentAt,
-            unreadCount: newUnreadCount
-          }
-        }
-      } catch (parseError) {
-        console.error('❌ Error parsing message data:', parseError)
-      }
-    }
-  }
-})
 
 // Initialize chat based on route parameters
 const initializeChatFromRoute = async () => {
@@ -92,8 +36,11 @@ const initializeChatFromRoute = async () => {
         await chatStore.loadChatRooms()
         
         // Enable subscriptions now that we have rooms
-        console.log('🔔 Enabling subscriptions for rooms:', chatStore.chatRooms.length)
-        subscriptionEnabled.value = true
+        console.log('🔔 Enabling subscriptions for new room')
+        chatStore.enableSubscriptions()
+        
+        // Subscribe to specific room events
+        chatStore.subscribeToRoomEvents(room.id)
       } else {
         console.error('Failed to create/get direct room')
       }
@@ -106,8 +53,13 @@ const initializeChatFromRoute = async () => {
         if (room) {
           await chatStore.setCurrentRoom(room.id)
           await chatStore.loadChatRooms()
+          
+          // Enable subscriptions for mission chat
           console.log('🔔 Enabling subscriptions for mission chat')
-          subscriptionEnabled.value = true
+          chatStore.enableSubscriptions()
+          
+          // Subscribe to specific room events
+          chatStore.subscribeToRoomEvents(room.id)
         }
       } else {
         console.warn('Mission chat requires contactPerson parameter')
@@ -163,16 +115,25 @@ const selectedChat = computed(() => {
 const message = ref("")
 const isTyping = ref(false)
 const attachedFiles = ref<File[]>([])
+const replyToMessage = ref<Message | null>(null)
 
 // Methods
 const handleSelectChat = async (chat: Chat) => {
   const room = chatStore.chatRooms.find(r => r.id === chat.id)
   if (room) {
+    // Unsubscribe from previous room events
+    if (chatStore.currentRoom) {
+      chatStore.unsubscribeFromRoomEvents(chatStore.currentRoom.id)
+    }
+    
     await chatStore.setCurrentRoom(room.id)
+    
+    // Subscribe to new room events
+    chatStore.subscribeToRoomEvents(room.id)
   }
 }
 
-const handleSendMessage = async (messageText: string, files: File[]) => {
+const handleSendMessage = async (messageText: string, files: File[], replyTo?: Message) => {
   if (!chatStore.currentRoom) return
   
   if (messageText.trim() || files.length > 0) {
@@ -191,13 +152,15 @@ const handleSendMessage = async (messageText: string, files: File[]) => {
           roomId: chatStore.currentRoom.id,
           content: messageText,
           messageType: ChatMessageType.TEXT,
-          fileAttachments
+          fileAttachments,
+          replyToId: replyTo?.id
         })
       }
 
       // Clear input
       message.value = ""
       attachedFiles.value = []
+      replyToMessage.value = null
     } catch (error) {
       console.error('Failed to send message:', error)
     }
@@ -228,6 +191,36 @@ const handleTyping = async (isTyping: boolean) => {
   }
 }
 
+const handleReply = (message: Message) => {
+  replyToMessage.value = message
+  // Focus the input after setting reply
+  nextTick(() => {
+    const inputElement = document.querySelector('[data-testid="message-input"]') as HTMLTextAreaElement
+    if (inputElement) {
+      inputElement.focus()
+    }
+  })
+}
+
+const handleEditMessage = async (messageId: string, newContent: string) => {
+  // TODO: Implement edit message functionality
+  console.log('Edit message:', messageId, newContent)
+}
+
+const clearReply = () => {
+  replyToMessage.value = null
+}
+
+const handleCreateMission = () => {
+  // TODO: Navigate to mission creation with prestataire context
+  console.log('Create mission for current chat contact')
+}
+
+const handleSearch = () => {
+  // TODO: Implement search in conversation
+  console.log('Search in conversation')
+}
+
 // Watch for route changes
 watch(() => route.query, () => {
   initializeChatFromRoute()
@@ -247,9 +240,9 @@ onMounted(async () => {
     // Enable subscriptions if we have rooms
     if (chatStore.chatRooms.length > 0) {
       console.log('🔔 Enabling subscriptions for existing rooms:', chatStore.chatRooms.length)
-      subscriptionEnabled.value = true
+      chatStore.enableSubscriptions()
     } else {
-      console.log('📭 No existing rooms, subscriptions disabled')
+      console.log('📭 No existing rooms, subscriptions will be enabled when rooms are loaded')
     }
     
     // Initialize chat from route parameters if provided
@@ -258,15 +251,17 @@ onMounted(async () => {
     // If no room selected and we have rooms, select the first one
     if (!chatStore.currentRoom && chatStore.chatRooms.length > 0) {
       await chatStore.setCurrentRoom(chatStore.chatRooms[0].id)
+      // Subscribe to the selected room events
+      chatStore.subscribeToRoomEvents(chatStore.chatRooms[0].id)
     }
   } catch (error) {
     console.error('Failed to initialize chat:', error)
   }
 })
 
-// Clean up subscription when component unmounts
+// Clean up subscriptions when component unmounts
 onUnmounted(() => {
-  subscriptionEnabled.value = false
+  chatStore.disableSubscriptions()
 })
 </script>
 
@@ -299,23 +294,26 @@ onUnmounted(() => {
       />
 
       <!-- Main Chat Area -->
-      <div class="w-[80%] flex flex-col bg-background">
+      <div class="flex-1 flex flex-col bg-white">
         <template v-if="selectedChat">
           <!-- Chat Header -->
           <ChatHeader
             :chat="selectedChat"
-            @call="handleCall"
-            @videoCall="handleVideoCall"
-            @showMore="handleShowMore"
+            :user-type="authStore.user?.accountType?.toLowerCase()"
+            @create-mission="handleCreateMission"
+            @search="handleSearch"
+            @show-more="handleShowMore"
           />
 
           <!-- Chat Messages -->
-          <div class="flex-1 p-4 overflow-auto">
-            <div class="space-y-4">
+          <div class="flex-1 overflow-auto bg-gray-50">
+            <div class="p-4">
               <ChatMessage
                 v-for="msg in chatMessages"
                 :key="msg.id"
                 :message="msg"
+                @reply="handleReply"
+                @edit="handleEditMessage"
               />
               
               <!-- Typing Indicator -->
@@ -327,8 +325,10 @@ onUnmounted(() => {
           <ChatInput
             v-model="message"
             v-model:attachedFiles="attachedFiles"
+            :reply-to-message="replyToMessage"
             @send="handleSendMessage"
             @typing="handleTyping"
+            @clear-reply="clearReply"
           />
         </template>
 

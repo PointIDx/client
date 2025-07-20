@@ -37,6 +37,16 @@ import { MARK_MESSAGE_AS_READ } from '@/graphql/mutations/mark-message-as-read'
 import { MARK_ROOM_MESSAGES_AS_READ } from '@/graphql/mutations/mark-room-messages-as-read'
 import { SET_TYPING_INDICATOR } from '@/graphql/mutations/set-typing-indicator'
 
+// Subscriptions
+import { 
+  CHAT_ROOM_EVENTS,
+  NEW_MESSAGES,
+  TYPING_INDICATORS,
+  ROOM_UPDATES,
+  USER_PRESENCE_UPDATES,
+  HEARTBEAT
+} from '@/graphql/subscriptions/chat-subscriptions'
+
 
 export const useChatStore = defineStore('chat', () => {
   // State
@@ -47,6 +57,12 @@ export const useChatStore = defineStore('chat', () => {
   const isLoading = ref(false)
   const error = ref<string | null>(null)
   const typingUsers = ref<string[]>([])
+  
+  // Subscription state
+  const subscriptionEnabled = ref(false)
+  const subscriptionInstances = ref<Map<string, any>>(new Map())
+  const isOnline = ref(true)
+  const heartbeatInterval = ref<any>(null)
 
   // Apollo client - will be obtained when needed in methods
 
@@ -105,6 +121,8 @@ export const useChatStore = defineStore('chat', () => {
           unreadCount: item.unreadCount
         }))
         console.log('🎯 STORE: Chat rooms set, count:', chatRooms.value.length)
+        
+        // Note: Subscriptions will be enabled by components when needed
       } else {
         console.warn('🎯 STORE: No chat rooms data received from GraphQL')
         chatRooms.value = []
@@ -453,6 +471,490 @@ const markRoomMessagesAsRead = async (roomId: string) => {
     typingUsers.value = []
   }
 
+  /**
+   * Enable subscriptions (to be called from components)
+   */
+  const enableSubscriptions = () => {
+    console.log('🔔 Enabling chat subscriptions...')
+    subscriptionEnabled.value = true
+    
+    // Start all subscriptions
+    subscribeToNewMessages()
+    subscribeToTypingIndicators()
+    subscribeToRoomUpdates()
+    subscribeToUserPresenceUpdates()
+    subscribeToHeartbeat()
+  }
+
+  /**
+   * Subscribe to new messages across all user's rooms
+   */
+  const subscribeToNewMessages = () => {
+    if (subscriptionInstances.value.has('newMessages')) return
+    
+    try {
+      const { client } = useApolloClient()
+      const observable = client.subscribe({
+        query: NEW_MESSAGES
+      })
+      
+      const subscription = observable.subscribe({
+        next: ({ data }) => {
+          if (data?.newMessages) {
+            handleNewMessage(data.newMessages)
+          }
+        },
+        error: (err) => {
+          console.error('❌ New messages subscription error:', err)
+        }
+      })
+      
+      subscriptionInstances.value.set('newMessages', subscription)
+      console.log('✅ New messages subscription enabled')
+    } catch (error) {
+      console.error('❌ Failed to subscribe to new messages:', error)
+    }
+  }
+
+  /**
+   * Subscribe to typing indicators
+   */
+  const subscribeToTypingIndicators = () => {
+    if (subscriptionInstances.value.has('typingIndicators')) return
+    
+    try {
+      const { client } = useApolloClient()
+      const observable = client.subscribe({
+        query: TYPING_INDICATORS
+      })
+      
+      const subscription = observable.subscribe({
+        next: ({ data }) => {
+          if (data?.typingIndicators) {
+            handleTypingIndicator(data.typingIndicators)
+          }
+        },
+        error: (err) => {
+          console.error('❌ Typing indicators subscription error:', err)
+        }
+      })
+      
+      subscriptionInstances.value.set('typingIndicators', subscription)
+      console.log('✅ Typing indicators subscription enabled')
+    } catch (error) {
+      console.error('❌ Failed to subscribe to typing indicators:', error)
+    }
+  }
+
+  /**
+   * Subscribe to room updates
+   */
+  const subscribeToRoomUpdates = () => {
+    if (subscriptionInstances.value.has('roomUpdates')) return
+    
+    try {
+      const { client } = useApolloClient()
+      const observable = client.subscribe({
+        query: ROOM_UPDATES
+      })
+      
+      const subscription = observable.subscribe({
+        next: ({ data }) => {
+          if (data?.roomUpdates) {
+            handleRoomUpdate(data.roomUpdates)
+          }
+        },
+        error: (err) => {
+          console.error('❌ Room updates subscription error:', err)
+        }
+      })
+      
+      subscriptionInstances.value.set('roomUpdates', subscription)
+      console.log('✅ Room updates subscription enabled')
+    } catch (error) {
+      console.error('❌ Failed to subscribe to room updates:', error)
+    }
+  }
+
+  /**
+   * Subscribe to user presence updates
+   */
+  const subscribeToUserPresenceUpdates = () => {
+    if (subscriptionInstances.value.has('userPresence')) return
+    
+    try {
+      const { client } = useApolloClient()
+      const observable = client.subscribe({
+        query: USER_PRESENCE_UPDATES
+      })
+      
+      const subscription = observable.subscribe({
+        next: ({ data }) => {
+          if (data?.userPresenceUpdates) {
+            handleUserPresenceUpdate(data.userPresenceUpdates)
+          }
+        },
+        error: (err) => {
+          console.error('❌ User presence subscription error:', err)
+        }
+      })
+      
+      subscriptionInstances.value.set('userPresence', subscription)
+      console.log('✅ User presence subscription enabled')
+    } catch (error) {
+      console.error('❌ Failed to subscribe to user presence updates:', error)
+    }
+  }
+
+  /**
+   * Subscribe to heartbeat for connection monitoring
+   */
+  const subscribeToHeartbeat = () => {
+    if (subscriptionInstances.value.has('heartbeat')) return
+    
+    try {
+      const { client } = useApolloClient()
+      const observable = client.subscribe({
+        query: HEARTBEAT
+      })
+      
+      const subscription = observable.subscribe({
+        next: ({ data }) => {
+          if (data?.heartbeat) {
+            isOnline.value = true
+            console.log('💓 Heartbeat received')
+          }
+        },
+        error: (err) => {
+          console.error('❌ Heartbeat subscription error:', err)
+          isOnline.value = false
+        }
+      })
+      
+      subscriptionInstances.value.set('heartbeat', subscription)
+      console.log('✅ Heartbeat subscription enabled')
+      
+      // Monitor heartbeat timeout
+      if (heartbeatInterval.value) {
+        clearInterval(heartbeatInterval.value)
+      }
+      
+      heartbeatInterval.value = setInterval(() => {
+        // If no heartbeat received in 60 seconds, mark as offline
+        // This is handled by the subscription error handler
+      }, 60000)
+      
+    } catch (error) {
+      console.error('❌ Failed to subscribe to heartbeat:', error)
+    }
+  }
+
+  /**
+   * Subscribe to specific room events
+   */
+  const subscribeToRoomEvents = (roomId: string) => {
+    const key = `room-${roomId}`
+    if (subscriptionInstances.value.has(key)) return
+    
+    try {
+      const { client } = useApolloClient()
+      const observable = client.subscribe({
+        query: CHAT_ROOM_EVENTS,
+        variables: { roomId }
+      })
+      
+      const subscription = observable.subscribe({
+        next: ({ data }) => {
+          if (data?.chatRoomEvents) {
+            handleChatEvent(data.chatRoomEvents)
+          }
+        },
+        error: (err) => {
+          console.error(`❌ Room ${roomId} events subscription error:`, err)
+        }
+      })
+      
+      subscriptionInstances.value.set(key, subscription)
+      console.log(`✅ Room ${roomId} events subscription enabled`)
+    } catch (error) {
+      console.error(`❌ Failed to subscribe to room ${roomId} events:`, error)
+    }
+  }
+
+  /**
+   * Unsubscribe from specific room events
+   */
+  const unsubscribeFromRoomEvents = (roomId: string) => {
+    const key = `room-${roomId}`
+    const subscription = subscriptionInstances.value.get(key)
+    if (subscription) {
+      subscription.unsubscribe()
+      subscriptionInstances.value.delete(key)
+      console.log(`🔕 Room ${roomId} events subscription disabled`)
+    }
+  }
+
+  /**
+   * Handle incoming chat events from subscriptions
+   */
+  const handleChatEvent = (event: any) => {
+    console.log('🎯 Processing chat event:', event.eventType, 'for room:', event.roomId)
+
+    switch (event.eventType) {
+      case 'NEW_MESSAGE':
+        handleNewMessageEvent(event)
+        break
+      case 'MESSAGE_EDITED':
+        handleMessageEditedEvent(event)
+        break
+      case 'MESSAGE_DELETED':
+        handleMessageDeletedEvent(event)
+        break
+      case 'USER_TYPING':
+        handleUserTypingEvent(event)
+        break
+      case 'ROOM_UPDATED':
+        handleRoomUpdatedEvent(event)
+        break
+      default:
+        console.log('🤷 Unknown event type:', event.eventType)
+    }
+  }
+
+  /**
+   * Handle new messages from subscription
+   */
+  const handleNewMessage = (message: any) => {
+    console.log('💬 New message received:', message)
+    
+    // Add to current messages if it's for the current room
+    if (currentRoom.value && message.roomId === currentRoom.value.id) {
+      console.log('➕ Adding message to current room messages')
+      // Check if message already exists to avoid duplicates
+      const existingMessageIndex = currentMessages.value.findIndex(m => m.id === message.id)
+      if (existingMessageIndex === -1) {
+        currentMessages.value.push(message)
+      }
+    }
+
+    // Update room's last message and unread count
+    const roomIndex = chatRooms.value.findIndex(r => r.id === message.roomId)
+    if (roomIndex !== -1) {
+      const currentUnreadCount = chatRooms.value[roomIndex].unreadCount || 0
+      const newUnreadCount = currentRoom.value?.id !== message.roomId ? currentUnreadCount + 1 : currentUnreadCount
+      
+      console.log('🔄 Updating room last message in sidebar')
+      chatRooms.value[roomIndex] = {
+        ...chatRooms.value[roomIndex],
+        lastMessage: message,
+        lastMessageAt: message.sentAt,
+        unreadCount: newUnreadCount
+      }
+    }
+  }
+
+  /**
+   * Handle typing indicators from subscription
+   */
+  const handleTypingIndicator = (indicator: any) => {
+    console.log('⌨️ Typing indicator received:', indicator)
+    
+    if (currentRoom.value && indicator.roomId === currentRoom.value.id) {
+      const now = new Date()
+      const expiresAt = new Date(indicator.expiresAt)
+      
+      if (expiresAt > now) {
+        // User is typing
+        if (!typingUsers.value.includes(indicator.userId)) {
+          typingUsers.value.push(indicator.userId)
+        }
+        
+        // Set timeout to remove typing indicator when it expires
+        setTimeout(() => {
+          const index = typingUsers.value.indexOf(indicator.userId)
+          if (index !== -1) {
+            typingUsers.value.splice(index, 1)
+          }
+        }, expiresAt.getTime() - now.getTime())
+      }
+    }
+  }
+
+  /**
+   * Handle room updates from subscription
+   */
+  const handleRoomUpdate = (room: any) => {
+    console.log('🏠 Room update received:', room)
+    
+    // Update room in the list
+    const roomIndex = chatRooms.value.findIndex(r => r.id === room.id)
+    if (roomIndex !== -1) {
+      chatRooms.value[roomIndex] = {
+        ...chatRooms.value[roomIndex],
+        ...room
+      }
+    }
+    
+    // Update current room if it's the same room
+    if (currentRoom.value && room.id === currentRoom.value.id) {
+      currentRoom.value = {
+        ...currentRoom.value,
+        ...room
+      }
+    }
+  }
+
+  /**
+   * Handle user presence updates from subscription
+   */
+  const handleUserPresenceUpdate = (participant: any) => {
+    console.log('👤 User presence update received:', participant)
+    
+    // Update participant in current participants if it's for the current room
+    if (currentRoom.value && participant.roomId === currentRoom.value.id) {
+      const participantIndex = currentParticipants.value.findIndex(p => p.userId === participant.userId)
+      if (participantIndex !== -1) {
+        currentParticipants.value[participantIndex] = participant
+      } else {
+        currentParticipants.value.push(participant)
+      }
+    }
+  }
+
+  /**
+   * Handle new message events (legacy support for chatRoomEvents)
+   */
+  const handleNewMessageEvent = (event: any) => {
+    try {
+      const messageData = JSON.parse(event.data)
+      handleNewMessage(messageData)
+    } catch (parseError) {
+      console.error('❌ Error parsing message data:', parseError)
+    }
+  }
+
+  /**
+   * Handle message edited events
+   */
+  const handleMessageEditedEvent = (event: any) => {
+    try {
+      const messageData = JSON.parse(event.data)
+      console.log('✏️ Message edited:', messageData)
+      
+      // Update message in current messages if it's for the current room
+      if (currentRoom.value && event.roomId === currentRoom.value.id) {
+        const messageIndex = currentMessages.value.findIndex(m => m.id === messageData.id)
+        if (messageIndex !== -1) {
+          currentMessages.value[messageIndex] = messageData
+        }
+      }
+    } catch (parseError) {
+      console.error('❌ Error parsing edited message data:', parseError)
+    }
+  }
+
+  /**
+   * Handle message deleted events
+   */
+  const handleMessageDeletedEvent = (event: any) => {
+    try {
+      const { messageId } = JSON.parse(event.data)
+      console.log('🗑️ Message deleted:', messageId)
+      
+      // Remove message from current messages if it's for the current room
+      if (currentRoom.value && event.roomId === currentRoom.value.id) {
+        const messageIndex = currentMessages.value.findIndex(m => m.id === messageId)
+        if (messageIndex !== -1) {
+          currentMessages.value.splice(messageIndex, 1)
+        }
+      }
+    } catch (parseError) {
+      console.error('❌ Error parsing deleted message data:', parseError)
+    }
+  }
+
+  /**
+   * Handle user typing events
+   */
+  const handleUserTypingEvent = (event: any) => {
+    try {
+      const { userId, isTyping } = JSON.parse(event.data)
+      console.log('⌨️ User typing event:', userId, isTyping)
+      
+      if (currentRoom.value && event.roomId === currentRoom.value.id) {
+        if (isTyping) {
+          if (!typingUsers.value.includes(userId)) {
+            typingUsers.value.push(userId)
+          }
+        } else {
+          const index = typingUsers.value.indexOf(userId)
+          if (index !== -1) {
+            typingUsers.value.splice(index, 1)
+          }
+        }
+      }
+    } catch (parseError) {
+      console.error('❌ Error parsing typing event data:', parseError)
+    }
+  }
+
+  /**
+   * Handle room updated events
+   */
+  const handleRoomUpdatedEvent = (event: any) => {
+    try {
+      const roomData = JSON.parse(event.data)
+      console.log('🏠 Room updated:', roomData)
+      
+      // Update room in the list
+      const roomIndex = chatRooms.value.findIndex(r => r.id === event.roomId)
+      if (roomIndex !== -1) {
+        chatRooms.value[roomIndex] = {
+          ...chatRooms.value[roomIndex],
+          ...roomData
+        }
+      }
+      
+      // Update current room if it's the same room
+      if (currentRoom.value && event.roomId === currentRoom.value.id) {
+        currentRoom.value = {
+          ...currentRoom.value,
+          ...roomData
+        }
+      }
+    } catch (parseError) {
+      console.error('❌ Error parsing room update data:', parseError)
+    }
+  }
+
+  /**
+   * Disable subscriptions
+   */
+  const disableSubscriptions = () => {
+    console.log('🔕 Disabling chat subscriptions...')
+    subscriptionEnabled.value = false
+    
+    // Unsubscribe from all active subscriptions
+    subscriptionInstances.value.forEach((subscription, key) => {
+      try {
+        subscription.unsubscribe()
+        console.log(`🔕 Unsubscribed from ${key}`)
+      } catch (error) {
+        console.error(`❌ Error unsubscribing from ${key}:`, error)
+      }
+    })
+    
+    subscriptionInstances.value.clear()
+    
+    // Clear heartbeat interval
+    if (heartbeatInterval.value) {
+      clearInterval(heartbeatInterval.value)
+      heartbeatInterval.value = null
+    }
+    
+    isOnline.value = false
+  }
+
 
   return {
     // State
@@ -463,6 +965,8 @@ const markRoomMessagesAsRead = async (roomId: string) => {
     isLoading,
     error,
     typingUsers,
+    subscriptionEnabled,
+    isOnline,
 
     // Computed
     totalUnreadCount,
@@ -482,6 +986,13 @@ const markRoomMessagesAsRead = async (roomId: string) => {
     setTypingIndicator,
     searchMessages,
     setCurrentRoom,
-    clearCurrentRoom
+    clearCurrentRoom,
+    
+    // Subscription actions
+    enableSubscriptions,
+    disableSubscriptions,
+    subscribeToRoomEvents,
+    unsubscribeFromRoomEvents,
+    handleChatEvent
   }
 })

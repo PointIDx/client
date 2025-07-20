@@ -9,6 +9,7 @@ export interface MissionPrestataire {
     contactPerson: string
     phone: string
     email: string
+    userId: string
   }
   dateCreation: string
 }

@@ -100,7 +100,7 @@ const clientFormSchema = toTypedSchema(z.object({
   chantier_typeAcces: z.string().optional(),
   chantier_etage: z.string().optional(),
   chantier_contraintes: z.string().optional(),
-  chantier_memeAdresseClient: z.boolean().default(false),
+  chantier_memeAdresseClient: z.boolean().optional(),
   sinistre_type: z.string().min(1, 'Le type de sinistre est requis.'),
   sinistre_description: z.string().min(1, 'La description est requise.'),
   sinistre_urgence: z.string().min(1, "Le niveau d'urgence est requis."),
@@ -115,14 +115,20 @@ const clientFormSchema = toTypedSchema(z.object({
   materiaux: z.string().optional(),
   normes: z.string().optional(),
   conditionsParticulieres: z.string().optional(),
-  emailClient: z.boolean().default(true),
-  smsClient: z.boolean().default(false),
-  creerAccesClient: z.boolean().default(true),
+  emailClient: z.boolean().optional(),
+  smsClient: z.boolean().optional(),
+  creerAccesClient: z.boolean().optional(),
 }))
 
 
 const {handleSubmit, values} = useForm({
   validationSchema: clientFormSchema,
+  initialValues: {
+    chantier_memeAdresseClient: false,
+    emailClient: true,
+    smsClient: false,
+    creerAccesClient: true,
+  }
 })
 
 

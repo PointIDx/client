@@ -244,7 +244,7 @@ import placeholderImage from '@/assets/placeholder.svg'
             <p class="text-gray-700">Recherchez et contactez des prestataires qualifiés</p>
           </div>
           <div class="flex items-center space-x-4">
-            <Button size="icon" class="bg-transparent shadow-none hover:shadow-none focus:shadow-none" @click="navigateToChat">
+            <Button data-testid="nav_chat_button" size="icon" class="bg-transparent shadow-none hover:shadow-none focus:shadow-none" @click="navigateToChat">
               <MessageCircle class="w-6 h-6 mr-2" />
             </Button>
             <DropdownMenu>

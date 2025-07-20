@@ -12,6 +12,7 @@ export const GET_PRESTATAIRE_MISSIONS_QUERY = gql`
         contactPerson
         phone
         email
+        userId
       }
       dateCreation
     }
