@@ -5,6 +5,7 @@ import { SIGNUP_MUTATION } from '@/graphql/mutations/signup';
 import type { User, JWTTokens, AuthResponse, LoginInput, SignupInput } from '@/interfaces/auth';
 import { AuthUtils } from '@/utils/auth';
 import { useGraphQL } from '@/composables/useGraphQL';
+import { toast } from 'vue-sonner';
 
 export const useAuthStore = defineStore('auth', () => {
   const tokens = ref<JWTTokens | null>(AuthUtils.getTokens());
@@ -33,6 +34,7 @@ export const useAuthStore = defineStore('auth', () => {
       );
 
       if (!result?.login) {
+        toast.error('Login failed');
         throw new Error('Login failed');
       }
 
@@ -42,7 +44,8 @@ export const useAuthStore = defineStore('auth', () => {
       AuthUtils.saveUser(result.login.user);
       return true;
       
-    } catch (error) {
+    } catch (error: string | any) {
+      toast.error('Login failed', error);
       console.error('Login failed:', error);
       return false;
     }
