@@ -18,11 +18,9 @@ import {
   GET_MISSION_DOCUMENTS_QUERY,
   GET_DOCUMENT_DOWNLOAD_URL_QUERY
 } from '@/graphql/queries/mission-documents';
-import { SEND_COMMUNICATION_REQUEST_MUTATION, type CommunicationRequestInput } from '@/graphql/mutations/send-communication-request';
-import { GET_COMMUNICATION_REQUESTS_QUERY, type CommunicationRequestResponse } from '@/graphql/queries/get-communication-requests';
 import { GET_NOTIFICATIONS_QUERY, MARK_NOTIFICATION_READ_MUTATION, type Notification } from '@/graphql/queries/get-notifications';
 import { EXPORT_MISSIONS_QUERY, EXPORT_MISSION_DETAILS_QUERY, type ExportFilters, type ExportFormat } from '@/graphql/queries/export-missions';
-import { ON_NOTIFICATION_SUBSCRIPTION, ON_COMMUNICATION_RESPONSE_SUBSCRIPTION } from '@/graphql/subscriptions/on-notification';
+import { ON_NOTIFICATION_SUBSCRIPTION, } from '@/graphql/subscriptions/on-notification';
 import { useQuery, useMutation, useSubscription, useApolloClient } from '@vue/apollo-composable';
 import type { Prestataire } from '@/interfaces/prestataire';
 import type { Mission } from '@/interfaces/mission';
@@ -54,7 +52,6 @@ export const useAssureurStore = defineStore('assureur', () => {
   const prestataires = ref<Prestataire[]>([]);
   const missions = ref<MissionDetails[]>([]);
   const mission = ref<MissionDetails | null>(null);
-  const communicationRequests = ref<CommunicationRequestResponse[]>([]);
   const notifications = ref<Notification[]>([]);
 
   const validateSiret = async (siret: string) => {
@@ -161,39 +158,10 @@ export const useAssureurStore = defineStore('assureur', () => {
 
   const { mutate: createMission } = useMutation(CREATE_MISSION_MUTATION);
   const { mutate: updateMissionStatus } = useMutation(UPDATE_MISSION_STATUS_MUTATION);
-  const { mutate: sendCommunicationRequest } = useMutation(SEND_COMMUNICATION_REQUEST_MUTATION);
   const { mutate: markNotificationRead } = useMutation(MARK_NOTIFICATION_READ_MUTATION);
 
-  // Communication requests management
-  const fetchCommunicationRequests = async () => {
-      const {onResult, onError} = useQuery(GET_COMMUNICATION_REQUESTS_QUERY)
 
-      onResult((queryResult) => {
-        if (queryResult.data) {
-          communicationRequests.value = queryResult.data.getCommunicationRequests;
-        }
-      })
 
-      onError((err) => {
-        handleGraphQLError(err, 'Get Communication Requests', { showToast: true });
-        throw new Error('Erreur lors de la récupération des détails de la mission.');
-      })
-  };
-
-  const sendCommRequest = async (input: CommunicationRequestInput) => {
-    try {
-      const result = await sendCommunicationRequest({ input });
-      if (result?.data?.sendCommunicationRequest) {
-        // Refresh communication requests
-        fetchCommunicationRequests();
-        showSuccess('Demande de communication envoyée avec succès');
-        return result.data.sendCommunicationRequest;
-      }
-    } catch (error) {
-      handleGraphQLError(error, 'Send Communication Request', { showToast: true });
-      throw error;
-    }
-  };
 
   // Notifications management
   const fetchNotifications = () => {
@@ -287,20 +255,6 @@ export const useAssureurStore = defineStore('assureur', () => {
     });
   };
 
-  const subscribeToCommunicationResponses = () => {
-    const { onResult, onError } = useSubscription(ON_COMMUNICATION_RESPONSE_SUBSCRIPTION);
-
-    onResult((result) => {
-      if (result.data?.onCommunicationResponse) {
-        // Refresh communication requests to get updated status
-        fetchCommunicationRequests();
-      }
-    });
-
-    onError((error) => {
-      console.error('Error in communication response subscription:', error);
-    });
-  };
 
   // Assureur-specific mission lifecycle functions
   const { mutate: suspendMissionMutation } = useMutation(SUSPEND_MISSION_MUTATION);
@@ -405,7 +359,6 @@ export const useAssureurStore = defineStore('assureur', () => {
     prestataires,
     missions,
     mission,
-    communicationRequests,
     notifications,
     validateSiret,
     searchPrestataires,
@@ -418,13 +371,10 @@ export const useAssureurStore = defineStore('assureur', () => {
     validateMissionCompletion,
     cancelMission,
     ratePrestataire,
-    fetchCommunicationRequests,
-    sendCommRequest,
     fetchNotifications,
     markAsRead,
     exportMissions,
     exportMissionDetails,
     subscribeToNotifications,
-    subscribeToCommunicationResponses,
   };
 });

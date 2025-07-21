@@ -41,9 +41,6 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 // MissionCreationDialog removed - now using separate page
 import MissionsList from '@/components/MissionsList.vue'
 import type { Prestataire } from '@/interfaces/prestataire'
-import type { CommunicationRequestResponse } from '@/graphql/queries/get-communication-requests'
-import type { IMission } from '@/interfaces/IMission'
-import { DemandeCommStatut } from '@/enums/demande-comm-statut'
 import { useAssureurStore } from '@/stores/assureur'
 import { useGraphQL } from '@/composables/useGraphQL'
 import { DOWNLOAD_DOCUMENT_QUERY } from '@/graphql/queries/download-document'
@@ -65,7 +62,7 @@ const showSuccess = ref(false)
 // Mission dialog refs removed - now using separate page
 
 // Use data from the store
-const demandes = computed(() => assureurStore.communicationRequests)
+
 const missions = computed(() => assureurStore.missions)
 const notifications = computed(() => assureurStore.notifications.filter(n => !n.isRead))
 
@@ -107,7 +104,6 @@ const applyFilters = () => {
 onMounted(async () => {
   applyFilters();
   // Load communication requests and missions from the store
-  await assureurStore.fetchCommunicationRequests();
   await assureurStore.fetchMissions();
   await assureurStore.fetchNotifications();
 });
@@ -120,52 +116,9 @@ const resetFilters = () => {
   applyFilters();
 }
 
-const envoyerDemandeComm = async () => {
-  if (!selectedPrestataire.value || !messageComm.value.trim()) return;
 
-  try {
-    await assureurStore.sendCommRequest({
-      prestataireId: selectedPrestataire.value.id,
-      message: messageComm.value,
-    });
 
-    messageComm.value = '';
-    showCommDialog.value = false;
-    showSuccess.value = true;
-    setTimeout(() => (showSuccess.value = false), 3000);
-  } catch (error) {
-    console.error("Erreur lors de l'envoi de la demande:", error);
-  }
-};
 
-const getStatutBadge = (statut: CommunicationRequestResponse["statut"]) => {
-  switch (statut) {
-    case "en_attente":
-      return {
-        text: 'En attente',
-        class: 'bg-gray-200 text-gray-800 border-gray-400',
-        icon: Clock
-      }
-    case "acceptee":
-      return {
-        text: 'Acceptée',
-        class: 'bg-black text-white border-black',
-        icon: CheckCircle
-      }
-    case "refusee":
-      return {
-        text: 'Refusée',
-        class: 'bg-gray-700 text-white border-gray-700',
-        icon: XCircle
-      }
-    default:
-      return {
-        text: 'Inconnu',
-        class: 'bg-gray-100 text-gray-800 border-gray-300',
-        icon: Clock
-      }
-  }
-}
 
 // handleCreateMission removed - now handled in separate page
 
@@ -200,7 +153,7 @@ const handleContactClick = (prestataire: Prestataire) => {
   router.push({
     path: '/chat',
     query: {
-      prestataireId: prestataire.userId, // Use userId for chat room creation
+      prestataireId: prestataire.id, // Use userId for chat room creation
       contactName: prestataire.nom || prestataire.raisonSociale,
       contactPerson: prestataire.nom,
       type: 'prestataire'
@@ -290,7 +243,6 @@ import placeholderImage from '@/assets/placeholder.svg'
       <Tabs default-value="recherche" class="space-y-6">
         <TabsList>
           <TabsTrigger value="recherche" class="data-[state=active]:bg-black data-[state=active]:text-white">Recherche Prestataires</TabsTrigger>
-          <TabsTrigger value="demandes" @click="assureurStore.fetchCommunicationRequests()" class="data-[state=active]:bg-black data-[state=active]:text-white">Mes Demandes ({{ demandes.length }})</TabsTrigger>
           <TabsTrigger value="missions" @click="assureurStore.fetchMissions()" class="data-[state=active]:bg-black data-[state=active]:text-white">Mes Missions ({{ missions.length }})</TabsTrigger>
         </TabsList>
 
@@ -532,128 +484,11 @@ import placeholderImage from '@/assets/placeholder.svg'
             </div>
           </div>
         </TabsContent>
-
-        <!-- Onglet Demandes -->
-        <TabsContent value="demandes">
-          <Card>
-            <CardHeader>
-              <CardTitle>Mes demandes de communication</CardTitle>
-              <CardDescription>Suivez l'état de vos demandes de contact avec les prestataires</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div v-if="demandes.length === 0" class="text-center py-8 text-gray-500">
-                <MessageCircle class="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                <p>Aucune demande de communication envoyée</p>
-                <p class="text-sm">Recherchez des prestataires et contactez-les pour commencer</p>
-              </div>
-              <div v-else class="space-y-4">
-                <div v-for="demande in demandes" :key="demande.id" class="border rounded-lg p-4">
-                  <div class="flex items-start justify-between">
-                    <div class="flex items-start space-x-4">
-                      <Avatar>
-                        <AvatarFallback>
-                          {{ demande.prestataire.nom.split(' ').map((n) => n[0]).join('') }}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div class="flex-1">
-                        <h4 class="font-semibold">{{ demande.prestataire.nom }}</h4>
-                        <p class="text-sm text-gray-600">{{ demande.prestataire.raisonSociale }}</p>
-                        <p class="text-sm text-gray-500 mt-1">
-                          Envoyé le {{ new Date(demande.dateEnvoi).toLocaleDateString() }} à
-                          {{ new Date(demande.dateEnvoi).toLocaleTimeString() }}
-                        </p>
-                        <div class="mt-2">
-                          <p class="text-sm">
-                            <strong>Message:</strong>
-                          </p>
-                          <p class="text-sm text-gray-700 bg-gray-50 p-2 rounded mt-1">{{ demande.message }}</p>
-                        </div>
-                        <div v-if="demande.reponseMessage" class="mt-2">
-                          <p class="text-sm">
-                            <strong>Réponse:</strong>
-                          </p>
-                          <p class="text-sm text-gray-700 bg-blue-50 p-2 rounded mt-1">{{ demande.reponseMessage }}</p>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="text-right">
-                      <Badge :class="getStatutBadge(demande.statut).class">
-                        <component :is="getStatutBadge(demande.statut).icon" class="w-3 h-3 mr-1" />
-                        {{ getStatutBadge(demande.statut).text }}
-                      </Badge>
-                      <p v-if="demande.dateReponse" class="text-xs text-gray-500 mt-1">
-                        Répondu le {{ new Date(demande.dateReponse).toLocaleDateString() }}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
         <!-- Onglet Missions -->
         <TabsContent value="missions">
           <MissionsList :missions="missions" />
         </TabsContent>
       </Tabs>
     </div>
-
-    <!-- Dialog Demande de communication -->
-    <Dialog :open="showCommDialog" @update:open="showCommDialog = $event">
-      <DialogContent class="bg-white">
-        <DialogHeader>
-          <DialogTitle>Demande de communication</DialogTitle>
-          <DialogDescription>Envoyez une demande de contact à {{ selectedPrestataire?.companyName }}</DialogDescription>
-        </DialogHeader>
-
-        <div v-if="selectedPrestataire" class="space-y-4">
-          <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-            <Avatar>
-              <AvatarFallback>
-                {{ selectedPrestataire.contactPerson.split(' ').map((n) => n[0]).join('') }}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <h4 class="font-semibold">{{ selectedPrestataire.companyName }}</h4>
-              <p class="text-sm text-gray-600">{{ selectedPrestataire.contactPerson }}</p>
-              <p class="text-sm text-gray-500">{{ selectedPrestataire.address.city }}</p>
-            </div>
-          </div>
-
-          <div>
-            <Label for="message">Message d'accompagnement *</Label>
-            <Textarea
-              id="message"
-              placeholder="Bonjour, je souhaiterais échanger avec vous concernant..."
-              v-model="messageComm"
-              class="mt-1"
-              rows="4"
-            />
-          </div>
-
-          <div class="bg-blue-50 p-3 rounded-lg">
-            <p class="text-sm text-blue-800">
-              <strong>Le prestataire recevra :</strong>
-              <br />• Une notification sur son portail
-              <br />• Un email avec votre message
-              <br />• Vos coordonnées pour vous recontacter
-            </p>
-          </div>
-
-          <div class="flex justify-end space-x-2">
-            <Button variant="outline" @click="showCommDialog = false">
-              Annuler
-            </Button>
-            <Button @click="envoyerDemandeComm" :disabled="!messageComm.trim()">
-              <Send class="w-4 h-4 mr-2" />
-              Envoyer la demande
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-
-    <!-- Dialog Création de mission removed - now navigating to separate page -->
   </div>
 </template>

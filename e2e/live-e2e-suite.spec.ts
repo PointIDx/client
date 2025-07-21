@@ -145,15 +145,7 @@ Test E2E - ${timestamp}`;
     // STEP 4: Verify request appears in "Mes Demandes"
     console.log('STEP 4: Verify request in Mes Demandes');
     
-    // Try to find and click the Mes Demandes tab
-    try {
-      await page.getByRole('tab').filter({ hasText: 'Mes Demandes' }).click();
-      await waitForGraphQLOperation(page, 'getCommunicationRequests');
-      await page.waitForTimeout(2000);
-    } catch (error) {
-      console.log('Could not find Mes Demandes tab - checking if requests are visible on current page');
-      // If tab doesn't exist, continue without navigation
-    }
+
     
     const requests = page.locator('[data-testid="communication-request-item"]');
     const requestCount = await requests.count();
@@ -270,8 +262,7 @@ Test E2E - ${timestamp}`;
     // Check "Nouvelles Demandes" for communication requests
     await page.getByRole('tab').filter({ hasText: 'Nouvelles Demandes' }).click();
     
-    await waitForGraphQLOperation(page, 'getCommunicationRequestsForPrestataire');
-    await page.waitForTimeout(2000);
+
     
     const prestataireRequests = page.locator('[data-testid="communication-request-item"]');
     const prestataireRequestCount = await prestataireRequests.count();
@@ -316,9 +307,7 @@ Test E2E Response - ${timestamp}`;
     console.log('STEP 10: Final verification - check responses');
     await loginAsAssureur(page, assureurCredentials);
     
-    await page.getByRole('tab').filter({ hasText: 'Mes Demandes' }).click();
-    await waitForGraphQLOperation(page, 'getCommunicationRequests');
-    await page.waitForTimeout(2000);
+
     
     const finalRequests = page.locator('[data-testid="communication-request-item"]');
     const finalRequestCount = await finalRequests.count();
@@ -356,9 +345,7 @@ Test E2E Response - ${timestamp}`;
     
     // Navigate between tabs
     const tabStart = Date.now();
-    await page.click('[data-testid="mes-demandes-tab"]');
-    await waitForGraphQLOperation(page, 'getCommunicationRequests');
-    await page.waitForTimeout(1000);
+
     
     await page.click('[data-testid="mes-missions-tab"]');
     await waitForGraphQLOperation(page, 'getAssureurMissions');
@@ -452,10 +439,7 @@ Test E2E Response - ${timestamp}`;
     const missionCount = await page.locator('[data-testid="mission-item"]').count();
     console.log(`Mission count: ${missionCount} missions`);
     
-    // Get communication count from Mes Demandes
-    await page.click('[data-testid="mes-demandes-tab"]');
-    await waitForGraphQLOperation(page, 'getCommunicationRequests');
-    await page.waitForTimeout(2000);
+
     
     const communicationCount = await page.locator('[data-testid="communication-request-item"]').count();
     console.log(`Communication count: ${communicationCount} requests`);

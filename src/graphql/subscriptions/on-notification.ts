@@ -13,19 +13,3 @@ export const ON_NOTIFICATION_SUBSCRIPTION = gql`
     }
   }
 `
-
-export const ON_COMMUNICATION_RESPONSE_SUBSCRIPTION = gql`
-  subscription OnCommunicationResponse {
-    onCommunicationResponse {
-      id
-      prestataire {
-        id
-        nom
-        raisonSociale
-      }
-      statut
-      dateReponse
-      reponseMessage
-    }
-  }
-`

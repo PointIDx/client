@@ -31,7 +31,6 @@ import { usePrestataireStore } from '@/stores/prestataire'
 import { onMounted, computed, ref, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { MissionStatutPrestataire } from '@/enums/mission-statut-prestataire'
-import { MessageExpediteur } from '@/enums/message-expediteur'
 import type { MissionPrestataire } from '@/interfaces/mission-prestataire'
 import { getMissionStatusBadge } from '@/utils/status-badges'
 import { handleError } from '@/utils/error-handling'
@@ -55,15 +54,15 @@ const missions = computed(() => prestataireStore.missions)
 
 // Filter missions by GraphQL MissionStatut values
 const nouvellesMissions = computed(() => {
-  const nouvelles = missions.value.filter((mission) => mission.missionStatus === 'EN_ATTENTE')
+  const nouvelles = missions.value.filter((mission: any) => mission.missionStatus === 'EN_ATTENTE')
   console.log('🎯 Nouvelles missions count:', nouvelles.length, 'from total:', missions.value.length)
   if (missions.value.length > 0) {
-    console.log('📋 All mission statuses:', missions.value.map(m => m.missionStatus))
+    console.log('📋 All mission statuses:', missions.value.map((m: { missionStatus: any }) => m.missionStatus))
   }
   return nouvelles
 })
 const missionsEnCours = computed(() => {
-  const enCours = missions.value.filter((mission) => 
+  const enCours = missions.value.filter((mission: any) => 
     mission.missionStatus === 'EN_COURS' ||
     mission.missionStatus === 'ASSIGNEE'
   )
@@ -71,7 +70,7 @@ const missionsEnCours = computed(() => {
   return enCours
 })
 const missionsTerminees = computed(() => {
-  const terminees = missions.value.filter((mission) => 
+  const terminees = missions.value.filter((mission: any) => 
     mission.missionStatus === 'TERMINEE' ||
     mission.missionStatus === 'ANNULEE' ||
     mission.missionStatus === 'SUSPENDUE'
@@ -86,11 +85,11 @@ const showChat = ref(false)
 const newMessage = ref('')
 const showSuccess = ref(false)
 const successMessage = ref('')
-const notifications = computed(() => prestataireStore.notifications.filter(n => !n.isRead))
+const notifications = computed(() => prestataireStore.notifications.filter((n: { isRead: any }) => !n.isRead))
 const getMessagesForMission = (missionId: string) => {
   return messages.value
-    .filter((msg) => msg.missionId === missionId)
-    .sort((a, b) => new Date(a.dateEnvoi).getTime() - new Date(b.dateEnvoi).getTime())
+    .filter((msg: any) => msg.missionId === missionId)
+    .sort((a: any, b: any) => new Date(a.dateEnvoi).getTime() - new Date(b.dateEnvoi).getTime())
 }
 
 const envoyerMessage = async (missionId: string) => {
@@ -441,60 +440,5 @@ const openChat = (mission: any) => {
         </TabsContent>
       </Tabs>
     </div>
-
-    <!-- Dialog Chat -->
-    <Dialog :open="showChat" @update:open="showChat = $event">
-      <DialogContent class="max-w-2xl max-h-[80vh] bg-white border-gray-300" data-testid="chat-dialog">
-        <template v-if="selectedMission">
-          <DialogHeader>
-            <DialogTitle class="flex items-center space-x-2 text-black">
-              <MessageCircle class="w-5 h-5" />
-              <span>Chat - Mission #{{ selectedMission.dossier }}</span>
-            </DialogTitle>
-            <DialogDescription class="text-gray-700">Conversation pour cette mission</DialogDescription>
-          </DialogHeader>
-
-          <div class="flex flex-col h-96">
-            <!-- Messages -->
-            <div class="flex-1 overflow-y-auto space-y-3 p-4 bg-gray-100 rounded border border-gray-300" data-testid="message-list">
-              <div
-                v-for="message in getMessagesForMission(selectedMission.id)"
-                :key="message.id"
-                class="flex"
-                :class="message.expediteur === MessageExpediteur.Prestataire ? 'justify-end' : 'justify-start'"
-                data-testid="message"
-              >
-                <div
-                  class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg"
-                  :class="message.expediteur === MessageExpediteur.Prestataire ? 'bg-black text-white' : 'bg-white border border-gray-300 shadow-sm'"
-                >
-                  <p class="text-sm">{{ message.contenu }}</p>
-                  <p
-                    class="text-xs mt-1"
-                    :class="message.expediteur === MessageExpediteur.Prestataire ? 'text-gray-300' : 'text-gray-500'"
-                  >
-                    {{ new Date(message.dateEnvoi).toLocaleString() }}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <!-- Zone de saisie -->
-            <div class="flex space-x-2 pt-4">
-              <Input
-                v-model="newMessage"
-                placeholder="Tapez votre message..."
-                @keyup.enter="envoyerMessage(selectedMission.id)"
-                data-testid="message-input"
-                class="bg-white border-gray-300"
-              />
-              <Button @click="envoyerMessage(selectedMission.id)" :disabled="!newMessage.trim()" data-testid="send-message-button" class="bg-black text-white hover:bg-gray-800">
-                <Send class="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        </template>
-      </DialogContent>
-    </Dialog>
   </div>
 </template>

@@ -242,10 +242,6 @@ test.describe('Assureur Prestataire Search and Interaction - Live Mode', () => {
     await waitForMutation(page, 'sendCommunicationRequest');
     await page.waitForTimeout(2000);
     
-    // Navigate to "Mes Demandes" tab
-    await page.click('[data-testid="mes-demandes-tab"]');
-    await waitForGraphQLOperation(page, 'getCommunicationRequests');
-    await page.waitForTimeout(2000);
     
     // Verify the sent request appears in the list
     const requestList = page.locator('[data-testid="communication-request-item"]');

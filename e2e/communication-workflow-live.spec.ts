@@ -101,10 +101,7 @@ Test automatisé - ${timestamp}`;
     await waitForMutation(page, 'sendCommunicationRequest');
     await page.waitForTimeout(3000);
     
-    // Navigate to "Mes Demandes" tab
-    await page.click('[data-testid="mes-demandes-tab"]');
-    await waitForGraphQLOperation(page, 'getCommunicationRequests');
-    await page.waitForTimeout(2000);
+
     
     // Verify the request appears in the list
     const requestItems = page.locator('[data-testid="communication-request-item"]');
@@ -147,7 +144,7 @@ Test automatisé - ${timestamp}`;
     for (let i = 0; i < cardCount; i++) {
       const card = prestataireCards.nth(i);
       const email = await card.locator('[data-testid="email"]').textContent().catch(() => '');
-      if (email.includes(prestataireCredentials.email)) {
+      if (email?.includes(prestataireCredentials.email)) {
         targetCard = card;
         break;
       }
@@ -168,11 +165,7 @@ Test automatisé - ${timestamp}`;
     
     // Now login as prestataire to check notifications
     await loginAsPrestataire(page, prestataireCredentials);
-    
-    // Navigate to "Nouvelles Demandes" tab
-    await page.click('[data-testid="nouvelles-demandes-tab"]');
-    await waitForGraphQLOperation(page, 'getCommunicationRequestsForPrestataire');
-    await page.waitForTimeout(2000);
+
     
     // Verify requests are loaded
     const requestItems = page.locator('[data-testid="communication-request-item"]');
@@ -219,9 +212,7 @@ Test automatisé - ${timestamp}`;
     // Login as prestataire to respond
     await loginAsPrestataire(page, prestataireCredentials);
     
-    await page.click('[data-testid="nouvelles-demandes-tab"]');
-    await waitForGraphQLOperation(page, 'getCommunicationRequestsForPrestataire');
-    await page.waitForTimeout(2000);
+
     
     // Find the first request and respond
     const firstRequest = page.locator('[data-testid="communication-request-item"]').first();
@@ -284,10 +275,7 @@ Réponse automatisée - ${timestamp}`;
     await waitForMutation(page, 'sendCommunicationRequest');
     await page.waitForTimeout(3000);
     
-    // Check "Mes Demandes" for responses
-    await page.click('[data-testid="mes-demandes-tab"]');
-    await waitForGraphQLOperation(page, 'getCommunicationRequests');
-    await page.waitForTimeout(2000);
+
     
     const requests = page.locator('[data-testid="communication-request-item"]');
     const requestCount = await requests.count();
@@ -336,9 +324,7 @@ Réponse automatisée - ${timestamp}`;
     // Login as prestataire to reject
     await loginAsPrestataire(page, prestataireCredentials);
     
-    await page.click('[data-testid="nouvelles-demandes-tab"]');
-    await waitForGraphQLOperation(page, 'getCommunicationRequestsForPrestataire');
-    await page.waitForTimeout(2000);
+
     
     const firstRequest = page.locator('[data-testid="communication-request-item"]').first();
     const hasRequest = await firstRequest.isVisible().catch(() => false);
@@ -383,10 +369,6 @@ Test automatisé - ${timestamp}`;
     // Login as assureur and check if there are any statistics
     await loginAsAssureur(page, assureurCredentials);
     
-    await page.click('[data-testid="mes-demandes-tab"]');
-    await waitForGraphQLOperation(page, 'getCommunicationRequests');
-    await page.waitForTimeout(2000);
-    
     // Check for statistics or counts
     const stats = page.locator('[data-testid="communication-stats"]');
     const hasStats = await stats.isVisible().catch(() => false);
@@ -416,9 +398,7 @@ Test automatisé - ${timestamp}`;
     // Login as a fresh assureur (or prestataire) that hasn't sent/received messages
     await loginAsAssureur(page, assureurCredentials);
     
-    await page.click('[data-testid="mes-demandes-tab"]');
-    await waitForGraphQLOperation(page, 'getCommunicationRequests');
-    await page.waitForTimeout(2000);
+
     
     const requests = page.locator('[data-testid="communication-request-item"]');
     const requestCount = await requests.count();
