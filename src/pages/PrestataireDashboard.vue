@@ -79,34 +79,18 @@ const missionsTerminees = computed(() => {
   return terminees
 })
 
-const messages = computed(() => prestataireStore.messages)
+
 const selectedMission = ref<MissionPrestataire | null>(null)
 const showChat = ref(false)
 const newMessage = ref('')
 const showSuccess = ref(false)
 const successMessage = ref('')
 const notifications = computed(() => prestataireStore.notifications.filter((n: { isRead: any }) => !n.isRead))
-const getMessagesForMission = (missionId: string) => {
-  return messages.value
-    .filter((msg: any) => msg.missionId === missionId)
-    .sort((a: any, b: any) => new Date(a.dateEnvoi).getTime() - new Date(b.dateEnvoi).getTime())
-}
 
-const envoyerMessage = async (missionId: string) => {
-  if (!newMessage.value.trim()) return
-  try {
-    await prestataireStore.sendMessage(missionId, newMessage.value)
-    newMessage.value = ""
-  } catch (error) {
-    handleError(error, 'Send Message', { showToast: true })
-  }
-}
 
-watch(selectedMission, (newMission) => {
-  if (newMission) {
-    prestataireStore.subscribeToNewMessages(newMission.id)
-  }
-})
+
+
+
 
 // Using shared utilities for status badges
 const getStatutBadge = getMissionStatusBadge

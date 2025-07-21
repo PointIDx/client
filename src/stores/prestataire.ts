@@ -26,16 +26,11 @@ import { SEND_COMMENT_MUTATION } from '@/graphql/mutations/send-comment'
 import { SEND_FILE } from '@/graphql/mutations/send-file'
 import { ON_NEW_MESSAGE_SUBSCRIPTION } from '@/graphql/subscriptions/on-new-message'
 import { GET_MESSAGES_QUERY } from '@/graphql/queries/get-messages'
-import type { Message } from '@/interfaces/message'
-import { MessageExpediteur } from '@/enums/message-expediteur'
 
 // Import new GraphQL operations
 import { GET_PRESTATAIRE_NOTIFICATIONS_QUERY, MARK_PRESTATAIRE_NOTIFICATION_READ_MUTATION, type PrestataireNotification } from '@/graphql/queries/get-prestataire-notifications'
-import { GET_COMMUNICATION_REQUESTS_FOR_PRESTATAIRE_QUERY, RESPOND_TO_COMMUNICATION_REQUEST_MUTATION, type CommunicationRequestForPrestataire, type CommunicationResponseInput } from '@/graphql/queries/get-communication-requests-for-prestataire'
-import { GET_PRESTATAIRE_STATISTICS_QUERY, type PrestataireStatistics } from '@/graphql/queries/get-prestataire-statistics'
 import { EXPORT_PRESTATAIRE_MISSIONS_QUERY, EXPORT_PRESTATAIRE_REPORT_QUERY, type PrestataireExportFilters, type ReportPeriod, type ExportFormat } from '@/graphql/queries/export-prestataire-missions'
 import { UPDATE_PRESTATAIRE_PROFILE_MUTATION, UPDATE_PRESTATAIRE_AVAILABILITY_MUTATION, type PrestataireProfileUpdateInput, type AvailabilityStatus } from '@/graphql/mutations/update-prestataire-profile'
-import { SEND_FILE_WITH_MESSAGE_MUTATION, type FileMessageInput } from '@/graphql/mutations/send-file-with-message'
 import { UPLOAD_MISSION_DOCUMENT_MUTATION } from '@/graphql/mutations/mission-documents'
 import { ON_PRESTATAIRE_NOTIFICATION_SUBSCRIPTION, ON_NEW_MISSION_ASSIGNMENT_SUBSCRIPTION, ON_COMMUNICATION_REQUEST_SUBSCRIPTION } from '@/graphql/subscriptions/on-prestataire-notification'
 
@@ -53,10 +48,7 @@ export const usePrestataireStore = defineStore('prestataire', () => {
   const siretValidated = ref(false)
   const missions = ref<MissionPrestataire[]>([])
   const mission = ref<Mission | null>(null)
-  const messages = ref<Message[]>([])
   const notifications = ref<PrestataireNotification[]>([])
-  const communicationRequests = ref<CommunicationRequestForPrestataire[]>([])
-  const statistics = ref<PrestataireStatistics | null>(null)
   const availabilityStatus = ref<AvailabilityStatus>('available')
 
   const { client } = useApolloClient()
@@ -285,18 +277,6 @@ export const usePrestataireStore = defineStore('prestataire', () => {
 
   const { mutate: sendMessageMutation } = useMutation(SEND_COMMENT_MUTATION);
 
-  async function sendMessage(missionId: string, content: string) {
-    try {
-      const result = await sendMessageMutation({ missionId, content });
-      if (result && result.data) {
-        messages.value.push(result.data.sendComment);
-      }
-    } catch (error) {
-      handleGraphQLError(error, 'Send Message', { showToast: true });
-      throw error;
-    }
-  }
-
   const { mutate: sendFileMutation } = useMutation(SEND_FILE);
 
   async function sendFile(missionId: string, file: File, comment: string) {
@@ -309,36 +289,9 @@ export const usePrestataireStore = defineStore('prestataire', () => {
     }
   }
 
-  async function fetchMessages(missionId: string) {
-    const { onResult, onError } = useQuery(GET_MESSAGES_QUERY, {missionId})
-    onResult((queryResult) => {
-      if(queryResult.data)  {
-        messages.value = queryResult.data.getMessages;
-      }
-    })
 
-    onError((err) => {
-      throw err
-    })
-  }
 
-  function subscribeToNewMessages(missionId: string) {
-    // Fetch messages using GraphQL
-    fetchMessages(missionId);
-    
-    // Setup subscription for real-time updates
-    const { onResult, onError } = useSubscription(ON_NEW_MESSAGE_SUBSCRIPTION, { missionId });
 
-    onResult((result) => {
-      if (result.data) {
-        messages.value.push(result.data.onNewMessage);
-      }
-    });
-
-    onError((error) => {
-      console.warn('Message subscription failed:', error);
-    });
-  }
 
   // Notifications management
   async function fetchNotifications() {
@@ -372,53 +325,10 @@ export const usePrestataireStore = defineStore('prestataire', () => {
     }
   }
 
-  // Communication requests management
-  async function fetchCommunicationRequests() {
-
-    const { onResult, onError } = useQuery(GET_COMMUNICATION_REQUESTS_FOR_PRESTATAIRE_QUERY)
-
-    onResult((queryResult) => {
-      if(queryResult.data){
-        communicationRequests.value = queryResult.data.getCommunicationRequestsForPrestataire
-      }
-    })
 
 
-    onError((err) => {
-      handleGraphQLError(err, 'Fetch Communication Requests', { showToast: true })
-      throw err
-    })
-  }
 
-  const { mutate: respondToCommunicationRequestMutation } = useMutation(RESPOND_TO_COMMUNICATION_REQUEST_MUTATION);
 
-  async function respondToCommunicationRequest(input: CommunicationResponseInput) {
-    try {
-      await respondToCommunicationRequestMutation({ input });
-      // Refresh communication requests
-      await fetchCommunicationRequests();
-      showSuccess('Réponse envoyée avec succès');
-    } catch (error) {
-      handleGraphQLError(error, 'Respond to Communication Request', { showToast: true });
-      throw error;
-    }
-  }
-
-  // Statistics
-  async function fetchStatistics() {
-      const { onResult, onError } = useQuery(GET_PRESTATAIRE_STATISTICS_QUERY)
-
-      onResult((QueryResult) => {
-        if(QueryResult.data) {
-          statistics.value = QueryResult.data.getPrestataireStatistics
-        }
-      })
-
-      onError((err) => {
-      handleGraphQLError(err, 'Fetch Statistics', { showToast: true })
-      throw err
-      })
-  }
 
   // Export functionality
   async function exportMissions(filters: PrestataireExportFilters, format: ExportFormat = 'pdf') {
@@ -492,21 +402,7 @@ export const usePrestataireStore = defineStore('prestataire', () => {
     }
   }
 
-  // Enhanced file upload
-  const { mutate: sendFileWithMessageMutation } = useMutation(SEND_FILE_WITH_MESSAGE_MUTATION);
 
-  async function sendFileWithMessage(input: FileMessageInput) {
-    try {
-      const result = await sendFileWithMessageMutation({ input });
-      if (result && result.data) {
-        messages.value.push(result.data.sendFileWithMessage);
-        showSuccess('Fichier envoyé avec succès');
-      }
-    } catch (error) {
-      handleGraphQLError(error, 'Send File with Message', { showToast: true });
-      throw error;
-    }
-  }
 
   const { mutate: uploadMissionDocumentMutation } = useMutation(UPLOAD_MISSION_DOCUMENT_MUTATION);
 
@@ -628,20 +524,7 @@ export const usePrestataireStore = defineStore('prestataire', () => {
     });
   }
 
-  function subscribeToCommunicationRequests() {
-    const { onResult, onError } = useSubscription(ON_COMMUNICATION_REQUEST_SUBSCRIPTION);
 
-    onResult((result) => {
-      if (result.data) {
-        communicationRequests.value.unshift(result.data.onCommunicationRequest);
-        showSuccess('Nouvelle demande de communication reçue');
-      }
-    });
-
-    onError((error) => {
-      console.warn('Communication request subscription failed:', error);
-    });
-  }
 
   return {
     companyInfo,
@@ -652,10 +535,7 @@ export const usePrestataireStore = defineStore('prestataire', () => {
     siretValidated,
     missions,
     mission,
-    messages,
     notifications,
-    communicationRequests,
-    statistics,
     availabilityStatus,
     getSiretInfo,
     prestataireSignup,
@@ -667,23 +547,15 @@ export const usePrestataireStore = defineStore('prestataire', () => {
     startMission,
     completeMission,
     cancelMission,
-    sendMessage,
     sendFile,
-    fetchMessages,
-    subscribeToNewMessages,
     fetchNotifications,
     markNotificationAsRead,
-    fetchCommunicationRequests,
-    respondToCommunicationRequest,
-    fetchStatistics,
     exportMissions,
     exportReport,
     updateProfile,
     updateAvailability,
-    sendFileWithMessage,
     uploadMissionDocument,
     subscribeToNotifications,
     subscribeToNewMissions,
-    subscribeToCommunicationRequests
   }
 })
