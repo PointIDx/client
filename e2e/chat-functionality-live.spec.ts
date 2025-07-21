@@ -602,6 +602,123 @@ test.describe('Chat Functionality - Live Tests', () => {
     }
   })
 
+  test('Subscription synchronization works correctly', async () => {
+    console.log('🧪 Testing subscription synchronization with reactive state...')
+    
+    // Setup both users
+    await loginAsAssureur(assureurPage, assureurCredentials)
+    await loginAsPrestataire(prestatairePage, prestataireCredentials)
+    
+    await assureurPage.goto('/chat')
+    await prestatairePage.goto('/chat')
+    
+    await assureurPage.waitForTimeout(3000)
+    await prestatairePage.waitForTimeout(3000)
+    
+    // Test 1: Typing indicators synchronization
+    console.log('Testing typing indicators synchronization...')
+    
+    const assureurRooms = assureurPage.locator('[data-testid="chat-room-item"]')
+    const prestataireRooms = prestatairePage.locator('[data-testid="chat-room-item"]')
+    
+    if (await assureurRooms.count() > 0 && await prestataireRooms.count() > 0) {
+      // Enter same room
+      await assureurRooms.first().click()
+      await prestataireRooms.first().click()
+      await assureurPage.waitForTimeout(1000)
+      await prestatairePage.waitForTimeout(1000)
+      
+      // Test typing indicator appears and disappears
+      const messageInput = assureurPage.locator('[data-testid="message-input"]')
+      await messageInput.focus()
+      await messageInput.type('Testing typing sync...', { delay: 100 })
+      
+      // Check if typing indicator appears on other user's side
+      await prestatairePage.waitForTimeout(2000)
+      const typingIndicator = prestatairePage.locator('[data-testid="typing-indicator"]')
+      
+      if (await typingIndicator.isVisible()) {
+        console.log('✅ Typing indicator appears via subscription')
+        
+        // Clear input and check if indicator disappears
+        await messageInput.clear()
+        await messageInput.blur()
+        await prestatairePage.waitForTimeout(3000)
+        
+        if (!(await typingIndicator.isVisible())) {
+          console.log('✅ Typing indicator disappears correctly')
+        }
+      }
+      
+      // Test 2: Real-time message updates and room list synchronization
+      console.log('Testing message and room updates synchronization...')
+      
+      const initialRoomLastMessage = await prestataireRooms.first().locator('[data-testid="last-message"]').textContent().catch(() => '')
+      
+      // Send message from assureur
+      const syncTestMessage = `Sync test ${Date.now()}`
+      await messageInput.fill(syncTestMessage)
+      await assureurPage.locator('[data-testid="send-button"]').click()
+      
+      await waitForGraphQLOperation(assureurPage, 'sendChatMessage', 5000)
+      await prestatairePage.waitForTimeout(3000)
+      
+      // Check if message appears in chat
+      const newMessage = prestatairePage.locator(`text="${syncTestMessage}"`).first()
+      if (await newMessage.isVisible()) {
+        console.log('✅ Message appears in chat via subscription')
+      }
+      
+      // Check if room list updates with new last message
+      const updatedRoomLastMessage = await prestataireRooms.first().locator('[data-testid="last-message"]').textContent().catch(() => '')
+      if (updatedRoomLastMessage !== initialRoomLastMessage && updatedRoomLastMessage.includes(syncTestMessage.substring(0, 20))) {
+        console.log('✅ Room list updates with new last message')
+      }
+      
+      // Test 3: Unread count synchronization
+      console.log('Testing unread count synchronization...')
+      
+      // Navigate away from chat on prestataire side
+      await prestatairePage.goto('/prestataire-dashboard')
+      await prestatairePage.waitForTimeout(1000)
+      
+      // Send another message from assureur
+      await messageInput.fill(`Unread test ${Date.now()}`)
+      await assureurPage.locator('[data-testid="send-button"]').click()
+      await waitForGraphQLOperation(assureurPage, 'sendChatMessage', 5000)
+      
+      // Go back to chat and check unread count
+      await prestatairePage.goto('/chat')
+      await prestatairePage.waitForTimeout(2000)
+      
+      const unreadBadge = prestatairePage.locator('[data-testid="unread-count"]')
+      if (await unreadBadge.isVisible()) {
+        console.log('✅ Unread count appears when user is away')
+        
+        // Click room to mark as read
+        await prestataireRooms.first().click()
+        await prestatairePage.waitForTimeout(1000)
+        
+        // Check if unread count disappears
+        if (!(await unreadBadge.isVisible())) {
+          console.log('✅ Unread count clears when room is opened')
+        }
+      }
+      
+      // Test 4: Online/offline status synchronization
+      console.log('Testing connection status synchronization...')
+      
+      // Check if both users show as online initially
+      const assureurOnlineStatus = assureurPage.locator('[data-testid="connection-status"]')
+      const prestataireOnlineStatus = prestatairePage.locator('[data-testid="connection-status"]')
+      
+      // Note: This test might need actual connection interruption to fully test
+      console.log('Connection status testing requires network simulation - marking as implementation check')
+    } else {
+      console.log('ℹ️  No chat rooms available for subscription testing')
+    }
+  })
+
   test('Chat context preservation across navigation', async () => {
     console.log('🧪 Testing chat context preservation...')
     

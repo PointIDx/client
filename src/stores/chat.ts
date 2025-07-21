@@ -56,13 +56,14 @@ export const useChatStore = defineStore('chat', () => {
   const currentParticipants = ref<RoomParticipant[]>([])
   const isLoading = ref(false)
   const error = ref<string | null>(null)
-  const typingUsers = ref<string[]>([])
+  const typingUsers = ref<Map<string, { userId: string, expiresAt: Date }>>(new Map())
   
   // Subscription state
   const subscriptionEnabled = ref(false)
   const subscriptionInstances = ref<Map<string, any>>(new Map())
   const isOnline = ref(true)
   const heartbeatInterval = ref<any>(null)
+  const typingCleanupInterval = ref<any>(null)
 
   // Apollo client - will be obtained when needed in methods
 
@@ -226,6 +227,7 @@ export const useChatStore = defineStore('chat', () => {
       })
 
       currentParticipants.value = data.getRoomParticipants || []
+      console.log('👥 Loaded participants:', currentParticipants.value)
       return data.getRoomParticipants || []
     } catch (err: any) {
       error.value = err.message || 'Failed to load participants'
@@ -391,6 +393,7 @@ const markRoomMessagesAsRead = async (roomId: string) => {
     const { mutate } = useMutation(MARK_ROOM_MESSAGES_AS_READ)
     await mutate({ roomId })
 
+    // Create new array to trigger reactivity
     currentMessages.value = currentMessages.value.map(message =>
       message.roomId === roomId
         ? { ...message, isRead: true }
@@ -399,6 +402,7 @@ const markRoomMessagesAsRead = async (roomId: string) => {
 
     const roomIndex = chatRooms.value.findIndex(r => r.id === roomId)
     if (roomIndex !== -1) {
+      // Create new array to trigger reactivity
       chatRooms.value = chatRooms.value.map((room, index) =>
         index === roomIndex
           ? { ...room, unreadCount: 0 }
@@ -468,7 +472,7 @@ const markRoomMessagesAsRead = async (roomId: string) => {
     currentRoom.value = null
     currentMessages.value = []
     currentParticipants.value = []
-    typingUsers.value = []
+    typingUsers.value = new Map()
   }
 
   /**
@@ -484,6 +488,9 @@ const markRoomMessagesAsRead = async (roomId: string) => {
     subscribeToRoomUpdates()
     subscribeToUserPresenceUpdates()
     subscribeToHeartbeat()
+    
+    // Start typing indicators cleanup
+    startTypingCleanup()
   }
 
   /**
@@ -500,8 +507,12 @@ const markRoomMessagesAsRead = async (roomId: string) => {
       
       const subscription = observable.subscribe({
         next: ({ data }) => {
+          console.log("📨 New messages subscription received data:", data)
           if (data?.newMessages) {
+            console.log("📨 Processing new message:", data.newMessages)
             handleNewMessage(data.newMessages)
+          } else {
+            console.log("📨 No newMessages in data:", data)
           }
         },
         error: (err) => {
@@ -530,8 +541,12 @@ const markRoomMessagesAsRead = async (roomId: string) => {
       
       const subscription = observable.subscribe({
         next: ({ data }) => {
+          console.log("⌨️ Typing indicators subscription received data:", data)
           if (data?.typingIndicators) {
+            console.log("⌨️ Processing typing indicator:", data.typingIndicators)
             handleTypingIndicator(data.typingIndicators)
+          } else {
+            console.log("⌨️ No typingIndicators in data:", data)
           }
         },
         error: (err) => {
@@ -560,6 +575,7 @@ const markRoomMessagesAsRead = async (roomId: string) => {
       
       const subscription = observable.subscribe({
         next: ({ data }) => {
+          console.log("🏠 Room updates received:", data)
           if (data?.roomUpdates) {
             handleRoomUpdate(data.roomUpdates)
           }
@@ -590,6 +606,7 @@ const markRoomMessagesAsRead = async (roomId: string) => {
       
       const subscription = observable.subscribe({
         next: ({ data }) => {
+          console.log("👤 User presence updates received:", data)
           if (data?.userPresenceUpdates) {
             handleUserPresenceUpdate(data.userPresenceUpdates)
           }
@@ -733,7 +750,8 @@ const markRoomMessagesAsRead = async (roomId: string) => {
       // Check if message already exists to avoid duplicates
       const existingMessageIndex = currentMessages.value.findIndex(m => m.id === message.id)
       if (existingMessageIndex === -1) {
-        currentMessages.value.push(message)
+        // Create new array to trigger reactivity
+        currentMessages.value = [...currentMessages.value, message]
       }
     }
 
@@ -744,12 +762,15 @@ const markRoomMessagesAsRead = async (roomId: string) => {
       const newUnreadCount = currentRoom.value?.id !== message.roomId ? currentUnreadCount + 1 : currentUnreadCount
       
       console.log('🔄 Updating room last message in sidebar')
-      chatRooms.value[roomIndex] = {
+      // Create new array to trigger reactivity
+      const newChatRooms = [...chatRooms.value]
+      newChatRooms[roomIndex] = {
         ...chatRooms.value[roomIndex],
         lastMessage: message,
         lastMessageAt: message.sentAt,
         unreadCount: newUnreadCount
       }
+      chatRooms.value = newChatRooms
     }
   }
 
@@ -764,18 +785,25 @@ const markRoomMessagesAsRead = async (roomId: string) => {
       const expiresAt = new Date(indicator.expiresAt)
       
       if (expiresAt > now) {
-        // User is typing
-        if (!typingUsers.value.includes(indicator.userId)) {
-          typingUsers.value.push(indicator.userId)
-        }
+        // User is typing - create new Map to trigger reactivity
+        const newTypingUsers = new Map(typingUsers.value)
+        newTypingUsers.set(indicator.userId, {
+          userId: indicator.userId,
+          expiresAt
+        })
+        typingUsers.value = newTypingUsers
         
         // Set timeout to remove typing indicator when it expires
         setTimeout(() => {
-          const index = typingUsers.value.indexOf(indicator.userId)
-          if (index !== -1) {
-            typingUsers.value.splice(index, 1)
-          }
+          const currentTypingUsers = new Map(typingUsers.value)
+          currentTypingUsers.delete(indicator.userId)
+          typingUsers.value = currentTypingUsers
         }, expiresAt.getTime() - now.getTime())
+      } else {
+        // Expired indicator - remove immediately
+        const newTypingUsers = new Map(typingUsers.value)
+        newTypingUsers.delete(indicator.userId)
+        typingUsers.value = newTypingUsers
       }
     }
   }
@@ -789,10 +817,13 @@ const markRoomMessagesAsRead = async (roomId: string) => {
     // Update room in the list
     const roomIndex = chatRooms.value.findIndex(r => r.id === room.id)
     if (roomIndex !== -1) {
-      chatRooms.value[roomIndex] = {
+      // Create new array to trigger reactivity
+      const newChatRooms = [...chatRooms.value]
+      newChatRooms[roomIndex] = {
         ...chatRooms.value[roomIndex],
         ...room
       }
+      chatRooms.value = newChatRooms
     }
     
     // Update current room if it's the same room
@@ -814,9 +845,13 @@ const markRoomMessagesAsRead = async (roomId: string) => {
     if (currentRoom.value && participant.roomId === currentRoom.value.id) {
       const participantIndex = currentParticipants.value.findIndex(p => p.userId === participant.userId)
       if (participantIndex !== -1) {
-        currentParticipants.value[participantIndex] = participant
+        // Create new array to trigger reactivity
+        const newParticipants = [...currentParticipants.value]
+        newParticipants[participantIndex] = participant
+        currentParticipants.value = newParticipants
       } else {
-        currentParticipants.value.push(participant)
+        // Create new array to trigger reactivity
+        currentParticipants.value = [...currentParticipants.value, participant]
       }
     }
   }
@@ -845,7 +880,10 @@ const markRoomMessagesAsRead = async (roomId: string) => {
       if (currentRoom.value && event.roomId === currentRoom.value.id) {
         const messageIndex = currentMessages.value.findIndex(m => m.id === messageData.id)
         if (messageIndex !== -1) {
-          currentMessages.value[messageIndex] = messageData
+          // Create new array to trigger reactivity
+          const newMessages = [...currentMessages.value]
+          newMessages[messageIndex] = messageData
+          currentMessages.value = newMessages
         }
       }
     } catch (parseError) {
@@ -863,10 +901,8 @@ const markRoomMessagesAsRead = async (roomId: string) => {
       
       // Remove message from current messages if it's for the current room
       if (currentRoom.value && event.roomId === currentRoom.value.id) {
-        const messageIndex = currentMessages.value.findIndex(m => m.id === messageId)
-        if (messageIndex !== -1) {
-          currentMessages.value.splice(messageIndex, 1)
-        }
+        // Create new array to trigger reactivity
+        currentMessages.value = currentMessages.value.filter(m => m.id !== messageId)
       }
     } catch (parseError) {
       console.error('❌ Error parsing deleted message data:', parseError)
@@ -882,16 +918,16 @@ const markRoomMessagesAsRead = async (roomId: string) => {
       console.log('⌨️ User typing event:', userId, isTyping)
       
       if (currentRoom.value && event.roomId === currentRoom.value.id) {
+        const newTypingUsers = new Map(typingUsers.value)
         if (isTyping) {
-          if (!typingUsers.value.includes(userId)) {
-            typingUsers.value.push(userId)
-          }
+          newTypingUsers.set(userId, {
+            userId,
+            expiresAt: new Date(Date.now() + 10000) // 10 seconds default
+          })
         } else {
-          const index = typingUsers.value.indexOf(userId)
-          if (index !== -1) {
-            typingUsers.value.splice(index, 1)
-          }
+          newTypingUsers.delete(userId)
         }
+        typingUsers.value = newTypingUsers
       }
     } catch (parseError) {
       console.error('❌ Error parsing typing event data:', parseError)
@@ -909,10 +945,13 @@ const markRoomMessagesAsRead = async (roomId: string) => {
       // Update room in the list
       const roomIndex = chatRooms.value.findIndex(r => r.id === event.roomId)
       if (roomIndex !== -1) {
-        chatRooms.value[roomIndex] = {
+        // Create new array to trigger reactivity
+        const newChatRooms = [...chatRooms.value]
+        newChatRooms[roomIndex] = {
           ...chatRooms.value[roomIndex],
           ...roomData
         }
+        chatRooms.value = newChatRooms
       }
       
       // Update current room if it's the same room
@@ -925,6 +964,32 @@ const markRoomMessagesAsRead = async (roomId: string) => {
     } catch (parseError) {
       console.error('❌ Error parsing room update data:', parseError)
     }
+  }
+
+  /**
+   * Start typing indicators cleanup
+   */
+  const startTypingCleanup = () => {
+    if (typingCleanupInterval.value) {
+      clearInterval(typingCleanupInterval.value)
+    }
+    
+    typingCleanupInterval.value = setInterval(() => {
+      const now = new Date()
+      const newTypingUsers = new Map(typingUsers.value)
+      let hasExpired = false
+      
+      for (const [userId, { expiresAt }] of newTypingUsers) {
+        if (expiresAt <= now) {
+          newTypingUsers.delete(userId)
+          hasExpired = true
+        }
+      }
+      
+      if (hasExpired) {
+        typingUsers.value = newTypingUsers
+      }
+    }, 1000) // Check every second
   }
 
   /**
@@ -952,6 +1017,12 @@ const markRoomMessagesAsRead = async (roomId: string) => {
       heartbeatInterval.value = null
     }
     
+    // Clear typing cleanup interval
+    if (typingCleanupInterval.value) {
+      clearInterval(typingCleanupInterval.value)
+      typingCleanupInterval.value = null
+    }
+    
     isOnline.value = false
   }
 
@@ -971,6 +1042,11 @@ const markRoomMessagesAsRead = async (roomId: string) => {
     // Computed
     totalUnreadCount,
     currentRoomParticipants,
+    
+    // Computed for typing users
+    currentTypingUsers: computed(() => {
+      return Array.from(typingUsers.value.values()).map(user => user.userId)
+    }),
 
     // Actions
     loadChatRooms,

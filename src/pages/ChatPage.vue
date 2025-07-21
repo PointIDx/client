@@ -35,9 +35,8 @@ const initializeChatFromRoute = async () => {
         // Reload chat rooms to ensure the new room appears in the sidebar
         await chatStore.loadChatRooms()
         
-        // Enable subscriptions now that we have rooms
-        console.log('🔔 Enabling subscriptions for new room')
-        chatStore.enableSubscriptions()
+        // Subscriptions are already enabled globally
+        console.log('✅ Subscriptions already enabled for new room')
         
         // Subscribe to specific room events
         chatStore.subscribeToRoomEvents(room.id)
@@ -54,9 +53,8 @@ const initializeChatFromRoute = async () => {
           await chatStore.setCurrentRoom(room.id)
           await chatStore.loadChatRooms()
           
-          // Enable subscriptions for mission chat
-          console.log('🔔 Enabling subscriptions for mission chat')
-          chatStore.enableSubscriptions()
+          // Subscriptions are already enabled globally
+          console.log('✅ Subscriptions already enabled for mission chat')
           
           // Subscribe to specific room events
           chatStore.subscribeToRoomEvents(room.id)
@@ -104,7 +102,7 @@ const selectedChat = computed(() => {
     id: chatStore.currentRoom.id, // Keep as string to match backend
     name: chatStore.currentRoom.name || 'Chat',
     avatar: chatStore.currentRoom.avatarUrl || "/placeholder.svg?height=40&width=40",
-    lastMessage: chatStore.currentRoom.lastMessageAt?.content || 'No messages yet',
+    lastMessage: 'No messages yet',
     time: chatStore.currentRoom.lastMessageAt ? new Date(chatStore.currentRoom.lastMessageAt).toLocaleString() : '',
     hasNewMessage: (chatStore.currentRoom.unreadCount || 0) > 0,
     newMessageCount: chatStore.currentRoom.unreadCount || 0,
@@ -113,9 +111,25 @@ const selectedChat = computed(() => {
 
 // State
 const message = ref("")
-const isTyping = ref(false)
 const attachedFiles = ref<File[]>([])
 const replyToMessage = ref<Message | null>(null)
+
+// Computed properties for real-time state
+const isTyping = computed(() => {
+  return chatStore.currentTypingUsers.length > 0
+})
+
+const isOnline = computed(() => {
+  return chatStore.isOnline
+})
+
+const typingUserNames = computed(() => {
+  return chatStore.currentTypingUsers.map(userId => {
+    // Find user name from participants or use userId as fallback
+    const participant = chatStore.currentParticipants.find(p => p.userId === userId)
+    return participant?.userName || `User ${userId}`
+  })
+})
 
 // Methods
 const handleSelectChat = async (chat: Chat) => {
@@ -167,17 +181,7 @@ const handleSendMessage = async (messageText: string, files: File[], replyTo?: M
   }
 }
 
-const handleCall = () => {
-  if (selectedChat.value) {
-    console.log("Starting voice call with", selectedChat.value.name)
-  }
-}
 
-const handleVideoCall = () => {
-  if (selectedChat.value) {
-    console.log("Starting video call with", selectedChat.value.name)
-  }
-}
 
 const handleShowMore = () => {
   if (selectedChat.value) {
@@ -185,9 +189,9 @@ const handleShowMore = () => {
   }
 }
 
-const handleTyping = async (isTyping: boolean) => {
+const handleTyping = async (isUserTyping: boolean) => {
   if (chatStore.currentRoom) {
-    await chatStore.setTypingIndicator(chatStore.currentRoom.id, isTyping)
+    await chatStore.setTypingIndicator(chatStore.currentRoom.id, isUserTyping)
   }
 }
 
@@ -237,13 +241,9 @@ onMounted(async () => {
     await chatStore.loadChatRooms()
     console.log('✅ loadChatRooms completed successfully')
     
-    // Enable subscriptions if we have rooms
-    if (chatStore.chatRooms.length > 0) {
-      console.log('🔔 Enabling subscriptions for existing rooms:', chatStore.chatRooms.length)
-      chatStore.enableSubscriptions()
-    } else {
-      console.log('📭 No existing rooms, subscriptions will be enabled when rooms are loaded')
-    }
+    // Always enable subscriptions to listen for real-time events
+    console.log('🔔 Enabling subscriptions for real-time chat events')
+    chatStore.enableSubscriptions()
     
     // Initialize chat from route parameters if provided
     await initializeChatFromRoute()
@@ -299,7 +299,7 @@ onUnmounted(() => {
           <!-- Chat Header -->
           <ChatHeader
             :chat="selectedChat"
-            :user-type="authStore.user?.accountType?.toLowerCase()"
+            :user-type="(authStore.user?.accountType?.toLowerCase() as 'prestataire' | 'assureur' | undefined)"
             @create-mission="handleCreateMission"
             @search="handleSearch"
             @show-more="handleShowMore"
@@ -317,7 +317,11 @@ onUnmounted(() => {
               />
               
               <!-- Typing Indicator -->
-              <TypingIndicator :isVisible="isTyping" />
+              <TypingIndicator 
+                :isVisible="isTyping" 
+                :userNames="typingUserNames"
+                :isOnline="isOnline"
+              />
             </div>
           </div>
 
