@@ -43,11 +43,11 @@ import {
   Briefcase,
 } from 'lucide-vue-next'
 import type { MissionDetails } from '@/interfaces/MissionDetails'
-import { useAssureurStore } from '@/stores/assureur'
+import { useMissionStore } from '@/stores/mission'
 
 const router = useRouter()
 
-const assureurStore = useAssureurStore()
+const missionStore = useMissionStore()
 
 // Props
 interface Props {
@@ -300,7 +300,7 @@ const handleExport = async () => {
       searchTerm: searchTerm.value || undefined
     }
     
-    await assureurStore.exportMissions(filters)
+    await missionStore.exportMissions(filters)
   } catch (error) {
     console.error('Erreur lors de l\'export:', error)
   }
@@ -308,7 +308,7 @@ const handleExport = async () => {
 
 const handleExportMissionDetails = async (missionId: string) => {
   try {
-    await assureurStore.exportMissionDetails(missionId)
+    await missionStore.exportMissionDetails(missionId)
   } catch (error) {
     console.error('Erreur lors de l\'export de la mission:', error)
   }

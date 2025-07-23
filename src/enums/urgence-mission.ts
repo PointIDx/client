@@ -1,5 +1,6 @@
-export enum UrgenceMission {
-  Faible = "faible",
-  Moyenne = "moyenne",
-  Elevee = "elevee",
+export enum UrgenceLevel {
+  BASSE = 'BASSE',
+  MOYENNE = 'MOYENNE',
+  HAUTE = 'HAUTE',
+  CRITIQUE = 'CRITIQUE'
 }

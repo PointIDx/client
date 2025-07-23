@@ -51,45 +51,24 @@ const userTypes: UserType[] = [
     ],
     buttonText: "S'inscrire comme Assureur",
     buttonVariant: "outline",
-  },
-  {
-    type: AccountType.Societaire,
-    icon: User,
-    iconBgClass: "bg-gray-300",
-    iconTextColorClass: "text-gray-800",
-    title: "Sociétaire",
-    description: "Particulier, client final, bénéficiaire",
-    youAreList: [
-      "Particulier",
-      "Propriétaire",
-      "Locataire",
-      "Bénéficiaire d'un contrat",
-    ],
-    youCanList: [
-      "Suivre l'avancement de votre dossier",
-      "Ajouter des photos et documents",
-      "Communiquer avec les intervenants",
-      "Timeline des interventions",
-    ],
-    buttonText: "S'inscrire comme Sociétaire",
-    buttonVariant: "outline",
-  },
+  }
 ]
 
 const onSelectType = (type: AccountType) => {
+  console.log('🎯 Emitting account type:', type)
   emit("selectType", type)
 }
 </script>
 
 <template>
   <div class="min-h-screen bg-white text-black font-mono py-8">
-    <div class="container mx-auto max-w-4xl px-4">
+    <div class="container mx-auto px-4">
       <div class="mb-8 text-center">
         <h1 class="text-3xl font-bold text-black">Inscription Professionnelle</h1>
         <p class="mt-2 text-gray-700">Choisissez le type de compte qui correspond à votre activité</p>
       </div>
 
-      <div class="grid md:grid-cols-3 gap-6">
+      <div class="grid md:grid-cols-2 gap-6">
         <UserTypeCard
           v-for="userType in userTypes"
           :key="userType.type"

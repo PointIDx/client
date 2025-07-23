@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -28,6 +27,8 @@ import {
 } from "lucide-vue-next"
 
 import { usePrestataireStore } from '@/stores/prestataire'
+import { useMissionStore } from '@/stores/mission'
+import { useAuthStore } from '@/stores/auth'
 import { onMounted, computed, ref, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { MissionStatutPrestataire } from '@/enums/mission-statut-prestataire'
@@ -38,11 +39,13 @@ import { handleError } from '@/utils/error-handling'
 const router = useRouter()
 
 const prestataireStore = usePrestataireStore()
+const missionStore = useMissionStore()
+const authStore = useAuthStore()
 
 onMounted(async () => {
   console.log('🔧 Prestataire dashboard mounted, fetching missions...')
   try {
-    await prestataireStore.getMissions()
+    await missionStore.fetchMissions('PRESTATAIRE')
     console.log('✅ Missions fetch completed')
   } catch (error) {
     console.error('❌ Failed to fetch missions:', error)
@@ -50,7 +53,7 @@ onMounted(async () => {
   prestataireStore.fetchNotifications()
 })
 
-const missions = computed(() => prestataireStore.missions)
+const missions = computed(() => missionStore.missions)
 
 // Filter missions by GraphQL MissionStatut values
 const nouvellesMissions = computed(() => {

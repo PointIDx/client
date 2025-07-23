@@ -266,24 +266,6 @@ const goBack = () => {
             </Button>
           </form>
 
-          <!-- Identifiants de test -->
-          <div class="mt-8 p-4 bg-gray-100 border border-gray-300 rounded-lg">
-            <div class="flex items-center space-x-2 mb-3">
-              <CheckCircle class="h-4 w-4 text-green-500" />
-              <span class="text-sm font-semibold text-black">IDENTIFIANTS DE TEST</span>
-            </div>
-            <div class="space-y-2 text-sm text-black">
-              <div>
-                <span class="text-gray-500">Email:</span>
-                <code class="bg-white px-2 py-1 rounded text-black border">{{ loginConfig.testCredentials.email }}</code>
-              </div>
-              <div>
-                <span class="text-gray-500">{{ loginType === 'societaire' ? 'Dossier' : 'Mot de passe' }}:</span>
-                <code class="bg-white px-2 py-1 rounded text-black border">{{ loginConfig.testCredentials.password }}</code>
-              </div>
-            </div>
-          </div>
-
           <!-- Aide -->
           <div class="mt-6 text-center">
             <p class="text-gray-700 text-sm">

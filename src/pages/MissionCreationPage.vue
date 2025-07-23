@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAssureurStore } from '@/stores/assureur'
+import { useMissionStore } from '@/stores/mission'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -64,6 +65,7 @@ const props = withDefaults(defineProps<Props>(), {
 const router = useRouter()
 const route = useRoute()
 const assureurStore = useAssureurStore()
+const missionStore = useMissionStore()
 
 // Initialize prestataire data from query params or props
 const prestataire = ref<Prestataire>(props.prestataireData)
@@ -84,8 +86,9 @@ onMounted(() => {
   }
 })
 
-// Zod Schemas for validation
+// Zod Schemas for validation - Updated to match MissionCreateInput
 const clientFormSchema = toTypedSchema(z.object({
+  // Client Information (Required)
   civilite: z.string().min(1, 'La civilité est requise.'),
   nom: z.string().min(1, 'Le nom est requis.'),
   prenom: z.string().min(1, 'Le prénom est requis.'),
@@ -94,19 +97,25 @@ const clientFormSchema = toTypedSchema(z.object({
   adresse: z.string().optional(),
   codePostal: z.string().optional(),
   ville: z.string().optional(),
-  chantier_adresse: z.string().min(1, "L'adresse du chantier est requise."),
-  chantier_codePostal: z.string().min(1, 'Le code postal est requis.'),
-  chantier_ville: z.string().min(1, 'La ville est requise.'),
-  chantier_typeAcces: z.string().optional(),
-  chantier_etage: z.string().optional(),
-  chantier_contraintes: z.string().optional(),
-  chantier_memeAdresseClient: z.boolean().optional(),
-  sinistre_type: z.string().min(1, 'Le type de sinistre est requis.'),
-  sinistre_description: z.string().min(1, 'La description est requise.'),
-  sinistre_urgence: z.string().min(1, "Le niveau d'urgence est requis."),
-  sinistre_dateSinistre: z.string().optional(),
-  sinistre_dateIntervention: z.string().optional(),
+
+  // Site/Worksite Information (Required)
+  chantierAdresse: z.string().min(1, "L'adresse du chantier est requise."),
+  chantierCodePostal: z.string().min(1, 'Le code postal est requis.'),
+  chantierVille: z.string().min(1, 'La ville est requise.'),
+  chantierTypeAcces: z.string().optional(),
+  chantierEtage: z.string().optional(),
+  chantierContraintes: z.string().optional(),
+  chantierMemeAdresseClient: z.boolean().optional(),
+
+  // Incident Information (Required)
+  sinistreType: z.string().min(1, 'Le type de sinistre est requis.'),
+  sinistreDescription: z.string().min(1, 'La description est requise.'),
+  sinistreUrgence: z.string().min(1, "Le niveau d'urgence est requis."),
+  sinistreDateSinistre: z.string().optional(),
+  sinistreDateIntervention: z.string().optional(),
   numeroSinistre: z.string().optional(),
+
+  // Mission Information (Required)
   titre: z.string().min(1, 'Le titre de la mission est requis.'),
   description: z.string().min(1, 'La description de la mission est requise.'),
   budgetEstime: z.string().optional(),
@@ -115,19 +124,27 @@ const clientFormSchema = toTypedSchema(z.object({
   materiaux: z.string().optional(),
   normes: z.string().optional(),
   conditionsParticulieres: z.string().optional(),
+
+  // Communication Preferences
   emailClient: z.boolean().optional(),
   smsClient: z.boolean().optional(),
   creerAccesClient: z.boolean().optional(),
+
+  // Legacy Fields (for backward compatibility)
+  // urgence: z.enum(['BASSE', 'MOYENNE', 'HAUTE', 'CRITIQUE']),
+  // deadline: z.string().optional(),
+  // estimatedCost: z.number().optional(),
 }))
 
 
 const {handleSubmit, values} = useForm({
   validationSchema: clientFormSchema,
   initialValues: {
-    chantier_memeAdresseClient: false,
+    chantierMemeAdresseClient: false,
     emailClient: true,
     smsClient: false,
     creerAccesClient: true,
+    sinistreUrgence: 'MOYENNE',
   }
 })
 
@@ -143,9 +160,10 @@ const typesAcces = [
 ]
 
 const niveauxUrgence = [
-  { value: 'faible', label: 'Faible', color: 'bg-green-100 text-green-800' },
-  { value: 'moyenne', label: 'Moyenne', color: 'bg-yellow-100 text-yellow-800' },
-  { value: 'elevee', label: 'Élevée', color: 'bg-red-100 text-red-800' },
+  { value: 'BASSE', label: 'Basse', color: 'bg-green-100 text-green-800' },
+  { value: 'MOYENNE', label: 'Moyenne', color: 'bg-yellow-100 text-yellow-800' },
+  { value: 'HAUTE', label: 'Haute', color: 'bg-orange-100 text-orange-800' },
+  { value: 'CRITIQUE', label: 'Critique', color: 'bg-red-100 text-red-800' },
 ]
 
 
@@ -169,38 +187,73 @@ const onSubmit = handleSubmit(async (values) => {
   try {
     console.log('Calling createMission with prestataire:', prestataire.value.id)
     
-    // Call the assureur store createMission function with the expected input structure
-    const result = await assureurStore.createMission({
-      input: {
-        title: values.titre,
+    // Call the mission store createMission function with the complete input structure
+    const result = await missionStore.createMission({
+        // Client Information (Required)
+        civilite: values.civilite,
+        nom: values.nom,
+        prenom: values.prenom,
+        telephone: values.telephone,
+        email: values.email || undefined,
+        adresse: values.adresse || undefined,
+        codePostal: values.codePostal || undefined,
+        ville: values.ville || undefined,
+
+        // Site/Worksite Information (Required)
+        chantierAdresse: values.chantierAdresse,
+        chantierCodePostal: values.chantierCodePostal,
+        chantierVille: values.chantierVille,
+        chantierTypeAcces: values.chantierTypeAcces || undefined,
+        chantierEtage: values.chantierEtage || undefined,
+        chantierContraintes: values.chantierContraintes || undefined,
+        chantierMemeAdresseClient: values.chantierMemeAdresseClient || false,
+
+        // Incident Information (Required)
+        sinistreType: values.sinistreType,
+        sinistreDescription: values.sinistreDescription,
+        sinistreUrgence: values.sinistreUrgence,
+        sinistreDateSinistre: values.sinistreDateSinistre || undefined,
+        sinistreDateIntervention: values.sinistreDateIntervention || undefined,
+        numeroSinistre: values.numeroSinistre || undefined,
+
+        // Mission Information (Required)
+        titre: values.titre,
         description: values.description,
-        urgence: values.sinistre_urgence === 'faible' ? 'FAIBLE' : 
-                 values.sinistre_urgence === 'moyenne' ? 'MOYENNE' : 
-                 values.sinistre_urgence === 'elevee' ? 'HAUTE' : 'MOYENNE',
-        societaireDossier: values.numeroSinistre || 'AUTO-GENERATED-34567',
+        budgetEstime: values.budgetEstime || undefined,
+        delaiSouhaite: values.delaiSouhaite || undefined,
+        horaires: values.horaires || undefined,
+        materiaux: values.materiaux || undefined,
+        normes: values.normes || undefined,
+        conditionsParticulieres: values.conditionsParticulieres || undefined,
+
+        // Communication Preferences
+        emailClient: values.emailClient || false,
+        smsClient: values.smsClient || false,
+        creerAccesClient: values.creerAccesClient || false,
+
+        // Document Attachments
+        documents: documents.value.length > 0 ? documents.value : undefined,
+
+        // Legacy Fields (for backward compatibility)
+        urgence: values.sinistreUrgence, // Map to urgence enum
+        deadline: values.sinistreDateIntervention ? new Date(values.sinistreDateIntervention).toISOString() : undefined,
         location: {
-          street: values.chantier_adresse,
-          city: values.chantier_ville,
-          postalCode: values.chantier_codePostal,
+          street: values.chantierAdresse,
+          city: values.chantierVille,
+          postalCode: values.chantierCodePostal,
           country: 'France'
         },
-        estimatedCost: values.budgetEstime ? parseFloat(values.budgetEstime) : null,
-      }
+        estimatedCost: values.budgetEstime ? parseFloat(values.budgetEstime) : undefined,
     })
     
     console.log('Mission creation result:', result)
     
-    if (result?.data?.createMission) {
-      console.log('✅ Mission created successfully:', result.data.createMission)
+    if (result) {
+      console.log('✅ Mission created successfully:', result)
       // Navigate back to dashboard after successful creation
       router.push('/assureur-dashboard')
-    } else if (result?.errors) {
-      console.error('❌ GraphQL errors:', result.errors)
-      result.errors.forEach((error, index) => {
-        console.error(`Error ${index + 1}:`, error.message)
-      })
     } else {
-      console.log('❌ Unknown response format:', result)
+      console.error('❌ Mission creation failed: No result returned')
     }
   } catch (error) {
     console.error('Error creating mission:', error)
@@ -216,7 +269,7 @@ const onSubmit = handleSubmit(async (values) => {
   // Log specific validation errors
   if (errors && typeof errors === 'object') {
     Object.keys(errors).forEach(field => {
-      console.log(`Validation error for field '${field}':`, errors[field])
+      console.log(`Validation error for field '${field}':`, (errors as any)[field])
     })
   }
 })
@@ -412,7 +465,7 @@ const onSubmit = handleSubmit(async (values) => {
               </CardDescription>
             </CardHeader>
             <CardContent class="space-y-6">
-              <FormField v-slot="{ field }"  name="chantier_memeAdresseClient">
+              <FormField v-slot="{ field }"  name="chantierMemeAdresseClient">
                 <FormItem class="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                   <FormControl>
                     <Checkbox :checked="field.value"
@@ -425,7 +478,7 @@ const onSubmit = handleSubmit(async (values) => {
                 </FormItem>
               </FormField>
 
-              <FormField v-slot="{ field }"  name="chantier_adresse">
+              <FormField v-slot="{ field }"  name="chantierAdresse">
                 <FormItem>
                   <FormLabel>Adresse du chantier *</FormLabel>
                   <FormControl>
@@ -437,7 +490,7 @@ const onSubmit = handleSubmit(async (values) => {
               </FormField>
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField v-slot="{ field }"  name="chantier_codePostal">
+                <FormField v-slot="{ field }"  name="chantierCodePostal">
                   <FormItem>
                     <FormLabel>Code postal *</FormLabel>
                     <FormControl>
@@ -448,7 +501,7 @@ const onSubmit = handleSubmit(async (values) => {
                   </FormItem>
                 </FormField>
 
-                <FormField v-slot="{ field }"  name="chantier_ville">
+                <FormField v-slot="{ field }"  name="chantierVille">
                   <FormItem>
                     <FormLabel>Ville *</FormLabel>
                     <FormControl>
@@ -461,7 +514,7 @@ const onSubmit = handleSubmit(async (values) => {
               </div>
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField v-slot="{ field }"  name="chantier_typeAcces">
+                <FormField v-slot="{ field }"  name="chantierTypeAcces">
                   <FormItem>
                     <FormLabel>Type d'accès</FormLabel>
                     <FormControl>
@@ -480,7 +533,7 @@ const onSubmit = handleSubmit(async (values) => {
                   </FormItem>
                 </FormField>
 
-                <FormField v-slot="{ field }"  name="chantier_etage">
+                <FormField v-slot="{ field }"  name="chantierEtage">
                   <FormItem>
                     <FormLabel>Étage</FormLabel>
                     <FormControl>
@@ -492,7 +545,7 @@ const onSubmit = handleSubmit(async (values) => {
                 </FormField>
               </div>
 
-              <FormField v-slot="{ field }"  name="chantier_contraintes">
+              <FormField v-slot="{ field }"  name="chantierContraintes">
                 <FormItem>
                   <FormLabel>Contraintes d'accès</FormLabel>
                   <FormControl>
@@ -521,7 +574,7 @@ const onSubmit = handleSubmit(async (values) => {
           </CardHeader>
           <CardContent class="space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField v-slot="{ field }"  name="sinistre_type">
+              <FormField v-slot="{ field }"  name="sinistreType">
                 <FormItem>
                   <FormLabel>Type de sinistre *</FormLabel>
                   <FormControl>
@@ -552,7 +605,19 @@ const onSubmit = handleSubmit(async (values) => {
               </FormField>
             </div>
 
-            <FormField v-slot="{ field }"  name="sinistre_urgence">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField v-slot="{ field }"  name="deadline">
+                <FormItem>
+                  <FormLabel>Échéance</FormLabel>
+                  <FormControl>
+                    <Input type="date" v-bind="field" data-testid="mission-deadline-input" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              </FormField>
+            </div>
+
+            <FormField v-slot="{ field }"  name="sinistreUrgence">
               <FormItem>
                 <FormLabel>Niveau d'urgence *</FormLabel>
                 <FormControl>
@@ -570,7 +635,7 @@ const onSubmit = handleSubmit(async (values) => {
             </FormField>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField v-slot="{ field }"  name="sinistre_dateSinistre">
+              <FormField v-slot="{ field }"  name="sinistreDateSinistre">
                 <FormItem>
                   <FormLabel>Date du sinistre</FormLabel>
                   <FormControl>
@@ -580,7 +645,7 @@ const onSubmit = handleSubmit(async (values) => {
                 </FormItem>
               </FormField>
 
-              <FormField v-slot="{ field }"  name="sinistre_dateIntervention">
+              <FormField v-slot="{ field }"  name="sinistreDateIntervention">
                 <FormItem>
                   <FormLabel>Date d'intervention souhaitée</FormLabel>
                   <FormControl>
@@ -591,7 +656,7 @@ const onSubmit = handleSubmit(async (values) => {
               </FormField>
             </div>
 
-            <FormField v-slot="{ field }"  name="sinistre_description">
+            <FormField v-slot="{ field }"  name="sinistreDescription">
               <FormItem>
                 <FormLabel>Description détaillée *</FormLabel>
                 <FormControl>
@@ -835,9 +900,9 @@ const onSubmit = handleSubmit(async (values) => {
                   Chantier
                 </h5>
                 <div class="pl-6 space-y-1">
-                  <p class="font-medium" data-testid="recap-chantier-address">{{ values.chantier_adresse }}</p>
+                  <p class="font-medium" data-testid="recap-chantier-address">{{ values.chantierAdresse }}</p>
                   <p class="text-gray-600" data-testid="recap-chantier-city-zip">
-                    {{ values.chantier_codePostal }} {{ values.chantier_ville }}
+                    {{ values.chantierCodePostal }} {{ values.chantierVille }}
                   </p>
                 </div>
               </div>
@@ -848,10 +913,10 @@ const onSubmit = handleSubmit(async (values) => {
                   Sinistre
                 </h5>
                 <div class="pl-6 space-y-1">
-                  <p class="font-medium" data-testid="recap-sinistre-type">{{ values.sinistre_type }}</p>
-                  <Badge :class="niveauxUrgence.find((n) => n.value === values.sinistre_urgence)?.color || 'bg-gray-100'
+                  <p class="font-medium" data-testid="recap-sinistre-type">{{ values.sinistreType }}</p>
+                  <Badge :class="niveauxUrgence.find((n) => n.value === values.sinistreUrgence)?.color || 'bg-gray-100'
                     " data-testid="recap-sinistre-urgence">
-                    Urgence {{niveauxUrgence.find((n) => n.value === values.sinistre_urgence)?.label}}
+                    Urgence {{niveauxUrgence.find((n) => n.value === values.sinistreUrgence)?.label}}
                   </Badge>
                 </div>
               </div>

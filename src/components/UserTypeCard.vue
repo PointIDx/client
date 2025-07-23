@@ -26,6 +26,7 @@ const emit = defineEmits(["select"])
 import { computed } from "vue"
 
 const onSelect = () => {
+  console.log('🎯 UserTypeCard select clicked')
   emit("select")
 }
 

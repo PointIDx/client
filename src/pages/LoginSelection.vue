@@ -72,7 +72,7 @@ const hoverBgClass = (iconBgClass: string) => {
 
 <template>
   <div class="min-h-screen bg-white text-black font-mono py-8">
-    <div class="container mx-auto max-w-4xl px-4">
+    <div class="container mx-auto px-4">
       <div class="mb-8 text-center">
         <div class="flex items-center justify-center mb-6">
           <img :src="Logo" alt="PointID Logo" class="h-12" />

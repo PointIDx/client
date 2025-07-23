@@ -193,6 +193,10 @@ const clearFiles = () => {
   files.value = []
   description.value = ''
   uploadProgress.value = 0
+  // Reset the file input element
+  if (fileInput.value) {
+    fileInput.value.value = ''
+  }
 }
 
 const formatFileSize = (bytes: number): string => {
@@ -231,7 +235,10 @@ const uploadFiles = async () => {
     
     emit('upload-complete', uploadedDocuments)
     
-    // Clear form
+    // Show success message
+    showSuccess(`${uploadedDocuments.length} document(s) téléchargé(s) avec succès`)
+    
+    // Clear form immediately after successful upload
     clearFiles()
     
   } catch (error) {

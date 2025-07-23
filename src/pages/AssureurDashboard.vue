@@ -42,11 +42,15 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import MissionsList from '@/components/MissionsList.vue'
 import type { Prestataire } from '@/interfaces/prestataire'
 import { useAssureurStore } from '@/stores/assureur'
+import { useMissionStore } from '@/stores/mission'
+import { useAuthStore } from '@/stores/auth'
 import { useGraphQL } from '@/composables/useGraphQL'
 import { DOWNLOAD_DOCUMENT_QUERY } from '@/graphql/queries/download-document'
 import { useRouter } from 'vue-router'
 
 const assureurStore = useAssureurStore()
+const missionStore = useMissionStore()
+const authStore = useAuthStore()
 const { executeQuery } = useGraphQL()
 const router = useRouter()
 
@@ -63,7 +67,7 @@ const showSuccess = ref(false)
 
 // Use data from the store
 
-const missions = computed(() => assureurStore.missions)
+const missions = computed(() => missionStore.missions)
 const notifications = computed(() => assureurStore.notifications.filter(n => !n.isRead))
 
 const secteurs = ["Maçonnerie", "Plomberie", "Électricité", "Chauffage", "Couverture", "Menuiserie", "Peinture"]
@@ -104,7 +108,10 @@ const applyFilters = () => {
 onMounted(async () => {
   applyFilters();
   // Load communication requests and missions from the store
-  await assureurStore.fetchMissions();
+  const userType = authStore.user?.accountType as 'ASSUREUR' | 'PRESTATAIRE' | undefined
+  if (userType === 'ASSUREUR') {
+    await missionStore.fetchMissions('ASSUREUR');
+  }
   await assureurStore.fetchNotifications();
 });
 
@@ -153,7 +160,7 @@ const handleContactClick = (prestataire: Prestataire) => {
   router.push({
     path: '/chat',
     query: {
-      prestataireId: prestataire.id, // Use userId for chat room creation
+      prestataireId: prestataire.userId, // Use userId for chat room creation
       contactName: prestataire.nom || prestataire.raisonSociale,
       contactPerson: prestataire.nom,
       type: 'prestataire'
@@ -243,7 +250,7 @@ import placeholderImage from '@/assets/placeholder.svg'
       <Tabs default-value="recherche" class="space-y-6">
         <TabsList>
           <TabsTrigger value="recherche" class="data-[state=active]:bg-black data-[state=active]:text-white">Recherche Prestataires</TabsTrigger>
-          <TabsTrigger value="missions" @click="assureurStore.fetchMissions()" class="data-[state=active]:bg-black data-[state=active]:text-white">Mes Missions ({{ missions.length }})</TabsTrigger>
+          <TabsTrigger value="missions" @click="missionStore.fetchMissions('ASSUREUR')" class="data-[state=active]:bg-black data-[state=active]:text-white">Mes Missions ({{ missions.length }})</TabsTrigger>
         </TabsList>
 
         <!-- Onglet Recherche -->

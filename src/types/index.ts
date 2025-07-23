@@ -1,6 +1,5 @@
 // Re-export all interfaces for easier importing
 export type { Chat, Message as ChatMessage, ChatUser, ChatFileAttachment, ExtendedChatMessage } from '@/interfaces/chat'
-export type { Message as MissionMessage, MessageFile } from '@/interfaces/message'
 export type { Mission } from '@/interfaces/mission'
 export type { MissionDetails } from '@/interfaces/MissionDetails'
 export type { Prestataire } from '@/interfaces/prestataire'

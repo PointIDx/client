@@ -1,7 +1,8 @@
 export enum MissionStatut {
-  Brouillon = "brouillon",
-  Envoyee = "envoyee",
-  Acceptee = "acceptee",
-  EnCours = "en_cours",
-  Terminee = "terminee",
+  EN_ATTENTE = 'EN_ATTENTE',
+  ASSIGNEE = 'ASSIGNEE',
+  EN_COURS = 'EN_COURS',
+  COMPLETEE = 'COMPLETEE',
+  ANNULEE = 'ANNULEE',
+  SUSPENDUE = 'SUSPENDUE'
 }

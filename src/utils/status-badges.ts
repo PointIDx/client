@@ -44,7 +44,7 @@ export function getMissionStatusBadge(status: string): StatusBadgeConfig {
         icon: PlayCircle,
         variant: 'default'
       }
-    case 'TERMINEE':
+    case 'COMPLETEE':
       return {
         text: 'Terminée',
         class: 'bg-green-100 text-green-800 border-green-300',
@@ -187,40 +187,47 @@ export function getAssureurMissionStatusBadge(status: MissionStatutAssureur): St
  */
 export function getGeneralMissionStatusBadge(status: MissionStatut): StatusBadgeConfig {
   switch (status) {
-    case MissionStatut.Brouillon:
+    case MissionStatut.EN_ATTENTE:
       return {
-        text: 'Brouillon',
+        text: 'En attente',
         class: 'bg-gray-100 text-gray-800 border-gray-300',
         icon: Bell,
         variant: 'secondary'
       }
-    case MissionStatut.Envoyee:
+    case MissionStatut.ASSIGNEE:
       return {
-        text: 'Envoyée',
-        class: 'bg-gray-200 text-gray-800 border-gray-400',
-        icon: Eye,
-        variant: 'secondary'
-      }
-    case MissionStatut.Acceptee:
-      return {
-        text: 'Acceptée',
-        class: 'bg-black text-white border-black',
+        text: 'Assignée',
+        class: 'bg-blue-100 text-blue-800 border-blue-300',
         icon: CheckCircle,
         variant: 'default'
       }
-    case MissionStatut.EnCours:
+    case MissionStatut.EN_COURS:
       return {
         text: 'En cours',
-        class: 'bg-gray-200 text-gray-800 border-gray-400',
-        icon: Clock,
+        class: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+        icon: PlayCircle,
         variant: 'outline'
       }
-    case MissionStatut.Terminee:
+    case MissionStatut.COMPLETEE:
       return {
         text: 'Terminée',
-        class: 'bg-black text-white border-black',
+        class: 'bg-green-100 text-green-800 border-green-300',
         icon: CheckCircle,
         variant: 'default'
+      }
+    case MissionStatut.ANNULEE:
+      return {
+        text: 'Annulée',
+        class: 'bg-red-100 text-red-800 border-red-300',
+        icon: XCircle,
+        variant: 'destructive'
+      }
+    case MissionStatut.SUSPENDUE:
+      return {
+        text: 'Suspendue',
+        class: 'bg-orange-100 text-orange-800 border-orange-300',
+        icon: AlertTriangle,
+        variant: 'secondary'
       }
     default:
       return {
@@ -236,29 +243,38 @@ export function getGeneralMissionStatusBadge(status: MissionStatut): StatusBadge
  * Gets badge configuration for urgency level
  */
 export function getUrgencyBadge(urgency: string): StatusBadgeConfig {
-  switch (urgency.toLowerCase()) {
-    case 'faible':
-    case 'low':
+  switch (urgency.toUpperCase()) {
+    case 'BASSE':
+    case 'FAIBLE':
+    case 'LOW':
       return {
-        text: 'Faible',
-        class: 'bg-gray-100 text-gray-800 border-gray-300',
+        text: 'Basse',
+        class: 'bg-green-100 text-green-800 border-green-300',
         icon: CheckCircle,
         variant: 'secondary'
       }
-    case 'moyenne':
-    case 'medium':
+    case 'MOYENNE':
+    case 'MEDIUM':
       return {
         text: 'Moyenne',
-        class: 'bg-gray-200 text-gray-800 border-gray-400',
+        class: 'bg-yellow-100 text-yellow-800 border-yellow-300',
         icon: Clock,
         variant: 'outline'
       }
-    case 'elevee':
-    case 'haute':
-    case 'high':
+    case 'HAUTE':
+    case 'ELEVEE':
+    case 'HIGH':
       return {
-        text: 'Élevée',
-        class: 'bg-gray-700 text-white border-gray-700',
+        text: 'Haute',
+        class: 'bg-orange-100 text-orange-800 border-orange-300',
+        icon: AlertTriangle,
+        variant: 'destructive'
+      }
+    case 'CRITIQUE':
+    case 'CRITICAL':
+      return {
+        text: 'Critique',
+        class: 'bg-red-100 text-red-800 border-red-300',
         icon: AlertTriangle,
         variant: 'destructive'
       }
