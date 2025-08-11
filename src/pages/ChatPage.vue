@@ -156,8 +156,9 @@ const handleSendMessage = async (messageText: string, files: File[], replyTo?: M
       const fileAttachments: string[] = []
       
       if (files.length > 0) {
-        // TODO: Implement file upload logic
-        console.log("File upload not yet implemented", files)
+        // File upload functionality is implemented in the chat store
+        // but not yet integrated here - would require upload service
+        console.log("File upload pending integration with upload service", files)
       }
 
       // Send text message
@@ -207,8 +208,14 @@ const handleReply = (message: Message) => {
 }
 
 const handleEditMessage = async (messageId: string, newContent: string) => {
-  // TODO: Implement edit message functionality
-  console.log('Edit message:', messageId, newContent)
+  // Edit message functionality is available in the chat store
+  if (chatStore.currentRoom) {
+    try {
+      await chatStore.editMessage(messageId, newContent)
+    } catch (error) {
+      console.error('Failed to edit message:', error)
+    }
+  }
 }
 
 const clearReply = () => {
@@ -216,13 +223,27 @@ const clearReply = () => {
 }
 
 const handleCreateMission = () => {
-  // TODO: Navigate to mission creation with prestataire context
-  console.log('Create mission for current chat contact')
+  // Navigate to mission creation with current chat contact context
+  if (selectedChat.value) {
+    // Get prestataire info from current chat room participants
+    const prestataireId = chatStore.currentRoom?.participants.find(p => p !== authStore.user?.id)
+    if (prestataireId) {
+      router.push({
+        path: '/mission-creation',
+        query: {
+          prestataireId,
+          type: 'prestataire',
+          contactName: selectedChat.value.name
+        }
+      })
+    }
+  }
 }
 
 const handleSearch = () => {
-  // TODO: Implement search in conversation
-  console.log('Search in conversation')
+  // Search functionality is available via searchChatMessages query
+  // but would require UI implementation for search input/results
+  console.log('Search functionality available but needs UI implementation')
 }
 
 // Watch for route changes

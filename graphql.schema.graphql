@@ -658,6 +658,90 @@ type MissionSummary {
 	estimatedCost: Float
 }
 
+type SubMission {
+	id: UUID!
+	missionId: UUID!
+	prestataireId: UUID
+	reference: String!
+	title: String!
+	description: String!
+	specialization: String!
+	urgence: UrgenceLevel!
+	statut: MissionStatut!
+	createdAt: DateTime!
+	updatedAt: DateTime!
+	deadline: DateTime
+	estimatedCost: Float
+	actualCost: Float
+	materialsNeeded: String
+	specialRequirements: String
+	accessRequirements: String
+	estimatedDurationHours: Int
+	dependsOnSubMissionId: UUID
+}
+
+type SubMissionDetails {
+	id: UUID!
+	missionId: UUID!
+	reference: String!
+	title: String!
+	description: String!
+	specialization: String!
+	urgence: UrgenceLevel!
+	statut: MissionStatut!
+	createdAt: DateTime!
+	updatedAt: DateTime!
+	deadline: DateTime
+	estimatedCost: Float
+	actualCost: Float
+	materialsNeeded: String
+	specialRequirements: String
+	accessRequirements: String
+	estimatedDurationHours: Int
+	dependsOnSubMission: SubMission
+	prestataire: MissionPrestataire
+	parentMissionReference: String!
+}
+
+input SubMissionCreateInput {
+	missionId: UUID!
+	title: String!
+	description: String!
+	specialization: String!
+	urgence: UrgenceLevel!
+	deadline: DateTime
+	estimatedCost: Float
+	materialsNeeded: String
+	specialRequirements: String
+	accessRequirements: String
+	estimatedDurationHours: Int
+	dependsOnSubMissionId: UUID
+}
+
+input SubMissionAssignInput {
+	subMissionId: UUID!
+	prestataireId: UUID!
+}
+
+input SubMissionUpdateInput {
+	subMissionId: UUID!
+	title: String
+	description: String
+	deadline: DateTime
+	estimatedCost: Float
+	actualCost: Float
+	materialsNeeded: String
+	specialRequirements: String
+	accessRequirements: String
+	estimatedDurationHours: Int
+}
+
+input SubMissionStatusUpdateInput {
+	subMissionId: UUID!
+	status: MissionStatut!
+	comment: String
+}
+
 type MutationRoot {
 	"""
 	Authenticate user and return JWT token with user info
@@ -863,6 +947,22 @@ type MutationRoot {
 	Delete dashboard widget
 	"""
 	deleteDashboardWidget(widgetId: UUID!): Boolean!
+	"""
+	Create a new sub-mission within a mission
+	"""
+	createSubMission(input: SubMissionCreateInput!): SubMission!
+	"""
+	Assign a prestataire to a sub-mission
+	"""
+	assignSubMission(input: SubMissionAssignInput!): SubMission!
+	"""
+	Update sub-mission details
+	"""
+	updateSubMission(input: SubMissionUpdateInput!): SubMission!
+	"""
+	Update sub-mission status
+	"""
+	updateSubMissionStatus(input: SubMissionStatusUpdateInput!): SubMission!
 }
 
 """
@@ -1062,6 +1162,46 @@ type PrestataireStatistics {
 	overduePayments: [PaymentSummary!]!
 }
 
+type Rating {
+	id: UUID!
+	missionId: UUID!
+	assureurId: UUID!
+	prestataireId: UUID!
+	rating: Int!
+	comment: String
+	createdAt: DateTime!
+	updatedAt: DateTime!
+}
+
+type RatingDetails {
+	id: UUID!
+	missionId: UUID!
+	missionTitle: String!
+	missionReference: String!
+	assureurCompanyName: String!
+	prestataireCompanyName: String!
+	rating: Int!
+	comment: String
+	createdAt: DateTime!
+}
+
+type PrestaireRatingSummary {
+	prestataireId: UUID!
+	prestataireCompanyName: String!
+	totalRatings: Int!
+	averageRating: Float!
+	ratingBreakdown: RatingBreakdown!
+	latestRatings: [RatingDetails!]!
+}
+
+type RatingBreakdown {
+	fiveStars: Int!
+	fourStars: Int!
+	threeStars: Int!
+	twoStars: Int!
+	oneStar: Int!
+}
+
 type PrestataireRating {
 	id: UUID!
 	missionId: UUID!
@@ -1240,6 +1380,38 @@ type QueryRoot {
 	Get user's dashboard configuration
 	"""
 	getDashboardWidgets: [DashboardWidget!]!
+	"""
+	Get sub-missions for a specific mission
+	"""
+	getSubMissionsByMission(missionId: UUID!): [SubMission!]!
+	"""
+	Get detailed sub-mission information by ID
+	"""
+	getSubMissionDetails(subMissionId: UUID!): SubMissionDetails
+	"""
+	Get sub-missions assigned to a prestataire
+	"""
+	getPrestataireSubMissions(prestataireId: UUID): [SubMission!]!
+	"""
+	Get rating for a specific mission (if it exists)
+	"""
+	missionRating(missionId: UUID!): RatingDetails
+	"""
+	Get prestataire rating summary (for assureurs choosing providers)
+	"""
+	prestataireRatingSummary(prestataireId: UUID!): PrestaireRatingSummary
+	"""
+	Get all ratings given by current assureur
+	"""
+	myGivenRatings: [RatingDetails!]!
+	"""
+	Get all ratings received by current prestataire
+	"""
+	myReceivedRatings: [RatingDetails!]!
+	"""
+	Get all ratings for a specific prestataire (authorized users only)
+	"""
+	prestataireRatings(prestataireId: UUID!): [RatingDetails!]!
 }
 
 input RefreshTokenInput {

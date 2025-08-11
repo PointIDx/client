@@ -43,7 +43,9 @@ import {
   Briefcase,
 } from 'lucide-vue-next'
 import type { MissionDetails } from '@/interfaces/MissionDetails'
+import type { SubMission } from '@/interfaces/sub-mission'
 import { useMissionStore } from '@/stores/mission'
+import { SPECIALIZATIONS } from '@/interfaces/sub-mission'
 
 const router = useRouter()
 
@@ -73,6 +75,20 @@ const dateFin = ref("")
 const sortField = ref<SortField>("dateDeCreation")
 const sortDirection = ref<SortDirection>("desc")
 const selectedMission = ref<MissionDetails | null>(null)
+const subMissions = ref<Record<string, SubMission[]>>({}) // missionId -> SubMission[]
+const expandedMissions = ref<Set<string>>(new Set())
+const showSubMissionDialog = ref(false)
+const newSubMission = reactive({
+  missionId: '',
+  specialization: '',
+  title: '',
+  description: '',
+  urgence: 'MOYENNE' as const,
+  estimatedCost: undefined as number | undefined,
+  materialsNeeded: '',
+  specialRequirements: '',
+  estimatedDurationHours: undefined as number | undefined
+})
 
 // Options pour les filtres
 const statutOptions = [
@@ -316,6 +332,79 @@ const handleExportMissionDetails = async (missionId: string) => {
 
 const viewMissionDetails = (missionId: string) => {
   router.push(`/mission/${missionId}`)
+}
+
+// Sub-mission management methods
+const loadSubMissions = async (missionId: string) => {
+  try {
+    const subs = await missionStore.fetchSubMissions(missionId)
+    subMissions.value[missionId] = subs
+  } catch (error) {
+    console.error('Error loading sub-missions:', error)
+  }
+}
+
+const toggleMissionExpansion = async (missionId: string) => {
+  if (expandedMissions.value.has(missionId)) {
+    expandedMissions.value.delete(missionId)
+  } else {
+    expandedMissions.value.add(missionId)
+    // Load sub-missions when expanding
+    if (!subMissions.value[missionId]) {
+      await loadSubMissions(missionId)
+    }
+  }
+}
+
+const openSubMissionDialog = (missionId: string) => {
+  newSubMission.missionId = missionId
+  showSubMissionDialog.value = true
+}
+
+const createSubMission = async () => {
+  try {
+    await missionStore.createSubMission({
+      missionId: newSubMission.missionId,
+      title: newSubMission.title,
+      description: newSubMission.description,
+      specialization: newSubMission.specialization,
+      urgence: newSubMission.urgence,
+      estimatedCost: newSubMission.estimatedCost,
+      materialsNeeded: newSubMission.materialsNeeded,
+      specialRequirements: newSubMission.specialRequirements,
+      estimatedDurationHours: newSubMission.estimatedDurationHours
+    })
+    
+    // Reload sub-missions for this mission
+    await loadSubMissions(newSubMission.missionId)
+    
+    // Reset form
+    Object.assign(newSubMission, {
+      missionId: '',
+      specialization: '',
+      title: '',
+      description: '',
+      urgence: 'MOYENNE' as const,
+      estimatedCost: undefined,
+      materialsNeeded: '',
+      specialRequirements: '',
+      estimatedDurationHours: undefined
+    })
+    
+    showSubMissionDialog.value = false
+  } catch (error) {
+    console.error('Error creating sub-mission:', error)
+  }
+}
+
+const getSubMissionProgress = (missionId: string) => {
+  const subs = subMissions.value[missionId] || []
+  if (subs.length === 0) return { total: 0, completed: 0, percentage: 0 }
+  
+  const completed = subs.filter(sub => sub.statut === 'TERMINEE').length
+  const percentage = Math.round((completed / subs.length) * 100)
+  
+  return { total: subs.length, completed, percentage }
 }
 </script>
 

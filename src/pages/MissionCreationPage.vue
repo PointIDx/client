@@ -35,56 +35,48 @@ import * as z from 'zod'
 
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 
-interface Prestataire {
+import { SPECIALIZATIONS } from '@/interfaces/sub-mission'
+
+interface SubMissionPlan {
   id: string
-  nom: string
-  raisonSociale: string
-  secteurs: string[]
-  ville: string
-  telephone: string
-  email: string
+  specialization: string
+  title: string
+  description: string
+  urgence: string
+  estimatedCost?: number
+  materialsNeeded?: string
+  specialRequirements?: string
+  estimatedDurationHours?: number
 }
-
-// Props for receiving prestataire data
-interface Props {
-  prestataireData?: Prestataire
-}
-
-const props = withDefaults(defineProps<Props>(), {
-  prestataireData: () => ({
-    id: '1',
-    nom: 'Entreprise Martin',
-    raisonSociale: 'Martin Rénovation SARL',
-    secteurs: ['Plomberie', 'Électricité', 'Rénovation'],
-    ville: 'Paris',
-    telephone: '01 23 45 67 89',
-    email: 'contact@martin-renovation.fr'
-  })
-})
 
 const router = useRouter()
 const route = useRoute()
 const assureurStore = useAssureurStore()
 const missionStore = useMissionStore()
 
-// Initialize prestataire data from query params or props
-const prestataire = ref<Prestataire>(props.prestataireData)
+// State for sub-missions planning
+const subMissions = ref<SubMissionPlan[]>([])
+const showSubMissionForm = ref(false)
+const currentStep = ref(1) // 1: Mission Details, 2: Sub-missions Planning, 3: Review
 
-// Update prestataire data from route query params if available
-onMounted(() => {
-  const query = route.query
-  if (query.prestataireId) {
-    prestataire.value = {
-      id: query.prestataireId as string,
-      nom: query.prestataireNom as string,
-      raisonSociale: query.prestataireRaisonSociale as string,
-      secteurs: query.prestataireSecteurs ? (query.prestataireSecteurs as string).split(',') : [],
-      ville: query.prestataireVille as string,
-      telephone: query.prestataireTelephone as string,
-      email: query.prestataireEmail as string
-    }
-  }
-})
+const addSubMission = () => {
+  subMissions.value.push({
+    id: Date.now().toString(),
+    specialization: '',
+    title: '',
+    description: '',
+    urgence: 'MOYENNE',
+    estimatedCost: undefined,
+    materialsNeeded: '',
+    specialRequirements: '',
+    estimatedDurationHours: undefined
+  })
+  showSubMissionForm.value = true
+}
+
+const removeSubMission = (index: number) => {
+  subMissions.value.splice(index, 1)
+}
 
 // Zod Schemas for validation - Updated to match MissionCreateInput
 const clientFormSchema = toTypedSchema(z.object({
@@ -181,15 +173,25 @@ const removeDocument = (index: number) => {
   documents.value = documents.value.filter((_, i) => i !== index)
 }
 
+const nextStep = () => {
+  if (currentStep.value < 3) {
+    currentStep.value++
+  }
+}
+
+const previousStep = () => {
+  if (currentStep.value > 1) {
+    currentStep.value--
+  }
+}
+
 const onSubmit = handleSubmit(async (values) => {
   console.log('✅ Form validation passed! Mission form submitted:', values)
   
   try {
-    console.log('Calling createMission with prestataire:', prestataire.value.id)
-    
-    // Call the mission store createMission function with the complete input structure
-    const result = await missionStore.createMission({
-        // Client Information (Required)
+    // Step 1: Create the main mission
+    const missionResult = await missionStore.createMission({
+        // Client Information
         civilite: values.civilite,
         nom: values.nom,
         prenom: values.prenom,
@@ -199,7 +201,7 @@ const onSubmit = handleSubmit(async (values) => {
         codePostal: values.codePostal || undefined,
         ville: values.ville || undefined,
 
-        // Site/Worksite Information (Required)
+        // Site/Worksite Information
         chantierAdresse: values.chantierAdresse,
         chantierCodePostal: values.chantierCodePostal,
         chantierVille: values.chantierVille,
@@ -208,7 +210,7 @@ const onSubmit = handleSubmit(async (values) => {
         chantierContraintes: values.chantierContraintes || undefined,
         chantierMemeAdresseClient: values.chantierMemeAdresseClient || false,
 
-        // Incident Information (Required)
+        // Incident Information
         sinistreType: values.sinistreType,
         sinistreDescription: values.sinistreDescription,
         sinistreUrgence: values.sinistreUrgence,
@@ -216,7 +218,7 @@ const onSubmit = handleSubmit(async (values) => {
         sinistreDateIntervention: values.sinistreDateIntervention || undefined,
         numeroSinistre: values.numeroSinistre || undefined,
 
-        // Mission Information (Required)
+        // Mission Information
         titre: values.titre,
         description: values.description,
         budgetEstime: values.budgetEstime || undefined,
@@ -231,11 +233,8 @@ const onSubmit = handleSubmit(async (values) => {
         smsClient: values.smsClient || false,
         creerAccesClient: values.creerAccesClient || false,
 
-        // Document Attachments
-        documents: documents.value.length > 0 ? documents.value : undefined,
-
         // Legacy Fields (for backward compatibility)
-        urgence: values.sinistreUrgence, // Map to urgence enum
+        urgence: values.sinistreUrgence,
         deadline: values.sinistreDateIntervention ? new Date(values.sinistreDateIntervention).toISOString() : undefined,
         location: {
           street: values.chantierAdresse,
@@ -246,32 +245,44 @@ const onSubmit = handleSubmit(async (values) => {
         estimatedCost: values.budgetEstime ? parseFloat(values.budgetEstime) : undefined,
     })
     
-    console.log('Mission creation result:', result)
+    console.log('Mission creation result:', missionResult)
     
-    if (result) {
-      console.log('✅ Mission created successfully:', result)
-      // Navigate back to dashboard after successful creation
-      router.push('/assureur-dashboard')
+    if (missionResult && missionResult.id) {
+      console.log('✅ Mission created successfully:', missionResult)
+      
+      // Step 2: Create sub-missions if any were planned
+      if (subMissions.value.length > 0) {
+        console.log('Creating sub-missions...')
+        const subMissionPromises = subMissions.value.map(subMission => 
+          missionStore.createSubMission({
+            missionId: missionResult.id,
+            title: subMission.title,
+            description: subMission.description,
+            specialization: subMission.specialization,
+            urgence: subMission.urgence as any,
+            estimatedCost: subMission.estimatedCost,
+            materialsNeeded: subMission.materialsNeeded,
+            specialRequirements: subMission.specialRequirements,
+            estimatedDurationHours: subMission.estimatedDurationHours
+          })
+        )
+        
+        await Promise.all(subMissionPromises)
+        console.log('✅ Sub-missions created successfully')
+      }
+      
+      // Navigate to mission details page to manage assignments
+      router.push(`/mission/${missionResult.id}`)
     } else {
       console.error('❌ Mission creation failed: No result returned')
     }
   } catch (error) {
     console.error('Error creating mission:', error)
-    console.error('Error details:', JSON.stringify(error, null, 2))
-    // For now, still navigate to dashboard even if there's an error
-    // TODO: Show error message to user
-    router.push('/assureur-dashboard')
+    console.error('Failed to create mission. Please try again.')
   }
 }, (errors) => {
   console.log('❌ Form validation failed:', errors)
   console.log('Current form values:', values)
-  
-  // Log specific validation errors
-  if (errors && typeof errors === 'object') {
-    Object.keys(errors).forEach(field => {
-      console.log(`Validation error for field '${field}':`, (errors as any)[field])
-    })
-  }
 })
 
 
@@ -297,50 +308,49 @@ const onSubmit = handleSubmit(async (values) => {
     <!-- Main Content -->
     <div class="px-4 sm:px-6 lg:px-8 py-8">
       <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        <!-- Sidebar - Prestataire Info -->
+        <!-- Sidebar - Progress & Sub-missions -->
         <div class="lg:col-span-1">
-          <Card class="sticky top-8" data-testid="prestataire-info-card">
+          <Card class="sticky top-8">
             <CardHeader>
-              <CardTitle class="text-lg">Prestataire sélectionné</CardTitle>
+              <CardTitle class="text-lg">Création de Mission</CardTitle>
+              <CardDescription>Étape {{ currentStep }} sur 3</CardDescription>
             </CardHeader>
             <CardContent class="space-y-4">
-              <div class="flex items-center space-x-3">
-                <Avatar class="w-12 h-12">
-                  <AvatarFallback class="bg-blue-100 text-blue-600 text-lg">
-                    {{prestataire.nom.split(' ').map((n) => n[0]).join('')}}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <h4 class="font-semibold text-gray-900">{{ prestataire.nom }}</h4>
-                  <p class="text-sm text-gray-600">{{ prestataire.raisonSociale }}</p>
+              <!-- Progress Steps -->
+              <div class="space-y-2">
+                <div class="flex items-center space-x-2" :class="{ 'text-blue-600 font-medium': currentStep >= 1 }">
+                  <CheckCircle v-if="currentStep > 1" class="w-4 h-4 text-green-600" />
+                  <div v-else class="w-4 h-4 rounded-full border-2" :class="{ 'bg-blue-600 border-blue-600': currentStep >= 1, 'border-gray-300': currentStep < 1 }"></div>
+                  <span class="text-sm">Informations mission</span>
+                </div>
+                <div class="flex items-center space-x-2" :class="{ 'text-blue-600 font-medium': currentStep >= 2 }">
+                  <CheckCircle v-if="currentStep > 2" class="w-4 h-4 text-green-600" />
+                  <div v-else class="w-4 h-4 rounded-full border-2" :class="{ 'bg-blue-600 border-blue-600': currentStep >= 2, 'border-gray-300': currentStep < 2 }"></div>
+                  <span class="text-sm">Sous-missions (optionnel)</span>
+                </div>
+                <div class="flex items-center space-x-2" :class="{ 'text-blue-600 font-medium': currentStep >= 3 }">
+                  <div class="w-4 h-4 rounded-full border-2" :class="{ 'bg-blue-600 border-blue-600': currentStep >= 3, 'border-gray-300': currentStep < 3 }"></div>
+                  <span class="text-sm">Récapitulatif</span>
                 </div>
               </div>
 
-              <div class="space-y-2 text-sm">
-                <div class="flex items-center text-gray-600">
-                  <MapPin class="w-4 h-4 mr-2" />
-                  {{ prestataire.ville }}
-                </div>
-                <div class="flex items-center text-gray-600">
-                  <Phone class="w-4 h-4 mr-2" />
-                  {{ prestataire.telephone }}
-                </div>
-              </div>
-
-              <div>
-                <p class="text-sm font-medium text-gray-700 mb-2">Secteurs d'activité</p>
-                <div class="flex flex-wrap gap-1">
-                  <Badge v-for="secteur in prestataire.secteurs" :key="secteur" variant="secondary" class="text-xs"
-                    :data-testid="`prestataire-secteur-badge-${secteur}`">
-                    {{ secteur }}
-                  </Badge>
+              <!-- Sub-missions Summary -->
+              <div v-if="subMissions.length > 0" class="mt-4 pt-4 border-t">
+                <p class="text-sm font-medium text-gray-700 mb-2">Sous-missions planifiées ({{ subMissions.length }})</p>
+                <div class="space-y-1">
+                  <div v-for="sub in subMissions" :key="sub.id" class="text-xs bg-gray-50 p-2 rounded">
+                    <div class="font-medium">{{ sub.specialization }}</div>
+                    <div class="text-gray-600">{{ sub.title }}</div>
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        <form class="flex flex-col lg:col-span-3 space-y-6" @submit.prevent="onSubmit">
+        <div class="flex flex-col lg:col-span-3 space-y-6">
+          <!-- Step 1: Mission Information -->
+          <div v-show="currentStep === 1">
           <Card>
             <CardHeader>
               <CardTitle class="flex items-center space-x-2">
@@ -938,15 +948,209 @@ const onSubmit = handleSubmit(async (values) => {
         </Card>
 
 
-        <!-- Navigation Buttons -->
+          <!-- Step 1 Navigation -->
           <div class="flex space-x-2 w-full">
-            <Button type="submit"
-              class="flex items-center w-full space-x-2 bg-black text-white rounded-md px-4 py-2" data-testid="create-mission-button">
-              <Send class="w-4 h-4" />
-              <span>Créer la mission</span>
+            <Button @click="nextStep" class="flex items-center w-full space-x-2 bg-blue-600 text-white">
+              <span>Suivant: Sous-missions</span>
             </Button>
           </div>
-      </form>
+          </div>
+
+          <!-- Step 2: Sub-missions Planning -->
+          <div v-show="currentStep === 2">
+            <Card>
+              <CardHeader>
+                <CardTitle class="flex items-center space-x-2">
+                  <Briefcase class="w-5 h-5 text-blue-600" />
+                  <span>Planification des sous-missions</span>
+                </CardTitle>
+                <CardDescription>
+                  Divisez votre mission en sous-missions spécialisées (optionnel)
+                </CardDescription>
+              </CardHeader>
+              <CardContent class="space-y-6">
+                <div class="flex items-center justify-between">
+                  <p class="text-sm text-gray-600">
+                    Les sous-missions permettent d'assigner différents corps de métier à des tâches spécifiques.
+                  </p>
+                  <Button @click="addSubMission" variant="outline" class="flex items-center space-x-2">
+                    <Send class="w-4 h-4" />
+                    <span>Ajouter une sous-mission</span>
+                  </Button>
+                </div>
+
+                <!-- Sub-missions List -->
+                <div v-if="subMissions.length > 0" class="space-y-4">
+                  <div v-for="(sub, index) in subMissions" :key="sub.id" class="border rounded-lg p-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label>Spécialisation *</Label>
+                        <Select v-model="sub.specialization">
+                          <SelectTrigger>
+                            <SelectValue placeholder="Choisir une spécialisation" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem v-for="spec in SPECIALIZATIONS" :key="spec" :value="spec">
+                              {{ spec }}
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Titre *</Label>
+                        <Input v-model="sub.title" placeholder="Titre de la sous-mission" />
+                      </div>
+                    </div>
+                    <div class="mt-4">
+                      <Label>Description *</Label>
+                      <Textarea v-model="sub.description" placeholder="Description détaillée de la sous-mission" rows="2" />
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                      <div>
+                        <Label>Urgence</Label>
+                        <Select v-model="sub.urgence">
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="FAIBLE">Faible</SelectItem>
+                            <SelectItem value="MOYENNE">Moyenne</SelectItem>
+                            <SelectItem value="HAUTE">Haute</SelectItem>
+                            <SelectItem value="CRITIQUE">Critique</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Coût estimé (€)</Label>
+                        <Input v-model="sub.estimatedCost" type="number" placeholder="0" />
+                      </div>
+                      <div>
+                        <Label>Durée estimée (heures)</Label>
+                        <Input v-model="sub.estimatedDurationHours" type="number" placeholder="0" />
+                      </div>
+                    </div>
+                    <div class="flex justify-end mt-4">
+                      <Button @click="removeSubMission(index)" variant="destructive" size="sm">
+                        Supprimer
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                <div v-else class="text-center py-8 text-gray-500">
+                  <p>Aucune sous-mission planifiée</p>
+                  <p class="text-sm">Vous pouvez créer la mission sans sous-missions et les ajouter plus tard.</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <!-- Step 2 Navigation -->
+            <div class="flex space-x-2 w-full mt-6">
+              <Button @click="previousStep" variant="outline" class="w-full">
+                <span>Précédent</span>
+              </Button>
+              <Button @click="nextStep" class="flex items-center w-full space-x-2 bg-blue-600 text-white">
+                <span>Suivant: Récapitulatif</span>
+              </Button>
+            </div>
+          </div>
+
+          <!-- Step 3: Review and Submit -->
+          <div v-show="currentStep === 3">
+            <form @submit.prevent="onSubmit">
+              <!-- Final Review Card would go here -->
+              <Card data-testid="validation-recap-card">
+                <CardHeader>
+                  <CardTitle class="flex items-center space-x-2">
+                    <FileCheck class="w-5 h-5 text-blue-600" />
+                    <span>Récapitulatif de la mission</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                    <div class="space-y-2">
+                      <h5 class="font-semibold text-gray-900 flex items-center">
+                        <User class="w-4 h-4 mr-2" />
+                        Client
+                      </h5>
+                      <div class="pl-6 space-y-1">
+                        <p class="font-medium" data-testid="recap-client-name">
+                          {{ values.civilite }} {{ values.prenom }} {{ values.nom }}
+                        </p>
+                        <p class="text-gray-600" data-testid="recap-client-phone">{{ values.telephone }}</p>
+                        <p v-if="values.email" class="text-gray-600" data-testid="recap-client-email">{{ values.email }}</p>
+                      </div>
+                    </div>
+
+                    <div class="space-y-2">
+                      <h5 class="font-semibold text-gray-900 flex items-center">
+                        <Home class="w-4 h-4 mr-2" />
+                        Chantier
+                      </h5>
+                      <div class="pl-6 space-y-1">
+                        <p class="font-medium" data-testid="recap-chantier-address">{{ values.chantierAdresse }}</p>
+                        <p class="text-gray-600" data-testid="recap-chantier-city-zip">
+                          {{ values.chantierCodePostal }} {{ values.chantierVille }}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div class="space-y-2">
+                      <h5 class="font-semibold text-gray-900 flex items-center">
+                        <AlertTriangle class="w-4 h-4 mr-2" />
+                        Sinistre
+                      </h5>
+                      <div class="pl-6 space-y-1">
+                        <p class="font-medium" data-testid="recap-sinistre-type">{{ values.sinistreType }}</p>
+                        <Badge :class="niveauxUrgence.find((n) => n.value === values.sinistreUrgence)?.color || 'bg-gray-100'
+                          " data-testid="recap-sinistre-urgence">
+                          Urgence {{ niveauxUrgence.find((n) => n.value === values.sinistreUrgence)?.label }}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    <div class="space-y-2">
+                      <h5 class="font-semibold text-gray-900 flex items-center">
+                        <Briefcase class="w-4 h-4 mr-2" />
+                        Mission
+                      </h5>
+                      <div class="pl-6 space-y-1">
+                        <p class="font-medium" data-testid="recap-mission-title">{{ values.titre }}</p>
+                        <p v-if="values.budgetEstime" class="text-gray-600" data-testid="recap-mission-budget">
+                          Budget: {{ values.budgetEstime }}€
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Sub-missions Summary -->
+                  <div v-if="subMissions.length > 0" class="mt-6 pt-6 border-t">
+                    <h5 class="font-semibold text-gray-900 mb-4">Sous-missions ({{ subMissions.length }})</h5>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div v-for="sub in subMissions" :key="sub.id" class="bg-gray-50 p-3 rounded-lg">
+                        <div class="font-medium">{{ sub.specialization }}</div>
+                        <div class="text-sm text-gray-600">{{ sub.title }}</div>
+                        <div v-if="sub.estimatedCost" class="text-xs text-gray-500">{{ sub.estimatedCost }}€</div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <!-- Final Navigation -->
+              <div class="flex space-x-2 w-full mt-6">
+                <Button @click="previousStep" variant="outline" class="w-full" type="button">
+                  <span>Précédent</span>
+                </Button>
+                <Button type="submit"
+                  class="flex items-center w-full space-x-2 bg-black text-white rounded-md px-4 py-2" data-testid="create-mission-button">
+                  <Send class="w-4 h-4" />
+                  <span>Créer la mission</span>
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
       </div>
     </div>
   </div>

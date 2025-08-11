@@ -32,6 +32,9 @@ import {
 } from '@/graphql/mutations/mission-documents'
 import { EXPORT_MISSIONS_QUERY, EXPORT_MISSION_DETAILS_QUERY, type ExportFilters, type ExportFormat } from '@/graphql/queries/export-missions'
 import { EXPORT_PRESTATAIRE_MISSIONS_QUERY, EXPORT_PRESTATAIRE_REPORT_QUERY, type PrestataireExportFilters, type ReportPeriod } from '@/graphql/queries/export-prestataire-missions'
+import { GET_SUB_MISSIONS_BY_MISSION, GET_SUB_MISSION_DETAILS, GET_PRESTATAIRE_SUB_MISSIONS } from '@/graphql/queries/get-sub-missions'
+import { CREATE_SUB_MISSION, ASSIGN_SUB_MISSION, UPDATE_SUB_MISSION, UPDATE_SUB_MISSION_STATUS } from '@/graphql/mutations/sub-mission-operations'
+import type { SubMission, SubMissionCreateInput, SubMissionAssignInput, SubMissionUpdateInput, SubMissionStatusUpdateInput } from '@/interfaces/sub-mission'
 
 export const useMissionStore = defineStore('mission', () => {
   const { client } = useApolloClient()
@@ -43,11 +46,19 @@ export const useMissionStore = defineStore('mission', () => {
   const documents = ref<any[]>([])
   const comments = ref<any[]>([])
   const history = ref<any[]>([])
+  const subMissions = ref<SubMission[]>([])
+  const currentSubMission = ref<SubMission | null>(null)
 
   // Loading states
   const loadingStates = ref({
     missions: false,
     missionDetails: false,
+    subMissions: false,
+    createSubMission: false,
+    assignSubMission: false,
+    updateSubMission: false,
+    updateSubMissionStatus: false,
+    fetchSubMissions: false,
     createMission: false,
     updateStatus: false,
     acceptMission: false,
@@ -88,6 +99,11 @@ export const useMissionStore = defineStore('mission', () => {
   const isExportingMissions = computed(() => loadingStates.value.exportMissions)
   const isExportingMissionDetails = computed(() => loadingStates.value.exportMissionDetails)
   const isExportingPrestataireReport = computed(() => loadingStates.value.exportPrestataireReport)
+  const isLoadingSubMissions = computed(() => loadingStates.value.fetchSubMissions)
+  const isCreatingSubMission = computed(() => loadingStates.value.createSubMission)
+  const isAssigningSubMission = computed(() => loadingStates.value.assignSubMission)
+  const isUpdatingSubMission = computed(() => loadingStates.value.updateSubMission)
+  const isUpdatingSubMissionStatus = computed(() => loadingStates.value.updateSubMissionStatus)
   
   const missionsByStatus = computed(() => {
     const grouped: Record<string, MissionDetails[]> = {}
@@ -654,6 +670,114 @@ export const useMissionStore = defineStore('mission', () => {
     }
   }
 
+  // Sub-mission management
+  const { mutate: createSubMissionMutation } = useMutation(CREATE_SUB_MISSION)
+  const { mutate: assignSubMissionMutation } = useMutation(ASSIGN_SUB_MISSION)
+  const { mutate: updateSubMissionMutation } = useMutation(UPDATE_SUB_MISSION)
+  const { mutate: updateSubMissionStatusMutation } = useMutation(UPDATE_SUB_MISSION_STATUS)
+
+  const createSubMission = async (input: SubMissionCreateInput): Promise<SubMission | null> => {
+    setLoading('createSubMission', true)
+    try {
+      const result = await createSubMissionMutation({
+        input
+      })
+      
+      if (result?.data?.createSubMission) {
+        showSuccess('Sous-mission créée avec succès')
+        return result.data.createSubMission
+      }
+      return null
+    } catch (error) {
+      handleGraphQLError(error, 'Create SubMission', { showToast: true })
+      throw error
+    } finally {
+      setLoading('createSubMission', false)
+    }
+  }
+
+  const assignSubMission = async (input: SubMissionAssignInput): Promise<SubMission | null> => {
+    setLoading('assignSubMission', true)
+    try {
+      const result = await assignSubMissionMutation({
+        input
+      })
+      
+      if (result?.data?.assignSubMission) {
+        showSuccess('Sous-mission assignée avec succès')
+        return result.data.assignSubMission
+      }
+      return null
+    } catch (error) {
+      handleGraphQLError(error, 'Assign SubMission', { showToast: true })
+      throw error
+    } finally {
+      setLoading('assignSubMission', false)
+    }
+  }
+
+  const updateSubMission = async (input: SubMissionUpdateInput): Promise<SubMission | null> => {
+    setLoading('updateSubMission', true)
+    try {
+      const result = await updateSubMissionMutation({
+        input
+      })
+      
+      if (result?.data?.updateSubMission) {
+        showSuccess('Sous-mission mise à jour avec succès')
+        return result.data.updateSubMission
+      }
+      return null
+    } catch (error) {
+      handleGraphQLError(error, 'Update SubMission', { showToast: true })
+      throw error
+    } finally {
+      setLoading('updateSubMission', false)
+    }
+  }
+
+  const updateSubMissionStatus = async (input: SubMissionStatusUpdateInput): Promise<SubMission | null> => {
+    setLoading('updateSubMissionStatus', true)
+    try {
+      const result = await updateSubMissionStatusMutation({
+        input
+      })
+      
+      if (result?.data?.updateSubMissionStatus) {
+        showSuccess('Statut de la sous-mission mis à jour avec succès')
+        return result.data.updateSubMissionStatus
+      }
+      return null
+    } catch (error) {
+      handleGraphQLError(error, 'Update SubMission Status', { showToast: true })
+      throw error
+    } finally {
+      setLoading('updateSubMissionStatus', false)
+    }
+  }
+
+  const fetchSubMissions = async (missionId: string): Promise<SubMission[]> => {
+    setLoading('fetchSubMissions', true)
+    try {
+      const { data } = await client.query({
+        query: GET_SUB_MISSIONS_BY_MISSION,
+        variables: { missionId },
+        fetchPolicy: 'cache-and-network'
+      })
+      
+      if (data?.getSubMissionsByMission) {
+        subMissions.value = data.getSubMissionsByMission
+        return data.getSubMissionsByMission
+      }
+      return []
+    } catch (error) {
+      handleGraphQLError(error, 'Fetch SubMissions')
+      return []
+    } finally {
+      setLoading('fetchSubMissions', false)
+    }
+  }
+
   return {
     // State
     missions,
@@ -661,6 +785,8 @@ export const useMissionStore = defineStore('mission', () => {
     documents,
     comments,
     history,
+    subMissions,
+    currentSubMission,
     loadingStates,
     
     // Computed
@@ -686,6 +812,11 @@ export const useMissionStore = defineStore('mission', () => {
     isExportingMissions,
     isExportingMissionDetails,
     isExportingPrestataireReport,
+    isLoadingSubMissions,
+    isCreatingSubMission,
+    isAssigningSubMission,
+    isUpdatingSubMission,
+    isUpdatingSubMissionStatus,
     
     // Mission fetching
     fetchMissions,
@@ -714,6 +845,13 @@ export const useMissionStore = defineStore('mission', () => {
     exportMissionDetails,
     exportPrestataireMissions,
     exportPrestataireReport,
+    
+    // Sub-mission management
+    createSubMission,
+    assignSubMission,
+    updateSubMission,
+    updateSubMissionStatus,
+    fetchSubMissions,
     
     // Utilities
     getMissionById,
