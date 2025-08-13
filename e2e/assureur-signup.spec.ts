@@ -33,7 +33,11 @@ test.describe('Assureur Signup Flow - Live Mode', () => {
   });
 
   test('should allow an assureur to log in after registration', async ({ page }) => {
-    await loginAsAssureur(page);
+    // Create a new account for this test
+    const credentials = await createLiveAssureur(page);
+    
+    // Now try to login with the created credentials
+    await loginAsAssureur(page, credentials);
     
     // Check for any dashboard indicator
     const isDashboard = await page.getByText('Dashboard').isVisible().catch(() => false) ||
@@ -41,6 +45,7 @@ test.describe('Assureur Signup Flow - Live Mode', () => {
                        page.url().includes('dashboard');
                        
     console.log('Login success - reached dashboard:', isDashboard);
+    expect(isDashboard).toBe(true);
   });
 
   test('should validate SIRET and auto-fill company information', async ({ page }) => {

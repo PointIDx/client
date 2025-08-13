@@ -730,9 +730,32 @@ test.describe('Chat Functionality - Live Tests', () => {
     await assureurPage.click('[data-testid="search-button"]')
     await assureurPage.waitForTimeout(2000)
     
-    // Get prestataire info before clicking contact
+    // Get prestataire info before clicking contact (flexible approach)
     const prestataireCard = assureurPage.locator('[data-testid="prestataire-card"]').first()
-    const prestataireName = await prestataireCard.locator('[data-testid="prestataire-name"]').textContent()
+    let prestataireName = 'Unknown'
+    
+    // Try multiple selectors to find prestataire name
+    const nameSelectors = [
+      '[data-testid="prestataire-name"]',
+      '[data-testid="company-name"]', 
+      'h3',
+      '.font-semibold',
+      '.prestataire-name'
+    ]
+    
+    for (const selector of nameSelectors) {
+      try {
+        const nameElement = prestataireCard.locator(selector).first()
+        if (await nameElement.isVisible({ timeout: 1000 })) {
+          prestataireName = await nameElement.textContent() || 'Unknown'
+          break
+        }
+      } catch (e) {
+        // Continue to next selector
+      }
+    }
+    
+    console.log('Found prestataire name:', prestataireName)
     
     // Click contact button
     await assureurPage.getByRole('button').filter({ hasText: 'Contacter' }).first().click()

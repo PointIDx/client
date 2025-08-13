@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch, toRef, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAssureurStore } from '@/stores/assureur'
 import { useMissionStore } from '@/stores/mission'
@@ -129,7 +129,7 @@ const clientFormSchema = toTypedSchema(z.object({
 }))
 
 
-const {handleSubmit, values} = useForm({
+const {handleSubmit, values, setValue} = useForm({
   validationSchema: clientFormSchema,
   initialValues: {
     chantierMemeAdresseClient: false,
@@ -140,6 +140,61 @@ const {handleSubmit, values} = useForm({
   }
 })
 
+// Function to copy client address to chantier address
+const copyClientAddressToChantier = () => {
+  console.log('copyClientAddressToChantier called', {
+    chantierMemeAdresseClient: values.chantierMemeAdresseClient,
+    clientAddress: { adresse: values.adresse, codePostal: values.codePostal, ville: values.ville }
+  })
+  
+  if (values.chantierMemeAdresseClient) {
+    // Use nextTick to ensure reactive updates happen
+    nextTick(() => {
+      if (values.adresse) {
+        setValue('chantierAdresse', values.adresse)
+        console.log('Set chantierAdresse to:', values.adresse)
+      }
+      if (values.codePostal) {
+        setValue('chantierCodePostal', values.codePostal)
+        console.log('Set chantierCodePostal to:', values.codePostal)
+      }
+      if (values.ville) {
+        setValue('chantierVille', values.ville)
+        console.log('Set chantierVille to:', values.ville)
+      }
+    })
+  }
+}
+
+// Handler for checkbox change
+const handleSameAddressChange = (checked: boolean) => {
+  console.log('handleSameAddressChange called with:', checked)
+  if (checked) {
+    copyClientAddressToChantier()
+  }
+}
+
+// Watch for changes in "same address" checkbox
+watch(
+  () => values.chantierMemeAdresseClient,
+  (useSameAddress) => {
+    console.log('Same address checkbox changed to:', useSameAddress)
+    if (useSameAddress) {
+      copyClientAddressToChantier()
+    }
+  }
+)
+
+// Watch for changes in client address fields when same address is checked
+watch(
+  () => [values.adresse, values.codePostal, values.ville],
+  ([adresse, codePostal, ville]) => {
+    console.log('Client address changed:', { adresse, codePostal, ville })
+    if (values.chantierMemeAdresseClient) {
+      copyClientAddressToChantier()
+    }
+  }
+)
 
 const documents = ref<File[]>([])
 
@@ -479,7 +534,7 @@ const onSubmit = handleSubmit(async (values) => {
                 <FormItem class="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                   <FormControl>
                     <Checkbox :checked="field.value"
-                      @update:checked="(val: boolean) => { field.onChange(val); }"
+                      @update:checked="(val: boolean) => { field.onChange(val); handleSameAddressChange(val); }"
                       data-testid="chantier-meme-adresse-checkbox" />
                   </FormControl>
                   <div class="space-y-1 leading-none">
@@ -493,7 +548,7 @@ const onSubmit = handleSubmit(async (values) => {
                   <FormLabel>Adresse du chantier *</FormLabel>
                   <FormControl>
                     <Input type="text" placeholder="Adresse complète du lieu d'intervention" v-bind="field"
-                       data-testid="chantier-adresse-input" />
+                       data-testid="chantier-adresse-input" :disabled="values.chantierMemeAdresseClient" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -505,7 +560,7 @@ const onSubmit = handleSubmit(async (values) => {
                     <FormLabel>Code postal *</FormLabel>
                     <FormControl>
                       <Input type="text" placeholder="75001" v-bind="field"
-                         data-testid="chantier-codepostal-input" />
+                         data-testid="chantier-codepostal-input" :disabled="values.chantierMemeAdresseClient" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -516,7 +571,7 @@ const onSubmit = handleSubmit(async (values) => {
                     <FormLabel>Ville *</FormLabel>
                     <FormControl>
                       <Input type="text" placeholder="Paris" v-bind="field"
-                         data-testid="chantier-ville-input" />
+                         data-testid="chantier-ville-input" :disabled="values.chantierMemeAdresseClient" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

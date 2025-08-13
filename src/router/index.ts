@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LandingPage from '../pages/LandingPage.vue'
 import { useAuthStore } from '@/stores/auth'
+import { useSocietaireStore } from '@/stores/societaire'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -70,11 +71,21 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
-  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    next({ name: 'home' });
-  } else {
-    next();
+  const societaireStore = useSocietaireStore()
+  
+  // Check if the route requires authentication
+  if (to.meta.requiresAuth) {
+    const isAuthStoreAuthenticated = authStore.isAuthenticated
+    const isSocietaireAuthenticated = societaireStore.isAuthenticated
+    
+    // Allow access if either store is authenticated
+    if (!isAuthStoreAuthenticated && !isSocietaireAuthenticated) {
+      next({ name: 'home' });
+      return;
+    }
   }
+  
+  next();
 });
 
 export default router

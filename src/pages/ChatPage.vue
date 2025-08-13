@@ -23,6 +23,8 @@ console.log('✅ ChatPage stores initialized')
 const initializeChatFromRoute = async () => {
   const { missionId, prestataireId, contactName, contactPerson, type } = route.query
   
+  console.log('🔍 initializeChatFromRoute called with route.query:', route.query)
+  
   try {
     if (prestataireId && type === 'prestataire') {
       console.log('Creating/getting direct room with prestataire:', prestataireId)
@@ -62,6 +64,8 @@ const initializeChatFromRoute = async () => {
       } else {
         console.warn('Mission chat requires contactPerson parameter')
       }
+    } else {
+      console.log('No specific route parameters for chat initialization')
     }
   } catch (error) {
     console.error('Error initializing chat from route:', error)
@@ -70,15 +74,39 @@ const initializeChatFromRoute = async () => {
 
 // Computed properties for chat data
 const recentChats = computed(() => {
-  return chatStore.chatRooms.map(room => ({
-    id: room.id, // Keep as string to match backend
-    name: room.name || 'Chat',
-    avatar: room.avatarUrl || "/placeholder.svg?height=40&width=40",
-    lastMessage: room.lastMessage?.content || 'No messages yet',
-    time: room.lastMessageAt ? new Date(room.lastMessageAt).toLocaleString() : '',
-    hasNewMessage: (room.unreadCount || 0) > 0,
-    newMessageCount: room.unreadCount || 0,
-  }))
+  console.log('🔄 Computing recentChats, chatStore.chatRooms:', chatStore.chatRooms)
+  const result = chatStore.chatRooms.map(room => {
+    // Use sender name from last message if available, otherwise fallback to room name or default
+    const displayName = (room.lastMessage?.senderName && room.lastMessage.senderName.trim() !== '') 
+      ? room.lastMessage.senderName 
+      : (room.name && room.name.trim() !== '' ? room.name : 'Chat');
+    
+    // Generate avatar based on initials of the display name
+    const getInitials = (name: string) => {
+      if (!name) return '?';
+      const words = name.trim().split(' ');
+      if (words.length === 1) {
+        return words[0].charAt(0).toUpperCase();
+      }
+      return (words[0].charAt(0) + words[words.length - 1].charAt(0)).toUpperCase();
+    };
+    
+    const chatItem = {
+      id: room.id, // Keep as string to match backend
+      name: displayName,
+      avatar: room.avatarUrl || `initials:${getInitials(displayName)}`, // Prefix to indicate initials
+      lastMessage: room.lastMessage?.content || 'No messages yet',
+      time: room.lastMessageAt ? new Date(room.lastMessageAt).toLocaleString() : '',
+      hasNewMessage: (room.unreadCount || 0) > 0,
+      newMessageCount: room.unreadCount || 0,
+    }
+    
+    console.log('📝 Chat item processed:', chatItem)
+    return chatItem
+  })
+  
+  console.log('✅ Recent chats computed, result:', result)
+  return result
 })
 
 const chatMessages = computed(() => {
@@ -98,10 +126,25 @@ const chatMessages = computed(() => {
 const selectedChat = computed(() => {
   if (!chatStore.currentRoom) return null
   
+  // Use last message sender name if available, otherwise fallback to room name or default
+  const displayName = ((chatStore.currentRoom as any).lastMessage?.senderName && (chatStore.currentRoom as any).lastMessage?.senderName.trim() !== '') 
+    ? (chatStore.currentRoom as any).lastMessage?.senderName 
+    : (chatStore.currentRoom.name && chatStore.currentRoom.name.trim() !== '' ? chatStore.currentRoom.name : 'Chat');
+  
+  // Generate avatar based on initials of the display name
+  const getInitials = (name: string) => {
+    if (!name) return '?';
+    const words = name.trim().split(' ');
+    if (words.length === 1) {
+      return words[0].charAt(0).toUpperCase();
+    }
+    return (words[0].charAt(0) + words[words.length - 1].charAt(0)).toUpperCase();
+  };
+  
   return {
     id: chatStore.currentRoom.id, // Keep as string to match backend
-    name: chatStore.currentRoom.name || 'Chat',
-    avatar: chatStore.currentRoom.avatarUrl || "/placeholder.svg?height=40&width=40",
+    name: displayName,
+    avatar: chatStore.currentRoom.avatarUrl || `initials:${getInitials(displayName)}`, // Prefix to indicate initials
     lastMessage: 'No messages yet',
     time: chatStore.currentRoom.lastMessageAt ? new Date(chatStore.currentRoom.lastMessageAt).toLocaleString() : '',
     hasNewMessage: (chatStore.currentRoom.unreadCount || 0) > 0,

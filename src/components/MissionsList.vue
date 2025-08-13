@@ -20,6 +20,7 @@ import {
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Search,
   Filter,
@@ -41,6 +42,7 @@ import {
   AlertTriangle,
   FileText,
   Briefcase,
+  Plus,
 } from 'lucide-vue-next'
 import type { MissionDetails } from '@/interfaces/MissionDetails'
 import type { SubMission } from '@/interfaces/sub-mission'
@@ -406,6 +408,11 @@ const getSubMissionProgress = (missionId: string) => {
   
   return { total: subs.length, completed, percentage }
 }
+
+const viewSubMissionDetails = (subMission: SubMission) => {
+  // Navigate to sub-mission details or show in dialog
+  console.log('Viewing sub-mission details:', subMission)
+}
 </script>
 
 <template>
@@ -480,6 +487,7 @@ const getSubMissionProgress = (missionId: string) => {
                 placeholder="Rechercher par numéro, prestataire, client, titre..."
                 v-model="searchTerm"
                 class="pl-10"
+                data-testid="missions-search-input"
               />
             </div>
           </div>
@@ -489,7 +497,7 @@ const getSubMissionProgress = (missionId: string) => {
             <div>
               <Label>Statut</Label>
               <Select v-model="selectedStatut">
-                <SelectTrigger>
+                <SelectTrigger data-testid="status-filter-select">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -503,7 +511,7 @@ const getSubMissionProgress = (missionId: string) => {
             <div>
               <Label>Prestataire</Label>
               <Select v-model="selectedPrestataire">
-                <SelectTrigger>
+                <SelectTrigger data-testid="prestataire-filter-select">
                   <SelectValue placeholder="Tous" />
                 </SelectTrigger>
                 <SelectContent>
@@ -518,7 +526,7 @@ const getSubMissionProgress = (missionId: string) => {
             <div>
               <Label>Urgence</Label>
               <Select v-model="selectedUrgence">
-                <SelectTrigger>
+                <SelectTrigger data-testid="urgence-filter-select">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -560,7 +568,7 @@ const getSubMissionProgress = (missionId: string) => {
               {{ filteredAndSortedMissions.length }} mission(s) trouvée(s) sur {{ missions.length }}
             </div>
             <div class="flex space-x-2">
-              <Button variant="outline" @click="resetFilters">
+              <Button variant="outline" @click="resetFilters" data-testid="reset-filters-button">
                 <RefreshCw class="w-4 h-4 mr-2" />
                 Réinitialiser
               </Button>
@@ -631,11 +639,26 @@ const getSubMissionProgress = (missionId: string) => {
                 :key="mission.id" 
                 class="hover:bg-gray-50 cursor-pointer"
                 @click="viewMissionDetails(mission.id)"
+                :data-testid="`mission-row-${mission.id}`"
               >
                 <TableCell>
                   <div>
-                    <p class="font-medium">{{ mission.reference }}</p>
-                    <p class="text-sm text-gray-500">{{ new Date(mission.dateDeCreation).toLocaleDateString() }}</p>
+                    <p class="font-medium" data-testid="mission-reference">{{ mission.reference }}</p>
+                    <p class="text-sm text-gray-500" data-testid="mission-date">{{ new Date(mission.dateDeCreation).toLocaleDateString() }}</p>
+                    <!-- Add expand/collapse button for sub-missions -->
+                    <Button
+                      v-if="subMissions[mission.id]?.length > 0 || expandedMissions.has(mission.id)"
+                      variant="ghost"
+                      size="sm"
+                      @click.stop="toggleMissionExpansion(mission.id)"
+                      :data-testid="`expand-mission-${mission.id}`"
+                      class="mt-1 p-1 h-6"
+                    >
+                      <span class="text-xs">
+                        {{ expandedMissions.has(mission.id) ? '▼' : '▶' }} 
+                        {{ subMissions[mission.id]?.length || 0 }} sous-missions
+                      </span>
+                    </Button>
                   </div>
                 </TableCell>
                 <TableCell>
@@ -678,11 +701,11 @@ const getSubMissionProgress = (missionId: string) => {
                   </div>
                   <div v-else class="text-xs text-gray-500">-</div>
                 </TableCell>
-                <TableCell><div v-html="getStatutBadge(mission.status)"></div></TableCell>
+                <TableCell><div v-html="getStatutBadge(mission.status)" data-testid="mission-status"></div></TableCell>
                 <TableCell @click.stop>
                   <DropdownMenu>
                     <DropdownMenuTrigger as-child>
-                      <Button variant="ghost" size="sm">
+                      <Button variant="ghost" size="sm" :data-testid="`mission-actions-${mission.id}`">
                         <MoreHorizontal class="w-4 h-4" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -699,6 +722,80 @@ const getSubMissionProgress = (missionId: string) => {
                   </DropdownMenu>
                 </TableCell>
               </TableRow>
+              
+              <!-- Sub-missions rows (shown when expanded) -->
+              <template v-if="expandedMissions.has(mission.id)">
+                <!-- Add sub-mission button row -->
+                <TableRow class="bg-blue-50">
+                  <TableCell colspan="8" class="pl-8">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      @click.stop="openSubMissionDialog(mission.id)"
+                      class="mb-2"
+                      data-testid="add-sub-mission-button"
+                    >
+                      <Plus class="w-4 h-4 mr-2" />
+                      Ajouter sous-mission
+                    </Button>
+                  </TableCell>
+                </TableRow>
+                
+                <TableRow 
+                  v-for="subMission in (subMissions[mission.id] || [])" 
+                  :key="subMission.id"
+                  class="bg-gray-50"
+                  :data-testid="`sub-mission-row-${subMission.id}`"
+                >
+                  <TableCell class="pl-8">
+                    <div>
+                      <p class="font-medium text-sm" data-testid="sub-mission-title">{{ subMission.title }}</p>
+                      <p class="text-xs text-gray-500">{{ subMission.specialization }}</p>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <span class="text-sm text-gray-600">Sous-mission</span>
+                  </TableCell>
+                  <TableCell>
+                    <span class="text-sm text-gray-600">-</span>
+                  </TableCell>
+                  <TableCell>
+                    <div>
+                      <p class="font-medium text-sm">{{ subMission.description }}</p>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div class="space-y-1">
+                      <div v-html="getUrgenceBadge(subMission.urgence)"></div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div v-if="subMission.estimatedCost" class="flex items-center">
+                      <Euro class="w-3 h-3 mr-1 text-gray-500" />
+                      <span class="font-medium">{{ subMission.estimatedCost }}€</span>
+                    </div>
+                    <div v-else class="text-xs text-gray-500">-</div>
+                  </TableCell>
+                  <TableCell>
+                    <div v-html="getStatutBadge(subMission.statut)" data-testid="sub-mission-status"></div>
+                  </TableCell>
+                  <TableCell @click.stop>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger as-child>
+                        <Button variant="ghost" size="sm" :data-testid="`sub-mission-actions-${subMission.id}`">
+                          <MoreHorizontal class="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem @click="viewSubMissionDetails(subMission)">
+                          <Eye class="w-4 h-4 mr-2" />
+                          Voir détails
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              </template>
             </TableBody>
           </Table>
         </div>
@@ -840,6 +937,89 @@ const getSubMissionProgress = (missionId: string) => {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+
+    <!-- Sub-mission creation dialog -->
+    <Dialog :open="showSubMissionDialog" @update:open="(open) => { if (!open) showSubMissionDialog = false }">
+      <DialogContent class="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Ajouter une sous-mission</DialogTitle>
+          <DialogDescription>Créez une nouvelle sous-mission pour cette mission principale</DialogDescription>
+        </DialogHeader>
+
+        <div class="space-y-4">
+          <div>
+            <Label for="sub-mission-specialization">Spécialisation</Label>
+            <Select v-model="newSubMission.specialization">
+              <SelectTrigger data-testid="sub-mission-specialization-select">
+                <SelectValue placeholder="Choisir une spécialisation" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="spec in Object.values(SPECIALIZATIONS)" :key="spec" :value="spec">
+                  {{ spec }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label for="sub-mission-title">Titre</Label>
+            <Input
+              id="sub-mission-title"
+              v-model="newSubMission.title"
+              placeholder="Titre de la sous-mission"
+              data-testid="sub-mission-title-input"
+            />
+          </div>
+
+          <div>
+            <Label for="sub-mission-description">Description</Label>
+            <Textarea
+              id="sub-mission-description"
+              v-model="newSubMission.description"
+              placeholder="Description détaillée"
+              data-testid="sub-mission-description-textarea"
+            />
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <Label for="sub-mission-urgence">Urgence</Label>
+              <Select v-model="newSubMission.urgence">
+                <SelectTrigger data-testid="sub-mission-urgence-select">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="FAIBLE">Faible</SelectItem>
+                  <SelectItem value="MOYENNE">Moyenne</SelectItem>
+                  <SelectItem value="HAUTE">Haute</SelectItem>
+                  <SelectItem value="CRITIQUE">Critique</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label for="sub-mission-cost">Coût estimé (€)</Label>
+              <Input
+                id="sub-mission-cost"
+                type="number"
+                v-model="newSubMission.estimatedCost"
+                placeholder="0"
+                data-testid="sub-mission-cost-input"
+              />
+            </div>
+          </div>
+
+          <div class="flex justify-end space-x-2">
+            <Button variant="outline" @click="showSubMissionDialog = false" data-testid="cancel-sub-mission-button">
+              Annuler
+            </Button>
+            <Button @click="createSubMission" data-testid="create-sub-mission-button">
+              Créer sous-mission
+            </Button>
           </div>
         </div>
       </DialogContent>

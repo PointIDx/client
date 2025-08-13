@@ -73,9 +73,11 @@ test.describe('MissionsList Component - Sub-Mission Management', () => {
     await page.click('button:has-text("Suivant: Sous-missions")');
     await page.click('button:has-text("Ajouter une sous-mission")');
     
-    await page.selectOption('select:near(text="Spécialisation")', 'Plomberie');
-    await page.fill('input:near(text="Titre")', 'Test Sub-Mission');
-    await page.fill('textarea:near(text="Description")', 'For expansion testing');
+    // Use the actual selectors from MissionCreationPage.vue
+    // The page creates sub-mission forms dynamically in a grid layout
+    await page.locator('select').first().selectOption('Plomberie');
+    await page.locator('input[placeholder="Titre de la sous-mission"]').fill('Test Sub-Mission');
+    await page.locator('textarea[placeholder="Description détaillée de la sous-mission"]').fill('For expansion testing');
     
     await page.click('button:has-text("Suivant: Récapitulatif")');
     await page.click('[data-testid="create-mission-button"]');
@@ -91,16 +93,16 @@ test.describe('MissionsList Component - Sub-Mission Management', () => {
     
     console.log('STEP 3: Test mission expansion');
     // Look for expand button in the missions list
-    const expandButton = page.locator('button[data-testid*="expand-mission"]').first();
+    const expandButton = page.locator(`button[data-testid="expand-mission-${testMissionId}"]`);
     if (await expandButton.isVisible()) {
       await expandButton.click();
       
       console.log('✅ Mission expanded');
       
       // Verify sub-missions are shown
-      await expect(page.locator('text="Test Sub-Mission"')).toBeVisible();
+      await expect(page.locator('[data-testid="sub-mission-title"]:has-text("Test Sub-Mission")')).toBeVisible();
       await expect(page.locator('text="Plomberie"')).toBeVisible();
-      await expect(page.locator('text="EN_ATTENTE"')).toBeVisible();
+      await expect(page.locator('[data-testid="sub-mission-status"]')).toBeVisible();
       
       console.log('✅ Sub-missions displayed correctly');
       
@@ -111,7 +113,7 @@ test.describe('MissionsList Component - Sub-Mission Management', () => {
       console.log('ℹ️ Expand button not found - this may be implemented differently');
       
       // Alternative: look for sub-mission indicators in the table
-      const subMissionIndicator = page.locator('text="Sous-missions"').or(page.locator('text="1 sous-mission"'));
+      const subMissionIndicator = page.locator('text="sous-missions"').or(page.locator('text="1 sous-mission"'));
       if (await subMissionIndicator.isVisible()) {
         console.log('✅ Sub-mission indicator found in table');
       }
@@ -183,33 +185,34 @@ test.describe('MissionsList Component - Sub-Mission Management', () => {
     console.log('STEP 1: Look for add sub-mission functionality');
     
     // Look for existing missions that can be expanded
-    const expandButton = page.locator('button[data-testid*="expand-mission"]').first();
+    const expandButton = page.locator(`button[data-testid="expand-mission-${testMissionId}"]`);
     if (await expandButton.isVisible()) {
       await expandButton.click();
       
       // Look for add sub-mission button
-      const addSubMissionButton = page.locator('button:has-text("Ajouter sous-mission")');
+      const addSubMissionButton = page.locator('[data-testid="add-sub-mission-button"]');
       if (await addSubMissionButton.isVisible()) {
         console.log('STEP 2: Test add sub-mission dialog');
         
         await addSubMissionButton.click();
         
         // Fill sub-mission form
-        const specializationSelect = page.locator('select[name="specialization"]');
+        const specializationSelect = page.locator('[data-testid="sub-mission-specialization-select"]');
         if (await specializationSelect.isVisible()) {
-          await specializationSelect.selectOption('Électricité');
+          await specializationSelect.click();
+          await page.locator('text="Électricité"').click();
           
-          await page.fill('input[name="title"]', 'New Sub-Mission from List');
-          await page.fill('textarea[name="description"]', 'Created from missions list interface');
+          await page.fill('[data-testid="sub-mission-title-input"]', 'New Sub-Mission from List');
+          await page.fill('[data-testid="sub-mission-description-textarea"]', 'Created from missions list interface');
           
-          const createButton = page.locator('button:has-text("Créer sous-mission")');
+          const createButton = page.locator('[data-testid="create-sub-mission-button"]');
           if (await createButton.isVisible()) {
             await createButton.click();
             
             await page.waitForTimeout(2000);
             
             // Verify sub-mission was added
-            await expect(page.locator('text="New Sub-Mission from List"')).toBeVisible();
+            await expect(page.locator('[data-testid="sub-mission-title"]:has-text("New Sub-Mission from List")')).toBeVisible();
             console.log('✅ Sub-mission created from missions list');
           }
         }
@@ -298,7 +301,7 @@ test.describe('MissionsList Component - Sub-Mission Management', () => {
     console.log('STEP 1: Look for sub-mission quick actions');
     
     // Expand a mission to see sub-missions
-    const expandButton = page.locator('button[data-testid*="expand-mission"]').first();
+    const expandButton = page.locator(`button[data-testid="expand-mission-${testMissionId}"]`);
     if (await expandButton.isVisible()) {
       await expandButton.click();
       
@@ -306,8 +309,7 @@ test.describe('MissionsList Component - Sub-Mission Management', () => {
       const quickActions = [
         page.locator('button:has-text("Assigner")'),
         page.locator('button:has-text("Statut")'),
-        page.locator('button[data-testid*="sub-mission-menu"]'),
-        page.locator('[data-testid*="sub-mission-actions"]')
+        page.locator('button[data-testid*="sub-mission-actions"]')
       ];
       
       let actionsFound = false;

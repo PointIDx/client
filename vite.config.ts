@@ -21,7 +21,7 @@ export default defineConfig({
     },
   },
   server: {
-    allowedHosts: ["7e3f79a64f30.ngrok-free.app", "babf1d23d8fb.ngrok-free.app", "deep-cameras-tan.loca.lt"],
+    allowedHosts: [],
     proxy: {
       '/graphql': {
         target: 'http://localhost:8000',

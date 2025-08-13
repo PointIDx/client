@@ -35,6 +35,10 @@ import { MissionStatutPrestataire } from '@/enums/mission-statut-prestataire'
 import type { MissionPrestataire } from '@/interfaces/mission-prestataire'
 import { getMissionStatusBadge } from '@/utils/status-badges'
 import { handleError } from '@/utils/error-handling'
+import ExportMissions from '@/components/ExportMissions.vue'
+// Temporarily commented out due to CSS loading issues causing navigation failures
+// import PrestataireStatistics from '@/components/PrestataireStatistics.vue'
+// import PrestataireProfile from '@/components/PrestataireProfile.vue'
 
 const router = useRouter()
 
@@ -146,23 +150,25 @@ const openChat = (mission: any) => {
             <p class="text-gray-700">Gérez vos missions et communications</p>
           </div>
           <div class="flex items-center space-x-4">
+            <ExportMissions />
             <Button data-testid="nav_chat_button"  size="icon" class="bg-transparent shadow-none hover:shadow-none focus:shadow-none" @click="navigateToChat">
               <MessageCircle class="w-6 h-6 mr-2" />
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger as-child>
-                <Button  size="icon" class="bg-transparent  text-gray-700 relative shadow-none hover:shadow-none focus:shadow-none">
+                <Button size="default" class="bg-transparent text-gray-700 relative shadow-none hover:shadow-none focus:shadow-none" data-testid="notifications-button">
                   <Bell class="w-6 h-6 mr-2" />
-                  <Badge v-if="notifications.length > 0" class="absolute -top-2 -right-2 px-1 min-w-[1.2rem] h-5 bg-black text-white border-black">
-                    {{ notifications.length }}
+                  Notifications
+                  <Badge v-if="prestataireStore.notifications.filter(n => !n.isRead).length > 0" class="absolute -top-2 -right-2 px-1 min-w-[1.2rem] h-5 bg-black text-white border-black">
+                    {{ prestataireStore.notifications.filter(n => !n.isRead).length }}
                   </Badge>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" class="w-80">
-                <DropdownMenuItem v-if="notifications.length === 0" class="text-gray-500 text-center">
+                <DropdownMenuItem v-if="prestataireStore.notifications.filter(n => !n.isRead).length === 0" class="text-gray-500 text-center">
                   Aucune notification
                 </DropdownMenuItem>
-                <DropdownMenuItem v-for="notif in notifications" :key="notif.id" class="flex-col items-start p-3">
+                <DropdownMenuItem v-for="notif in prestataireStore.notifications.filter(n => !n.isRead)" :key="notif.id" class="flex-col items-start p-3">
                   <p class="text-sm font-medium">{{ notif.message }}</p>
                   <p class="text-xs text-gray-500">{{ new Date(notif.createdAt).toLocaleString() }}</p>
                 </DropdownMenuItem>
@@ -195,6 +201,12 @@ const openChat = (mission: any) => {
           </TabsTrigger>
           <TabsTrigger value="terminees" data-testid="terminees-tab" class="data-[state=active]:bg-black data-[state=active]:text-white">
             Missions terminées ({{ missionsTerminees.length }})
+          </TabsTrigger>
+          <TabsTrigger value="statistics" data-testid="statistics-tab" class="data-[state=active]:bg-black data-[state=active]:text-white">
+            Statistiques
+          </TabsTrigger>
+          <TabsTrigger value="profile" data-testid="profile-tab" class="data-[state=active]:bg-black data-[state=active]:text-white">
+            Profil
           </TabsTrigger>
         </TabsList>
 
@@ -423,6 +435,24 @@ const openChat = (mission: any) => {
                 </div>
               </CardContent>
             </Card>
+          </div>
+        </TabsContent>
+
+        <!-- Onglet Statistiques -->
+        <TabsContent value="statistics" data-testid="statistics-tab-content">
+          <!-- Temporarily commented out due to CSS loading issues -->
+          <!-- <PrestataireStatistics /> -->
+          <div class="p-8 text-center text-gray-500">
+            <p>Statistiques en cours de développement</p>
+          </div>
+        </TabsContent>
+
+        <!-- Onglet Profil -->
+        <TabsContent value="profile" data-testid="profile-tab-content">
+          <!-- Temporarily commented out due to CSS loading issues -->
+          <!-- <PrestataireProfile /> -->
+          <div class="p-8 text-center text-gray-500">
+            <p>Profil en cours de développement</p>
           </div>
         </TabsContent>
       </Tabs>

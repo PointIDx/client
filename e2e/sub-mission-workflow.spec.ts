@@ -76,7 +76,7 @@ test.describe('Sub-Mission Workflow - Complete E2E Tests', () => {
     await page.click('[data-testid="sinistre-type-select"]');
     await page.click('text="Rénovation"');
     await page.fill('[data-testid="sinistre-description-textarea"]', 'Rénovation complète avec plusieurs corps de métier');
-    await page.locator('[data-testid="sinistre-urgence-radiogroup"] input[value="MOYENNE"]').click();
+    // Skip urgence selection as MOYENNE is the default
     
     // Mission information
     await page.fill('[data-testid="mission-titre-input"]', missionTitle);
@@ -92,32 +92,33 @@ test.describe('Sub-Mission Workflow - Complete E2E Tests', () => {
     console.log('STEP 4: Add first sub-mission - Plomberie');
     await page.click('button:has-text("Ajouter une sous-mission")');
     
-    // Fill first sub-mission
-    await page.selectOption('select:near(text="Spécialisation")', 'Plomberie');
-    await page.fill('input:near(text="Titre")', 'Installation sanitaire');
-    await page.fill('textarea:near(text="Description")', 'Installation complète des sanitaires et canalisations');
-    await page.selectOption('select:near(text="Urgence")', 'HAUTE');
-    await page.fill('input:near(text="Coût estimé")', '5000');
-    await page.fill('input:near(text="Durée estimée")', '16');
+    // Fill first sub-mission using actual page structure from MissionCreationPage.vue
+    const subMissionForms = page.locator('.border.rounded-lg.p-4');
+    await subMissionForms.first().locator('select').first().selectOption('Plomberie');
+    await subMissionForms.first().locator('input[placeholder="Titre de la sous-mission"]').fill('Installation sanitaire');
+    await subMissionForms.first().locator('textarea[placeholder="Description détaillée de la sous-mission"]').fill('Installation complète des sanitaires et canalisations');
+    await subMissionForms.first().locator('select').nth(1).selectOption('HAUTE');
+    await subMissionForms.first().locator('input[type="number"]').first().fill('5000');
+    await subMissionForms.first().locator('input[type="number"]').nth(1).fill('16');
     
     console.log('STEP 5: Add second sub-mission - Électricité');
     await page.click('button:has-text("Ajouter une sous-mission")');
     
-    // Fill second sub-mission
+    // Fill second sub-mission using actual selectors
     const subMissionCards = page.locator('.border.rounded-lg.p-4');
-    await subMissionCards.nth(1).locator('select:near(text="Spécialisation")').selectOption('Électricité');
-    await subMissionCards.nth(1).locator('input:near(text="Titre")').fill('Mise aux normes électriques');
-    await subMissionCards.nth(1).locator('textarea:near(text="Description")').fill('Rénovation complète du système électrique');
-    await subMissionCards.nth(1).locator('input:near(text="Coût estimé")').fill('4000');
-    await subMissionCards.nth(1).locator('input:near(text="Durée estimée")').fill('12');
+    await subMissionCards.nth(1).locator('select').first().selectOption('Électricité');
+    await subMissionCards.nth(1).locator('input[placeholder="Titre de la sous-mission"]').fill('Mise aux normes électriques');
+    await subMissionCards.nth(1).locator('textarea[placeholder="Description détaillée de la sous-mission"]').fill('Rénovation complète du système électrique');
+    await subMissionCards.nth(1).locator('input[type="number"]').first().fill('4000');
+    await subMissionCards.nth(1).locator('input[type="number"]').nth(1).fill('12');
     
     console.log('STEP 6: Add third sub-mission - Peinture');
     await page.click('button:has-text("Ajouter une sous-mission")');
     
-    await subMissionCards.nth(2).locator('select:near(text="Spécialisation")').selectOption('Peinture');
-    await subMissionCards.nth(2).locator('input:near(text="Titre")').fill('Peinture et finitions');
-    await subMissionCards.nth(2).locator('textarea:near(text="Description")').fill('Peinture de toutes les pièces rénovées');
-    await subMissionCards.nth(2).locator('input:near(text="Coût estimé")').fill('3000');
+    await subMissionCards.nth(2).locator('select').first().selectOption('Peinture');
+    await subMissionCards.nth(2).locator('input[placeholder="Titre de la sous-mission"]').fill('Peinture et finitions');
+    await subMissionCards.nth(2).locator('textarea[placeholder="Description détaillée de la sous-mission"]').fill('Peinture de toutes les pièces rénovées');
+    await subMissionCards.nth(2).locator('input[type="number"]').first().fill('3000');
     
     console.log('STEP 7: Verify sub-missions in sidebar');
     await expect(page.locator('text="Sous-missions planifiées (3)"')).toBeVisible();
@@ -252,7 +253,7 @@ test.describe('Sub-Mission Workflow - Complete E2E Tests', () => {
       console.log('Found mission with sub-missions');
       
       // Check for progress indicators
-      await expect(page.locator('text="0% terminé"').or(page.locator('text="% terminé"))).toBeVisible();
+      await expect(page.locator('text="0% terminé"').or(page.locator('text="% terminé"'))).toBeVisible();
       
       console.log('STEP 2: Verify progress calculation');
       // Progress should show as percentage of completed sub-missions
