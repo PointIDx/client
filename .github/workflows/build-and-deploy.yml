@@ -264,6 +264,8 @@ jobs:
           script: |
             export IMAGE_REPOSITORY=${{ secrets.IMAGE_REPOSITORY }}
             export CONTAINER_PREFIX=${{ secrets.CONTAINER_PREFIX }}
+            export PRODUCTION_GRAPHQL_URL=${{ secrets.PRODUCTION_GRAPHQL_URL }}
+            export PRODUCTION_GRAPHQL_WS_URL=${{ secrets.PRODUCTION_GRAPHQL_WS_URL }}
             docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
             
             cd /root/pointid/client
