@@ -285,7 +285,9 @@ const { handleSubmit, meta, values } = useForm({
     acceptTerms: false,
     acceptPrivacy: false,
     acceptMarketing: false,
-    ...props.initialValues
+    email: props.initialValues?.email || '',
+    password: props.initialValues?.password || '',
+    confirmPassword: props.initialValues?.confirmPassword || ''
   }
 })
 
@@ -302,6 +304,11 @@ const passwordValidation = computed(() => {
 })
 
 const onSubmit = handleSubmit((values) => {
-  emit('submit', values as Account)
+  const accountData: Account = {
+    email: values.email || '',
+    password: values.password || '',
+    confirmPassword: values.confirmPassword || ''
+  }
+  emit('submit', accountData)
 })
 </script>

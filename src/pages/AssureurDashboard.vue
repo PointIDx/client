@@ -35,6 +35,9 @@ import {
   Send,
   Bell,
   Plus,
+  RefreshCw,
+  Download,
+  AlertTriangle,
 } from 'lucide-vue-next'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 // MissionCreationDialog removed - now using separate page
@@ -145,13 +148,13 @@ const telechargerDocument = async (documentName: string) => {
         showErrorToast: true
       }
     )
-    
+
     if (result?.downloadDocument?.url) {
       const link = document.createElement('a')
       link.href = result.downloadDocument.url
       link.download = result.downloadDocument.filename || documentName
       link.click()
-      
+
       console.log(`Téléchargement de ${documentName} initié`)
     } else {
       throw new Error('URL de téléchargement non disponible')
@@ -209,15 +212,25 @@ import placeholderImage from '@/assets/placeholder.svg'
             <h1 class="text-2xl font-bold text-black">Dashboard Assureur</h1>
             <p class="text-gray-700">Recherchez et contactez des prestataires qualifiés</p>
           </div>
-          <div class="flex items-center space-x-4">
-            <Button data-testid="nav_chat_button" size="icon" class="bg-transparent shadow-none hover:shadow-none focus:shadow-none" @click="navigateToChat">
+          <div class="flex justify-center items-center space-x-4">
+            <div class="flex items-center">
+              <Button @click="() => router.push('/mission-creation')" class="bg-black text-white hover:bg-gray-800"
+                data-testid="create-mission-button">
+                <Plus class="w-4 h-4 mr-2" />
+                Créer une mission
+              </Button>
+            </div>
+            <Button data-testid="nav_chat_button" size="icon"
+              class="bg-transparent shadow-none hover:shadow-none focus:shadow-none" @click="navigateToChat">
               <MessageCircle class="w-6 h-6 mr-2" />
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger as-child>
-                <Button  size="icon" class="bg-transparent  text-gray-700 relative shadow-none hover:shadow-none focus:shadow-none">
+                <Button size="icon"
+                  class="bg-transparent  text-gray-700 relative shadow-none hover:shadow-none focus:shadow-none">
                   <Bell class="w-6 h-6 mr-2" />
-                  <Badge v-if="notifications.length > 0" class="absolute -top-2 -right-2 px-1 min-w-[1.2rem] h-5 bg-black text-white border-black">
+                  <Badge v-if="notifications.length > 0"
+                    class="absolute -top-2 -right-2 px-1 min-w-[1.2rem] h-5 bg-black text-white border-black">
                     {{ notifications.length }}
                   </Badge>
                 </Button>
@@ -247,8 +260,11 @@ import placeholderImage from '@/assets/placeholder.svg'
     <div class="mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <Tabs default-value="recherche" class="space-y-6">
         <TabsList>
-          <TabsTrigger value="recherche" class="data-[state=active]:bg-black data-[state=active]:text-white">Recherche Prestataires</TabsTrigger>
-          <TabsTrigger value="missions" @click="missionStore.fetchMissions('ASSUREUR')" class="data-[state=active]:bg-black data-[state=active]:text-white">Mes Missions ({{ missions.length }})</TabsTrigger>
+          <TabsTrigger value="recherche" class="data-[state=active]:bg-black data-[state=active]:text-white">Recherche
+            Prestataires</TabsTrigger>
+          <TabsTrigger value="missions" @click="missionStore.fetchMissions('ASSUREUR')"
+            class="data-[state=active]:bg-black data-[state=active]:text-white">Mes Missions ({{ missions.length }})
+          </TabsTrigger>
           <!-- Communication requests tab removed - only chat functionality remains -->
         </TabsList>
 
@@ -267,14 +283,9 @@ import placeholderImage from '@/assets/placeholder.svg'
                 <div>
                   <Label for="search">Recherche</Label>
                   <div class="relative">
-                    <Search class="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="search"
-                      data-testid="search-input"
-                      placeholder="Nom, entreprise, spécialité..."
-                      v-model="searchTerm"
-                      class="pl-10"
-                    />
+                    <Search class="absolute left-3 top-3 h-4 w-4 text-gmb-6ray-400" />
+                    <Input id="search" data-testid="search-input" placeholder="Nom, entreprise, spécialité..."
+                      v-model="searchTerm" class="pl-10" />
                   </div>
                 </div>
 
@@ -324,7 +335,8 @@ import placeholderImage from '@/assets/placeholder.svg'
                 </div>
 
                 <div class="flex items-end space-x-2">
-                  <Button class="flex-1 bg-black border-black text-white" @click="applyFilters" data-testid="search-button">
+                  <Button class="flex-1 bg-black border-black text-white" @click="applyFilters"
+                    data-testid="search-button">
                     Rechercher
                   </Button>
                   <Button variant="outline" @click="resetFilters" data-testid="reset-filters-button">
@@ -342,19 +354,20 @@ import placeholderImage from '@/assets/placeholder.svg'
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <Card v-for="prestataire in assureurStore.prestataires" :key="prestataire.id" class="hover:shadow-lg transition-shadow" data-testid="prestataire-card">
+              <Card v-for="prestataire in assureurStore.prestataires" :key="prestataire.id"
+                class="hover:shadow-lg transition-shadow" data-testid="prestataire-card">
                 <CardHeader class="pb-3">
                   <div class="flex items-start justify-between">
                     <div class="flex items-center space-x-3">
                       <Avatar>
                         <AvatarImage :src="prestataire.avatar || placeholderImage" />
-                      <AvatarFallback>
-                        {{ prestataire.contactPerson.split(' ').map((n) => n[0]).join('') }}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <CardTitle class="text-lg">{{ prestataire.companyName }}</CardTitle>
-                      <CardDescription class="text-sm">{{ prestataire.contactPerson }}</CardDescription>
+                        <AvatarFallback>
+                          {{prestataire.contactPerson.split(' ').map((n) => n[0]).join('')}}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <CardTitle class="text-lg">{{ prestataire.companyName }}</CardTitle>
+                        <CardDescription class="text-sm">{{ prestataire.contactPerson }}</CardDescription>
                       </div>
                     </div>
                   </div>
@@ -375,20 +388,21 @@ import placeholderImage from '@/assets/placeholder.svg'
                       <div :class="{
                         'w-2 h-2 rounded-full': true,
                         'bg-green-500': prestataire.availabilityStatus === 'AVAILABLE',
-                        'bg-yellow-500': prestataire.availabilityStatus === 'BUSY', 
+                        'bg-yellow-500': prestataire.availabilityStatus === 'BUSY',
                         'bg-red-500': prestataire.availabilityStatus === 'UNAVAILABLE',
                         'bg-gray-500': !prestataire.availabilityStatus
                       }"></div>
                       <span class="text-xs text-gray-600">
-                        {{ prestataire.availabilityStatus === 'AVAILABLE' ? 'Disponible' : 
-                           prestataire.availabilityStatus === 'BUSY' ? 'Occupé' : 
-                           prestataire.availabilityStatus === 'UNAVAILABLE' ? 'Indisponible' : 'Statut inconnu' }}
+                        {{ prestataire.availabilityStatus === 'AVAILABLE' ? 'Disponible' :
+                          prestataire.availabilityStatus === 'BUSY' ? 'Occupé' :
+                            prestataire.availabilityStatus === 'UNAVAILABLE' ? 'Indisponible' : 'Statut inconnu' }}
                       </span>
                     </div>
                   </div>
 
                   <div class="flex flex-wrap gap-1">
-                    <Badge v-for="specialty in prestataire.specialties.slice(0, 2)" :key="specialty" variant="secondary" class="text-xs">
+                    <Badge v-for="specialty in prestataire.specialties.slice(0, 2)" :key="specialty" variant="secondary"
+                      class="text-xs">
                       {{ specialty }}
                     </Badge>
                     <Badge v-if="prestataire.specialties.length > 2" variant="outline" class="text-xs">
@@ -399,7 +413,8 @@ import placeholderImage from '@/assets/placeholder.svg'
                   <div class="flex space-x-2 pt-2">
                     <Dialog>
                       <DialogTrigger as-child>
-                        <Button variant="outline" size="sm" class="flex-1 bg-white border-gray-400 text-gray-700 hover:bg-gray-100 hover:border-gray-500">
+                        <Button variant="outline" size="sm"
+                          class="flex-1 bg-white border-gray-400 text-gray-700 hover:bg-gray-100 hover:border-gray-500">
                           <Eye class="w-4 h-4 mr-1" />
                           Voir fiche
                         </Button>
@@ -410,7 +425,7 @@ import placeholderImage from '@/assets/placeholder.svg'
                             <Avatar class="w-12 h-12">
                               <AvatarImage :src="prestataire.avatar || placeholderImage" />
                               <AvatarFallback>
-                                {{ prestataire.contactPerson.split(' ').map((n) => n[0]).join('') }}
+                                {{prestataire.contactPerson.split(' ').map((n) => n[0]).join('')}}
                               </AvatarFallback>
                             </Avatar>
                             <div>
@@ -448,7 +463,8 @@ import placeholderImage from '@/assets/placeholder.svg'
                               </div>
                               <div class="flex items-center space-x-2">
                                 <Building class="w-4 h-4 text-gray-500" />
-                                <span>{{ prestataire.address.street }}, {{ prestataire.address.postalCode }} {{ prestataire.address.city }}</span>
+                                <span>{{ prestataire.address.street }}, {{ prestataire.address.postalCode }} {{
+                                  prestataire.address.city }}</span>
                               </div>
                             </div>
                           </div>
@@ -459,7 +475,8 @@ import placeholderImage from '@/assets/placeholder.svg'
                             <div class="space-y-2">
                               <div>
                                 <div class="flex flex-wrap gap-1 mt-1">
-                                  <Badge v-for="specialite in prestataire.specialties" :key="specialite" variant="secondary">
+                                  <Badge v-for="specialite in prestataire.specialties" :key="specialite"
+                                    variant="secondary">
                                     {{ specialite }}
                                   </Badge>
                                 </div>
@@ -467,7 +484,7 @@ import placeholderImage from '@/assets/placeholder.svg'
                             </div>
                           </div>
 
-                          
+
 
                           <!-- Évaluations -->
                           <div>
@@ -484,21 +501,14 @@ import placeholderImage from '@/assets/placeholder.svg'
                       </DialogContent>
                     </Dialog>
 
-                    <Button
-                      size="sm"
-                      class="flex-1 bg-black border-black text-white"
-                      @click="handleContactClick(prestataire)"
-                    >
+                    <Button size="sm" class="flex-1 bg-black border-black text-white"
+                      @click="handleContactClick(prestataire)">
                       <MessageCircle class="w-4 h-4 mr-1" />
                       Contacter
                     </Button>
 
-                    <Button
-                      size="sm"
-                      class="bg-black border-black text-white"
-                      data-testid="mission-button"
-                      @click="handleMissionClick(prestataire)"
-                    >
+                    <Button size="sm" class="bg-black border-black text-white" data-testid="mission-button"
+                      @click="handleMissionClick(prestataire)">
                       <Plus class="w-4 h-4 mr-1" />
                       Mission
                     </Button>
@@ -529,7 +539,8 @@ import placeholderImage from '@/assets/placeholder.svg'
                   <Clock class="w-5 h-5 text-yellow-600" />
                   <div>
                     <p class="text-sm text-gray-600">En cours</p>
-                    <p class="text-2xl font-bold">{{ missions.filter(m => m.status === 'ASSIGNEE' || m.status === 'EN_COURS').length }}</p>
+                    <p class="text-2xl font-bold">{{missions.filter(m => m.status === 'ASSIGNEE' || m.status ===
+                      'EN_COURS').length }}</p>
                   </div>
                 </div>
               </CardContent>
@@ -540,7 +551,8 @@ import placeholderImage from '@/assets/placeholder.svg'
                   <CheckCircle class="w-5 h-5 text-green-600" />
                   <div>
                     <p class="text-sm text-gray-600">Terminées</p>
-                    <p class="text-2xl font-bold">{{ missions.filter(m => m.status === 'TERMINEE' || m.status === 'VALIDEE').length }}</p>
+                    <p class="text-2xl font-bold">{{missions.filter(m => m.status === 'TERMINEE' || m.status ===
+                      'VALIDEE').length }}</p>
                   </div>
                 </div>
               </CardContent>
@@ -551,12 +563,16 @@ import placeholderImage from '@/assets/placeholder.svg'
                   <AlertTriangle class="w-5 h-5 text-red-600" />
                   <div>
                     <p class="text-sm text-gray-600">Urgentes</p>
-                    <p class="text-2xl font-bold">{{ missions.filter(m => m.urgence === 'CRITIQUE' || m.urgence === 'HAUTE').length }}</p>
+                    <p class="text-2xl font-bold">{{missions.filter(m => m.urgence === 'CRITIQUE' || m.urgence ===
+                      'HAUTE').length }}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
           </div>
+
+          <!-- Create Mission Button -->
+
 
           <!-- Working missions interface -->
           <Card class="mt-6">
@@ -581,19 +597,19 @@ import placeholderImage from '@/assets/placeholder.svg'
                     </Button>
                   </div>
                 </div>
-                
+
                 <!-- Missions table or empty state -->
                 <div v-if="missions.length === 0" class="text-center py-8">
                   <Briefcase class="w-12 h-12 mx-auto mb-4 text-gray-300" />
                   <p class="text-gray-500">Aucune mission trouvée</p>
                 </div>
-                
-                <!-- Add mission list table here when needed -->
+
+                <MissionsList :missions="missions" />
               </div>
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         <!-- Communications tab removed - only chat functionality remains -->
       </Tabs>
     </div>

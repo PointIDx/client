@@ -58,10 +58,6 @@ const loginConfig = computed(() => {
         color: 'black',
         fields: ['email', 'dossier'],
         gradient: 'from-black to-gray-800',
-        testCredentials: {
-          email: 'jean.dupont@email.com',
-          password: 'DOS2024001'
-        }
       }
     case 'assureur':
       return {
@@ -71,10 +67,6 @@ const loginConfig = computed(() => {
         color: 'black',
         fields: ['email', 'password'],
         gradient: 'from-black to-gray-800',
-        testCredentials: {
-          email: 'assureur@test.com',
-          password: 'password123'
-        }
       }
     case 'prestataire':
       return {
@@ -84,10 +76,6 @@ const loginConfig = computed(() => {
         color: 'black',
         fields: ['email', 'password'],
         gradient: 'from-black to-gray-800',
-        testCredentials: {
-          email: 'prestataire@test.com',
-          password: 'password123'
-        }
       }
     default:
       return {
@@ -97,10 +85,6 @@ const loginConfig = computed(() => {
         color: 'black',
         fields: ['email', 'password'],
         gradient: 'from-black to-gray-800',
-        testCredentials: {
-          email: 'test@test.com',
-          password: 'password123'
-        }
       }
   }
 })

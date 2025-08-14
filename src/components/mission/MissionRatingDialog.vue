@@ -34,7 +34,7 @@
           <label class="text-sm font-medium text-gray-700 mb-2 block">Commentaire (optionnel)</label>
           <Textarea
             :model-value="ratingComment"
-            @update:model-value="(value: string) => $emit('update:comment', value)"
+            @update:model-value="(value: string | number) => $emit('update:comment', String(value))"
             placeholder="Partagez votre expérience avec cette mission..."
             class="min-h-[100px]"
           />

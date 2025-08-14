@@ -50,7 +50,7 @@ test.describe('Prestataire Notifications System', () => {
     await page.waitForTimeout(1000);
     
     // Should show notification dropdown (may be empty for new accounts)
-    const dropdownVisible = await page.locator('[role="menu"], .dropdown-menu, [data-testid*="notification"]').isVisible();
+    const dropdownVisible = await page.getByRole('menu').isVisible();
     
     if (dropdownVisible) {
       console.log('✅ Notifications dropdown opened');

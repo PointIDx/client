@@ -236,6 +236,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ArrowLeft } from 'lucide-vue-next'
 import { insurerInfoSchema } from '@/schemas/registration-schemas'
 import { REGIONS, TYPES_ASSURANCE } from '@/constants'
+import type { InsurerInfo } from '@/interfaces/insurer-info'
 
 // Mock specialties - replace with actual constants
 const SPECIALITES_ASSURANCE = [
@@ -253,19 +254,7 @@ const SPECIALITES_ASSURANCE = [
   'Maritime'
 ]
 
-interface InsurerInfo {
-  numeroAgrement: string
-  typesAssurance: string[]
-  couvertureNationale: boolean
-  regionsCouvertes: string[]
-  specialites: string[]
-  delaiTraitement: string
-  expertiseInterne: boolean
-  urgences24h: boolean
-  volumeAnnuel: string
-  nombreEmployes: number
-  approche: string
-}
+// Using imported InsurerInfo interface
 
 interface Props {
   initialValues?: Partial<InsurerInfo>
@@ -289,7 +278,13 @@ const { handleSubmit, meta, setFieldValue } = useForm({
     couvertureNationale: false,
     expertiseInterne: false,
     urgences24h: false,
-    ...props.initialValues
+    numeroAgrement: props.initialValues?.numeroAgrement || '',
+    zonesCouverture: props.initialValues?.zonesCouverture || {
+      departements: [],
+      regions: [],
+      codesPostaux: []
+    },
+    garantiesProposees: props.initialValues?.garantiesProposees || ''
   }
 })
 
@@ -299,11 +294,21 @@ const handleNationalCoverageChange = (event: Event) => {
   
   if (target.checked) {
     // Clear regional selections if national coverage is selected
-    setFieldValue('regionsCouvertes', [])
+    setFieldValue('zonesCouverture.regions', [])
   }
 }
 
 const onSubmit = handleSubmit((values) => {
-  emit('submit', values as InsurerInfo)
+  const insurerData = {
+    numeroAgrement: values.numeroAgrement || '',
+    typesAssurance: values.typesAssurance || [],
+    zonesCouverture: {
+      departements: values.zonesCouverture?.departements || [],
+      regions: values.zonesCouverture?.regions || [],
+      codesPostaux: values.zonesCouverture?.codesPostaux || []
+    },
+    garantiesProposees: values.garantiesProposees || ''
+  }
+  emit('submit', insurerData)
 })
 </script>

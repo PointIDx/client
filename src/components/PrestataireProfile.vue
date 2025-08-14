@@ -20,7 +20,7 @@
         <CardContent>
           <div class="flex items-center space-x-4">
             <Label for="availability-status">Statut actuel:</Label>
-            <Select v-model="availabilityStatus" @update:model-value="updateAvailabilityStatus">
+            <Select :model-value="availabilityStatus" @update:model-value="(value: string | number | bigint | null) => value && updateAvailabilityStatus(String(value) as AvailabilityStatus)">
               <SelectTrigger class="w-48" data-testid="availability-status-select">
                 <SelectValue placeholder="Sélectionner un statut" />
               </SelectTrigger>
@@ -67,7 +67,7 @@
                 <Label for="telephone">Téléphone</Label>
                 <Input
                   id="telephone"
-                  v-model="profileForm.companyInfo.telephone"
+                  v-model="profileForm.companyInfo?.telephone"
                   data-testid="profile-telephone-input"
                   placeholder="Numéro de téléphone"
                 />
@@ -76,7 +76,7 @@
                 <Label for="email">Email</Label>
                 <Input
                   id="email"
-                  v-model="profileForm.companyInfo.email"
+                  v-model="profileForm.companyInfo?.email"
                   data-testid="profile-email-input"
                   type="email"
                   placeholder="Adresse email"
@@ -88,7 +88,7 @@
               <Label for="adresse">Adresse</Label>
               <Input
                 id="adresse"
-                v-model="profileForm.companyInfo.adresse"
+                v-model="profileForm.companyInfo?.adresse"
                 data-testid="profile-adresse-input"
                 placeholder="Adresse complète"
               />
@@ -99,7 +99,7 @@
                 <Label for="codePostal">Code Postal</Label>
                 <Input
                   id="codePostal"
-                  v-model="profileForm.companyInfo.codePostal"
+                  v-model="profileForm.companyInfo?.codePostal"
                   data-testid="profile-code-postal-input"
                   placeholder="Code postal"
                 />
@@ -108,7 +108,7 @@
                 <Label for="ville">Ville</Label>
                 <Input
                   id="ville"
-                  v-model="profileForm.companyInfo.ville"
+                  v-model="profileForm.companyInfo?.ville"
                   data-testid="profile-ville-input"
                   placeholder="Ville"
                 />

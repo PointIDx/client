@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch, onUnmounted, nextTick } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useChatStore } from '@/stores/chat'
 import { useAuthStore } from '@/stores/auth'
 import ChatSidebar from '@/components/chat/ChatSidebar.vue'
@@ -14,6 +14,7 @@ import { ChatMessageType, RoomType } from '@/interfaces/chat'
 console.log('🚀 ChatPage setup function started')
 
 const route = useRoute()
+const router = useRouter()
 const chatStore = useChatStore()
 const authStore = useAuthStore()
 
@@ -254,7 +255,7 @@ const handleEditMessage = async (messageId: string, newContent: string) => {
   // Edit message functionality is available in the chat store
   if (chatStore.currentRoom) {
     try {
-      await chatStore.editMessage(messageId, newContent)
+      await chatStore.editMessage({ messageId, content: newContent })
     } catch (error) {
       console.error('Failed to edit message:', error)
     }

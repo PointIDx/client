@@ -61,26 +61,26 @@ const missions = computed(() => missionStore.missions)
 
 // Filter missions by GraphQL MissionStatut values
 const nouvellesMissions = computed(() => {
-  const nouvelles = missions.value.filter((mission: any) => mission.missionStatus === 'EN_ATTENTE')
+  const nouvelles = missions.value.filter((mission: any) => mission.status === 'EN_ATTENTE')
   console.log('🎯 Nouvelles missions count:', nouvelles.length, 'from total:', missions.value.length)
   if (missions.value.length > 0) {
-    console.log('📋 All mission statuses:', missions.value.map((m: { missionStatus: any }) => m.missionStatus))
+    console.log('📋 All mission statuses:', missions.value.map((m: { status: any }) => m.status))
   }
   return nouvelles
 })
 const missionsEnCours = computed(() => {
   const enCours = missions.value.filter((mission: any) => 
-    mission.missionStatus === 'EN_COURS' ||
-    mission.missionStatus === 'ASSIGNEE'
+    mission.status === 'EN_COURS' ||
+    mission.status === 'ASSIGNEE'
   )
   console.log('🎯 Missions en cours count:', enCours.length)
   return enCours
 })
 const missionsTerminees = computed(() => {
   const terminees = missions.value.filter((mission: any) => 
-    mission.missionStatus === 'TERMINEE' ||
-    mission.missionStatus === 'ANNULEE' ||
-    mission.missionStatus === 'SUSPENDUE'
+    mission.status === 'TERMINEE' ||
+    mission.status === 'ANNULEE' ||
+    mission.status === 'SUSPENDUE'
   )
   console.log('🎯 Missions terminées count:', terminees.length)
   return terminees
@@ -104,7 +104,7 @@ const getStatutBadge = getMissionStatusBadge
 
 const changerStatutMission = async (missionId: string, nouveauStatut: MissionStatutPrestataire) => {
   try {
-    await prestataireStore.updateMissionStatus(missionId, nouveauStatut)
+    await missionStore.updateMissionStatus(missionId, nouveauStatut)
     // Ensure the UI updates
     await nextTick()
     successMessage.value = `Statut de la mission mis à jour: ${nouveauStatut}`
@@ -130,9 +130,9 @@ const openChat = (mission: any) => {
   router.push({
     path: '/chat',
     query: {
-      prestataireId: mission.assureur.userId, // Use userId for chat room creation
-      contactName: mission.assureur.companyName,
-      contactPerson: mission.assureur.contactPerson,
+      prestataireId: mission.societaire?.id || '', // Use userId for chat room creation
+      contactName: mission.societaire?.firstName + ' ' + (mission.societaire?.lastName || ''),
+      contactPerson: mission.societaire?.firstName + ' ' + (mission.societaire?.lastName || ''),
       type: 'prestataire'
     }
   })
@@ -218,21 +218,21 @@ const openChat = (mission: any) => {
                 <div class="flex items-start justify-between">
                   <div>
                     <CardTitle class="text-lg text-black">Mission</CardTitle>
-                    <CardDescription class="text-sm text-gray-700">Dossier #{{ mission.dossier }}</CardDescription>
+                    <CardDescription class="text-sm text-gray-700">Dossier #{{ mission.reference }}</CardDescription>
                   </div>
-                  <Badge :class="getStatutBadge(mission.missionStatus)?.class">
-                    <component :is="getStatutBadge(mission.missionStatus)?.icon" class="w-3 h-3 mr-1" />
-                    {{ getStatutBadge(mission.missionStatus)?.text }}
+                  <Badge :class="getStatutBadge(mission.status)?.class">
+                    <component :is="getStatutBadge(mission.status)?.icon" class="w-3 h-3 mr-1" />
+                    {{ getStatutBadge(mission.status)?.text }}
                   </Badge>
                 </div>
               </CardHeader>
               <CardContent class="space-y-3">
                 <div class="flex items-center space-x-2">
                   <User class="w-4 h-4 text-gray-600" />
-                  <span class="text-sm text-gray-700">{{ mission.assureur.companyName }}</span>
+                  <span class="text-sm text-gray-700">{{ mission.societaire?.firstName + ' ' + (mission.societaire?.lastName || '') }}</span>
                 </div>
                 <div class="flex items-center space-x-2">
-                  <span class="text-sm text-gray-700">Contact: {{ mission.assureur.contactPerson }}</span>
+                  <span class="text-sm text-gray-700">Contact: {{ mission.societaire?.firstName + ' ' + (mission.societaire?.lastName || '') }}</span>
                 </div>
                 <div class="flex items-center space-x-2 pt-2">
                   <Button 
@@ -270,18 +270,18 @@ const openChat = (mission: any) => {
                 <div class="flex items-start justify-between">
                   <div>
                     <CardTitle class="text-lg">Mission</CardTitle>
-                    <CardDescription class="text-sm">Dossier #{{ mission.dossier }}</CardDescription>
+                    <CardDescription class="text-sm">Dossier #{{ mission.reference }}</CardDescription>
                   </div>
-                  <Badge :class="getStatutBadge(mission.missionStatus)?.class">
-                    <component :is="getStatutBadge(mission.missionStatus)?.icon" class="w-3 h-3 mr-1" />
-                    {{ getStatutBadge(mission.missionStatus)?.text }}
+                  <Badge :class="getStatutBadge(mission.status)?.class">
+                    <component :is="getStatutBadge(mission.status)?.icon" class="w-3 h-3 mr-1" />
+                    {{ getStatutBadge(mission.status)?.text }}
                   </Badge>
                 </div>
               </CardHeader>
               <CardContent class="space-y-3">
                 <div class="flex items-center space-x-2">
                   <User class="w-4 h-4 text-gray-500" />
-                  <span class="text-sm">{{ mission.assureur.companyName }}</span>
+                  <span class="text-sm">{{ mission.societaire?.firstName + ' ' + (mission.societaire?.lastName || '') }}</span>
                 </div>
                 <div class="flex items-center space-x-2 pt-2">
                   <Dialog>
@@ -293,19 +293,19 @@ const openChat = (mission: any) => {
                     </DialogTrigger>
                     <DialogContent class="max-w-2xl max-h-[80vh] overflow-y-auto bg-white border-gray-300">
                       <DialogHeader>
-                        <DialogTitle class="text-black">Mission #{{ mission.dossier }}</DialogTitle>
+                        <DialogTitle class="text-black">Mission #{{ mission.reference }}</DialogTitle>
                         <DialogDescription class="text-gray-700">Détails de la mission</DialogDescription>
                       </DialogHeader>
 
                       <div class="space-y-6">
                         <!-- Statut et actions -->
                         <div class="flex items-center justify-between">
-                          <Badge :class="getStatutBadge(mission.missionStatus)?.class">
-                            <component :is="getStatutBadge(mission.missionStatus)?.icon" class="w-3 h-3 mr-1" />
-                            {{ getStatutBadge(mission.missionStatus)?.text }}
+                          <Badge :class="getStatutBadge(mission.status)?.class">
+                            <component :is="getStatutBadge(mission.status)?.icon" class="w-3 h-3 mr-1" />
+                            {{ getStatutBadge(mission.status)?.text }}
                           </Badge>
                           <div class="flex space-x-2">
-                            <template v-if="mission.missionStatus === MissionStatutPrestataire.Nouvelle">
+                            <template v-if="mission.status === MissionStatutPrestataire.Nouvelle">
                               <Button size="sm" class="bg-black text-white hover:bg-gray-800 min-w-0 px-3" @click="changerStatutMission(mission.id, MissionStatutPrestataire.Acceptee)" data-testid="accept-mission-button">
                                 <Check class="w-4 h-4 mr-1 flex-shrink-0" />
                                 <span class="truncate">Accepter</span>
@@ -321,10 +321,10 @@ const openChat = (mission: any) => {
                                 <span class="truncate">Refuser</span>
                               </Button>
                             </template>
-                            <Button v-else-if="mission.missionStatus === MissionStatutPrestataire.Acceptee" size="sm" class="bg-black text-white hover:bg-gray-800 min-w-0 px-3" @click="changerStatutMission(mission.id, MissionStatutPrestataire.EnCours)" data-testid="start-mission-button">
+                            <Button v-else-if="mission.status === MissionStatutPrestataire.Acceptee" size="sm" class="bg-black text-white hover:bg-gray-800 min-w-0 px-3" @click="changerStatutMission(mission.id, MissionStatutPrestataire.EnCours)" data-testid="start-mission-button">
                               <span class="truncate">Démarrer</span>
                             </Button>
-                            <Button v-else-if="mission.missionStatus === MissionStatutPrestataire.EnCours" size="sm" class="bg-black text-white hover:bg-gray-800 min-w-0 px-3" @click="changerStatutMission(mission.id, MissionStatutPrestataire.Terminee)" data-testid="finish-mission-button">
+                            <Button v-else-if="mission.status === MissionStatutPrestataire.EnCours" size="sm" class="bg-black text-white hover:bg-gray-800 min-w-0 px-3" @click="changerStatutMission(mission.id, MissionStatutPrestataire.Terminee)" data-testid="finish-mission-button">
                               <span class="truncate">Terminer</span>
                             </Button>
                           </div>
@@ -358,18 +358,18 @@ const openChat = (mission: any) => {
                 <div class="flex items-start justify-between">
                   <div>
                     <CardTitle class="text-lg">Mission</CardTitle>
-                    <CardDescription class="text-sm">Dossier #{{ mission.dossier }}</CardDescription>
+                    <CardDescription class="text-sm">Dossier #{{ mission.reference }}</CardDescription>
                   </div>
-                  <Badge :class="getStatutBadge(mission.missionStatus)?.class">
-                    <component :is="getStatutBadge(mission.missionStatus)?.icon" class="w-3 h-3 mr-1" />
-                    {{ getStatutBadge(mission.missionStatus)?.text }}
+                  <Badge :class="getStatutBadge(mission.status)?.class">
+                    <component :is="getStatutBadge(mission.status)?.icon" class="w-3 h-3 mr-1" />
+                    {{ getStatutBadge(mission.status)?.text }}
                   </Badge>
                 </div>
               </CardHeader>
               <CardContent class="space-y-3">
                 <div class="flex items-center space-x-2">
                   <User class="w-4 h-4 text-gray-500" />
-                  <span class="text-sm">{{ mission.assureur.companyName }}</span>
+                  <span class="text-sm">{{ mission.societaire?.firstName + ' ' + (mission.societaire?.lastName || '') }}</span>
                 </div>
                 <div class="flex items-center space-x-2 pt-2">
                   <Dialog>
@@ -381,19 +381,19 @@ const openChat = (mission: any) => {
                     </DialogTrigger>
                     <DialogContent class="max-w-2xl max-h-[80vh] overflow-y-auto bg-white border-gray-300">
                       <DialogHeader>
-                        <DialogTitle class="text-black">Mission #{{ mission.dossier }}</DialogTitle>
+                        <DialogTitle class="text-black">Mission #{{ mission.reference }}</DialogTitle>
                         <DialogDescription class="text-gray-700">Détails de la mission</DialogDescription>
                       </DialogHeader>
 
                       <div class="space-y-6">
                         <!-- Statut et actions -->
                         <div class="flex items-center justify-between">
-                          <Badge :class="getStatutBadge(mission.missionStatus)?.class">
-                            <component :is="getStatutBadge(mission.missionStatus)?.icon" class="w-3 h-3 mr-1" />
-                            {{ getStatutBadge(mission.missionStatus)?.text }}
+                          <Badge :class="getStatutBadge(mission.status)?.class">
+                            <component :is="getStatutBadge(mission.status)?.icon" class="w-3 h-3 mr-1" />
+                            {{ getStatutBadge(mission.status)?.text }}
                           </Badge>
                           <div class="flex space-x-2">
-                            <template v-if="mission.missionStatus === MissionStatutPrestataire.Nouvelle">
+                            <template v-if="mission.status === MissionStatutPrestataire.Nouvelle">
                               <Button size="sm" class="bg-black text-white hover:bg-gray-800 min-w-0 px-3" @click="changerStatutMission(mission.id, MissionStatutPrestataire.Acceptee)" data-testid="accept-mission-button">
                                 <Check class="w-4 h-4 mr-1 flex-shrink-0" />
                                 <span class="truncate">Accepter</span>
@@ -409,10 +409,10 @@ const openChat = (mission: any) => {
                                 <span class="truncate">Refuser</span>
                               </Button>
                             </template>
-                            <Button v-else-if="mission.missionStatus === MissionStatutPrestataire.Acceptee" size="sm" class="bg-black text-white hover:bg-gray-800 min-w-0 px-3" @click="changerStatutMission(mission.id, MissionStatutPrestataire.EnCours)" data-testid="start-mission-button">
+                            <Button v-else-if="mission.status === MissionStatutPrestataire.Acceptee" size="sm" class="bg-black text-white hover:bg-gray-800 min-w-0 px-3" @click="changerStatutMission(mission.id, MissionStatutPrestataire.EnCours)" data-testid="start-mission-button">
                               <span class="truncate">Démarrer</span>
                             </Button>
-                            <Button v-else-if="mission.missionStatus === MissionStatutPrestataire.EnCours" size="sm" class="bg-black text-white hover:bg-gray-800 min-w-0 px-3" @click="changerStatutMission(mission.id, MissionStatutPrestataire.Terminee)" data-testid="finish-mission-button">
+                            <Button v-else-if="mission.status === MissionStatutPrestataire.EnCours" size="sm" class="bg-black text-white hover:bg-gray-800 min-w-0 px-3" @click="changerStatutMission(mission.id, MissionStatutPrestataire.Terminee)" data-testid="finish-mission-button">
                               <span class="truncate">Terminer</span>
                             </Button>
                           </div>

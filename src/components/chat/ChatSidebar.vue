@@ -65,12 +65,8 @@
         >
           <!-- Avatar -->
           <div class="relative flex-shrink-0 mr-3">
-            <div v-if="isInitialsAvatar(chat.avatar)" class="w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center font-medium text-gray-700">
-              {{ chat.avatar.replace('initials:', '') }}
-            </div>
-            <div v-else class="w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center font-medium text-gray-700">
-              <img v-if="chat.avatar && typeof chat.avatar === 'string' && chat.avatar.startsWith('http')" :src="chat.avatar" :alt="chat.name" class="w-full h-full rounded-full object-cover">
-              <span v-else>{{ getInitials(chat.name) }}</span>
+            <div class="w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center font-medium text-gray-700">
+              {{ getInitials(chat.name) }}
             </div>
             <!-- Online indicator -->
             <div class="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
@@ -250,10 +246,5 @@ const isOwnMessage = (chat: Chat) => {
   // This would typically check if the last message was sent by the current user
   // For now, we'll return false, but this should be enhanced based on actual message data
   return false
-}
-
-const isInitialsAvatar = (avatar: string) => {
-  // Check if avatar is prefixed with 'initials:' to indicate it should be rendered as text
-  return avatar && typeof avatar === 'string' && avatar.startsWith('initials:');
 }
 </script>

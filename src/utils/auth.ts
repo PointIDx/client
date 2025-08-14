@@ -91,7 +91,7 @@ export class AuthUtils {
         mutation,
         variables,
       });
-      return data;
+      return data ?? null;
     } catch (error) {
       console.error('Authenticated GraphQL request failed:', error);
       throw error;

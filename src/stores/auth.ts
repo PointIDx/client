@@ -9,7 +9,7 @@ import { toast } from 'vue-sonner';
 import { handleError } from '@/utils/error-handling';
 
 export const useAuthStore = defineStore('auth', () => {
-  const tokens = ref<JWTTokens | null>(AuthUtils.getTokens());
+  const tokens = ref<JWTTokens | null>(null);
   const user = ref<User | null>(AuthUtils.getUser());
   const { executeMutation } = useGraphQL();
   

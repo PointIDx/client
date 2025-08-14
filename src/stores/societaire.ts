@@ -512,15 +512,16 @@ export const useSocietaireStore = defineStore('societaire', () => {
   };
 
   // Initialize from localStorage on app start
-  const initAuth = () => {
+  const initAuth = async () => {
     const storedTokens = AuthUtils.getTokens();
     const storedData = localStorage.getItem(SOCIETAIRE_STORAGE_KEY);
     
     if (storedTokens && storedData) {
       try {
         const data = JSON.parse(storedData);
-        if (!AuthUtils.isTokenExpired(storedTokens.token)) {
-          tokens.value = storedTokens;
+        const tokenData = await storedTokens;
+        if (tokenData && !AuthUtils.isTokenExpired(tokenData.token)) {
+          tokens.value = tokenData;
           email.value = data.email;
           dossierNumber.value = data.dossierNumber;
           dossierData.value = data.dossierData;

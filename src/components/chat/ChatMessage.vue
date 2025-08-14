@@ -115,11 +115,11 @@
           </svg>
           <a 
             :href="attachment.url" 
-            :download="attachment.name"
+            :download="attachment.originalName"
             class="text-sm hover:underline flex-1 truncate"
             data-testid="download-file"
           >
-            {{ attachment.name }}
+            {{ attachment.originalName }}
           </a>
           <span class="text-xs opacity-70">{{ formatFileSize(attachment.size) }}</span>
         </div>

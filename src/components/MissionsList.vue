@@ -47,7 +47,7 @@ import {
 import type { MissionDetails } from '@/interfaces/MissionDetails'
 import type { SubMission } from '@/interfaces/sub-mission'
 import { useMissionStore } from '@/stores/mission'
-import { SPECIALIZATIONS } from '@/interfaces/sub-mission'
+import { SPECIALIZATIONS, UrgenceLevel } from '@/interfaces/sub-mission'
 
 const router = useRouter()
 
@@ -85,7 +85,7 @@ const newSubMission = reactive({
   specialization: '',
   title: '',
   description: '',
-  urgence: 'MOYENNE' as const,
+  urgence: UrgenceLevel.MOYENNE,
   estimatedCost: undefined as number | undefined,
   materialsNeeded: '',
   specialRequirements: '',
@@ -145,8 +145,8 @@ const filteredAndSortedMissions = computed(() => {
         mission.reference.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
         (mission.prestataire?.contactPerson || '').toLowerCase().includes(searchTerm.value.toLowerCase()) ||
         (mission.prestataire?.companyName || '').toLowerCase().includes(searchTerm.value.toLowerCase()) ||
-        mission.societaire.lastName.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
-        mission.societaire.firstName.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
+        mission.societaire?.lastName?.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
+        mission.societaire?.firstName?.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
         mission.description.toLowerCase().includes(searchTerm.value.toLowerCase()),
     )
   }
@@ -189,8 +189,8 @@ const filteredAndSortedMissions = computed(() => {
         bValue = b.prestataire?.contactPerson || ''
         break
       case "client":
-        aValue = `${a.societaire.lastName} ${a.societaire.firstName}`
-        bValue = `${b.societaire.lastName} ${b.societaire.firstName}`
+        aValue = `${a.societaire?.lastName} ${a.societaire?.firstName}`
+        bValue = `${b.societaire?.lastName} ${b.societaire?.firstName}`
         break
       case "status":
         aValue = a.status
@@ -386,7 +386,7 @@ const createSubMission = async () => {
       specialization: '',
       title: '',
       description: '',
-      urgence: 'MOYENNE' as const,
+      urgence: UrgenceLevel.MOYENNE,
       estimatedCost: undefined,
       materialsNeeded: '',
       specialRequirements: '',
@@ -724,7 +724,8 @@ const viewSubMissionDetails = (subMission: SubMission) => {
               </TableRow>
               
               <!-- Sub-missions rows (shown when expanded) -->
-              <template v-if="expandedMissions.has(mission.id)">
+              <template v-for="mission in filteredAndSortedMissions" :key="`expanded-${mission.id}`">
+                <template v-if="expandedMissions.has(mission.id)">
                 <!-- Add sub-mission button row -->
                 <TableRow class="bg-blue-50">
                   <TableCell colspan="8" class="pl-8">
@@ -795,6 +796,7 @@ const viewSubMissionDetails = (subMission: SubMission) => {
                     </DropdownMenu>
                   </TableCell>
                 </TableRow>
+                </template>
               </template>
             </TableBody>
           </Table>
@@ -814,16 +816,16 @@ const viewSubMissionDetails = (subMission: SubMission) => {
           <DialogHeader>
             <DialogTitle class="flex items-center space-x-2">
               <Briefcase class="w-5 h-5" />
-              <span>Mission {{ selectedMission.numeroMission }}</span>
+              <span>Mission {{ selectedMission.reference }}</span>
             </DialogTitle>
-            <DialogDescription>{{ selectedMission.mission.titre }}</DialogDescription>
+            <DialogDescription>{{ selectedMission.description }}</DialogDescription>
           </DialogHeader>
 
           <div class="space-y-6">
             <!-- Statut et urgence -->
             <div class="flex items-center justify-between">
-              <div v-html="getStatutBadge(selectedMission.statut)"></div>
-              <div v-html="getUrgenceBadge(selectedMission.sinistre.urgence)"></div>
+              <div v-html="getStatutBadge(selectedMission.status)"></div>
+              <div v-html="getUrgenceBadge(selectedMission.urgence)"></div>
             </div>
 
             <!-- Informations client -->
@@ -832,17 +834,17 @@ const viewSubMissionDetails = (subMission: SubMission) => {
               <div class="bg-gray-50 p-4 rounded-lg space-y-2">
                 <p>
                   <strong>
-                    {{ selectedMission.client.civilite }} {{ selectedMission.client.prenom }} {{ selectedMission.client.nom }}
+                    {{ selectedMission.civilite || '' }} {{ selectedMission.prenom || '' }} {{ selectedMission.nom || '' }}
                   </strong>
                 </p>
                 <div class="flex items-center space-x-4 text-sm text-gray-600">
                   <span class="flex items-center">
                     <Phone class="w-3 h-3 mr-1" />
-                    {{ selectedMission.client.telephone }}
+                    {{ selectedMission.telephone || '' }}
                   </span>
-                  <span v-if="selectedMission.client.email" class="flex items-center">
+                  <span v-if="selectedMission.email" class="flex items-center">
                     <Mail class="w-3 h-3 mr-1" />
-                    {{ selectedMission.client.email }}
+                    {{ selectedMission.email || '' }}
                   </span>
                 </div>
               </div>
@@ -855,20 +857,20 @@ const viewSubMissionDetails = (subMission: SubMission) => {
                 <div class="flex items-center space-x-3">
                   <Avatar>
                     <AvatarFallback>
-                      {{ selectedMission.prestataire.nom.split(' ').map((n) => n[0]).join('') }}
+                      {{ selectedMission.prestataire?.contactPerson?.split(' ').map((n) => n[0]).join('') || '' }}
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <p class="font-semibold">{{ selectedMission.prestataire.nom }}</p>
-                    <p class="text-sm text-gray-600">{{ selectedMission.prestataire.raisonSociale }}</p>
+                    <p class="font-semibold">{{ selectedMission.prestataire?.contactPerson || '' }}</p>
+                    <p class="text-sm text-gray-600">{{ selectedMission.prestataire?.companyName || '' }}</p>
                     <div class="flex items-center space-x-4 text-sm text-gray-600 mt-1">
                       <span class="flex items-center">
                         <Phone class="w-3 h-3 mr-1" />
-                        {{ selectedMission.prestataire.telephone }}
+                        {{ selectedMission.prestataire?.phone || '' }}
                       </span>
                       <span class="flex items-center">
                         <Mail class="w-3 h-3 mr-1" />
-                        {{ selectedMission.prestataire.email }}
+                        {{ selectedMission.prestataire?.email || '' }}
                       </span>
                     </div>
                   </div>
@@ -882,8 +884,8 @@ const viewSubMissionDetails = (subMission: SubMission) => {
               <div class="flex items-center space-x-2">
                 <MapPin class="w-4 h-4 text-gray-500" />
                 <span>
-                  {{ selectedMission.chantier.adresse }}, {{ selectedMission.chantier.codePostal }}
-                  {{ selectedMission.chantier.ville }}
+                  {{ selectedMission.chantierAdresse || selectedMission.location?.street || '' }}, {{ selectedMission.chantierCodePostal || selectedMission.location?.postalCode || '' }}
+                  {{ selectedMission.chantierVille || selectedMission.location?.city || '' }}
                 </span>
               </div>
             </div>
@@ -891,7 +893,7 @@ const viewSubMissionDetails = (subMission: SubMission) => {
             <!-- Description de la mission -->
             <div>
               <h4 class="font-semibold mb-3">Description de la mission</h4>
-              <p class="text-sm text-gray-700 bg-gray-50 p-3 rounded">{{ selectedMission.mission.description }}</p>
+              <p class="text-sm text-gray-700 bg-gray-50 p-3 rounded">{{ selectedMission.description }}</p>
             </div>
 
             <!-- Informations sinistre -->
@@ -900,19 +902,19 @@ const viewSubMissionDetails = (subMission: SubMission) => {
               <div class="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <span class="text-gray-500">Type:</span>
-                  <p>{{ selectedMission.sinistre.type }}</p>
+                  <p>{{ selectedMission.sinistreType || '' }}</p>
                 </div>
                 <div>
                   <span class="text-gray-500">N° Sinistre:</span>
-                  <p>{{ selectedMission.sinistre.numeroSinistre }}</p>
+                  <p>{{ selectedMission.numeroSinistre || '' }}</p>
                 </div>
               </div>
             </div>
 
             <!-- Budget -->
-            <div v-if="selectedMission.mission.budgetEstime">
+            <div v-if="selectedMission.budgetEstime || selectedMission.estimatedCost">
               <h4 class="font-semibold mb-3">Budget estimé</h4>
-              <p class="text-lg font-semibold text-green-600">{{ selectedMission.mission.budgetEstime }}€</p>
+              <p class="text-lg font-semibold text-green-600">{{ selectedMission.budgetEstime || selectedMission.estimatedCost }}€</p>
             </div>
 
             <!-- Dates -->
@@ -921,19 +923,15 @@ const viewSubMissionDetails = (subMission: SubMission) => {
               <div class="space-y-2 text-sm">
                 <div class="flex items-center space-x-2">
                   <Calendar class="w-4 h-4 text-gray-500" />
-                  <span>Créée le {{ new Date(selectedMission.dateCreation).toLocaleDateString() }}</span>
+                  <span>Créée le {{ new Date(selectedMission.dateDeCreation).toLocaleDateString() }}</span>
                 </div>
-                <div v-if="selectedMission.dateEnvoi" class="flex items-center space-x-2">
+                <div v-if="selectedMission.dateDeCreation" class="flex items-center space-x-2">
                   <Calendar class="w-4 h-4 text-gray-500" />
-                  <span>Envoyée le {{ new Date(selectedMission.dateEnvoi).toLocaleDateString() }}</span>
+                  <span>Envoyée le {{ new Date(selectedMission.dateDeCreation).toLocaleDateString() }}</span>
                 </div>
-                <div v-if="selectedMission.dateReponse" class="flex items-center space-x-2">
+                <div v-if="selectedMission.deadline" class="flex items-center space-x-2">
                   <Calendar class="w-4 h-4 text-gray-500" />
-                  <span>Réponse le {{ new Date(selectedMission.dateReponse).toLocaleDateString() }}</span>
-                </div>
-                <div v-if="selectedMission.dateFinPrevue" class="flex items-center space-x-2">
-                  <Calendar class="w-4 h-4 text-gray-500" />
-                  <span>Fin prévue le {{ new Date(selectedMission.dateFinPrevue).toLocaleDateString() }}</span>
+                  <span>Échéance le {{ new Date(selectedMission.deadline).toLocaleDateString() }}</span>
                 </div>
               </div>
             </div>
@@ -958,7 +956,7 @@ const viewSubMissionDetails = (subMission: SubMission) => {
                 <SelectValue placeholder="Choisir une spécialisation" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem v-for="spec in Object.values(SPECIALIZATIONS)" :key="spec" :value="spec">
+                <SelectItem v-for="spec in SPECIALIZATIONS" :key="spec" :value="spec">
                   {{ spec }}
                 </SelectItem>
               </SelectContent>

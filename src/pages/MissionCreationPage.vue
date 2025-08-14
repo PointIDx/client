@@ -129,7 +129,7 @@ const clientFormSchema = toTypedSchema(z.object({
 }))
 
 
-const {handleSubmit, values, setValue} = useForm({
+const {handleSubmit, values, setFieldValue} = useForm({
   validationSchema: clientFormSchema,
   initialValues: {
     chantierMemeAdresseClient: false,
@@ -151,15 +151,15 @@ const copyClientAddressToChantier = () => {
     // Use nextTick to ensure reactive updates happen
     nextTick(() => {
       if (values.adresse) {
-        setValue('chantierAdresse', values.adresse)
+        setFieldValue('chantierAdresse', values.adresse)
         console.log('Set chantierAdresse to:', values.adresse)
       }
       if (values.codePostal) {
-        setValue('chantierCodePostal', values.codePostal)
+        setFieldValue('chantierCodePostal', values.codePostal)
         console.log('Set chantierCodePostal to:', values.codePostal)
       }
       if (values.ville) {
-        setValue('chantierVille', values.ville)
+        setFieldValue('chantierVille', values.ville)
         console.log('Set chantierVille to:', values.ville)
       }
     })

@@ -267,12 +267,12 @@ const { handleSubmit, meta } = useForm({
   initialValues: {
     zonesGeographiques: {
       regions: [],
-      departements: ''
+      departements: []
     },
     disponibiliteImmediate: false,
     interventionsUrgence: false,
     weekEnd: false,
-    ...props.initialValues
+    secteursActivite: props.initialValues?.secteursActivite || ''
   }
 })
 

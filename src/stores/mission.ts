@@ -177,9 +177,9 @@ export const useMissionStore = defineStore('mission', () => {
           console.log('📋 Mission details loaded:', currentMission.value)
           
           // Initialize related data
-          documents.value = currentMission.value.documents || []
-          comments.value = currentMission.value.commentaires || []
-          history.value = currentMission.value.historique || []
+          documents.value = currentMission.value?.documents || []
+          comments.value = currentMission.value?.commentaires || []
+          history.value = currentMission.value?.historique || []
         }
       })
 
@@ -762,7 +762,7 @@ export const useMissionStore = defineStore('mission', () => {
       const { data } = await client.query({
         query: GET_SUB_MISSIONS_BY_MISSION,
         variables: { missionId },
-        fetchPolicy: 'cache-and-network'
+        fetchPolicy: 'cache-and-network' as any
       })
       
       if (data?.getSubMissionsByMission) {

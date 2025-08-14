@@ -362,30 +362,9 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ArrowLeft } from 'lucide-vue-next'
 import { societaireInfoSchema } from '@/schemas/registration-schemas'
+import type { SocietaireInfo } from '@/interfaces/societaire-info'
 
-interface SocietaireInfo {
-  civilite: string
-  prenom: string
-  nom: string
-  dateNaissance: string
-  telephone: string
-  email: string
-  adresse: string
-  codePostal: string
-  ville: string
-  pays: string
-  typeBien: string
-  statutOccupation: string
-  superficie?: number
-  nombrePieces?: number
-  anneeConstruction?: number
-  assureurActuel?: string
-  numeroPolice?: string
-  dateEcheance?: string
-  newsletterOptIn: boolean
-  offresPartenaires: boolean
-  smsUrgence: boolean
-}
+// Using imported SocietaireInfo interface
 
 interface Props {
   initialValues?: Partial<SocietaireInfo>
@@ -405,11 +384,32 @@ const { handleSubmit, meta } = useForm({
     newsletterOptIn: false,
     offresPartenaires: false,
     smsUrgence: true,
-    ...props.initialValues
+    civilite: props.initialValues?.civilite || '',
+    prenom: props.initialValues?.prenom || '',
+    nom: props.initialValues?.nom || '',
+    dateNaissance: props.initialValues?.dateNaissance || '',
+    adresseBien: props.initialValues?.adresseBien || '',
+    codePostalBien: props.initialValues?.codePostalBien || '',
+    villeBien: props.initialValues?.villeBien || '',
+    typeProjet: props.initialValues?.typeProjet || '',
+    numeroDossier: props.initialValues?.numeroDossier || '',
+    descriptionProjet: props.initialValues?.descriptionProjet || ''
   }
 })
 
 const onSubmit = handleSubmit((values) => {
-  emit('submit', values as SocietaireInfo)
+  const societaireData: SocietaireInfo = {
+    civilite: values.civilite || '',
+    prenom: values.prenom || '',
+    nom: values.nom || '',
+    dateNaissance: values.dateNaissance || '',
+    adresseBien: values.adresseBien || '',
+    codePostalBien: values.codePostalBien || '',
+    villeBien: values.villeBien || '',
+    typeProjet: values.typeProjet || '',
+    numeroDossier: values.numeroDossier || '',
+    descriptionProjet: values.descriptionProjet || ''
+  }
+  emit('submit', societaireData)
 })
 </script>

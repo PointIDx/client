@@ -174,11 +174,20 @@ const { handleSubmit, meta } = useForm({
   initialValues: {
     acceptEmails: true,
     acceptSms: false,
-    ...props.initialValues
+    prenom: props.initialValues?.prenom || '',
+    nom: props.initialValues?.nom || '',
+    email: props.initialValues?.email || '',
+    telephone: props.initialValues?.telephone || ''
   }
 })
 
 const onSubmit = handleSubmit((values) => {
-  emit('submit', values as Contact)
+  const contactData: Contact = {
+    prenom: values.prenom || '',
+    nom: values.nom || '',
+    email: values.email || '',
+    telephone: values.telephone || ''
+  }
+  emit('submit', contactData)
 })
 </script>

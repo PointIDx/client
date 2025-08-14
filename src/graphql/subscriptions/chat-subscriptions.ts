@@ -34,8 +34,8 @@ export const NEW_MESSAGES = gql`
 
 // Subscribe to typing indicators across all user's rooms
 export const TYPING_INDICATORS = gql`
-  subscription TypingIndicators {
-    typingIndicators {
+  subscription TypingIndicator {
+    onTypingIndicator {
       id
       roomId
       userId

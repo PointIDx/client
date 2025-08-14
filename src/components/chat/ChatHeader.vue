@@ -9,6 +9,10 @@
       <div>
         <h3 class="font-semibold text-lg" data-testid="chat-contact-name">{{ chat.name }}</h3>
         <p class="text-sm text-gray-500" data-testid="chat-status">{{ status }}</p>
+        <!-- Mission context indicator -->
+        <div v-if="missionContext" class="text-xs text-blue-600 mt-1" data-testid="mission-context">
+          Discussion démarrée concernant la mission {{ missionContext }}
+        </div>
       </div>
     </div>
     <div class="flex items-center gap-3">
@@ -61,6 +65,7 @@ interface Props {
   chat: Chat
   status?: string
   userType?: 'assureur' | 'prestataire'
+  missionContext?: string
 }
 
 withDefaults(defineProps<Props>(), {

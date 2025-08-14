@@ -211,11 +211,11 @@ const triggerFileInput = (type: string) => {
 }
 
 const validateFile = (file: File): string | null => {
-  const validation = validatePdfFile(file, FILE_SIZE_LIMITS.DOCUMENT)
-  return validation.isValid ? null : validation.error
+  const validation = validatePdfFile(file)
+  return validation.isValid ? null : (validation.error ?? null)
 }
 
-const handleFileSelect = (event: Event, type: string) => {
+const handleFileSelect = (event: Event, type: 'kbis' | 'assurance' | 'agrement') => {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
   if (file) {
@@ -223,14 +223,14 @@ const handleFileSelect = (event: Event, type: string) => {
   }
 }
 
-const handleDrop = (event: DragEvent, type: string) => {
+const handleDrop = (event: DragEvent, type: 'kbis' | 'assurance' | 'agrement') => {
   const file = event.dataTransfer?.files[0]
   if (file) {
     handleFile(file, type)
   }
 }
 
-const handleFile = (file: File, type: string) => {
+const handleFile = (file: File, type: 'kbis' | 'assurance' | 'agrement') => {
   uploadError.value = ''
   
   const error = validateFile(file)

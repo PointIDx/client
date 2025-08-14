@@ -213,7 +213,7 @@ const truncateText = (text: string, maxLength: number) => {
   return text.substring(0, maxLength) + '...'
 }
 
-let typingTimeout: NodeJS.Timeout | null = null
+let typingTimeout: ReturnType<typeof setTimeout> | null = null
 
 const handleTyping = () => {
   emit('typing', true)
