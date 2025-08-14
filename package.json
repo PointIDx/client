@@ -53,14 +53,14 @@
     "@tailwindcss/vite": "^4.1.11",
     "@tsconfig/node22": "^22.0.2",
     "autoprefixer": "^10.4.21",
-    "vue-tsc": "^3.0.3"
+    "vue-tsc": "^3.0.3",
+    "@vue/tsconfig": "^0.7.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.54.1",
     "@types/jsdom": "^21.1.7",
     "@types/node": "^24.0.15",
     "@vue/test-utils": "^2.4.6",
-    "@vue/tsconfig": "^0.7.0",
     "vite-plugin-vue-devtools": "^7.7.7",
     "vitest": "^3.2.4"
   },
