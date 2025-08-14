@@ -4,10 +4,11 @@ import { GraphQLWsLink } from '@apollo/client/link/subscriptions'
 import { getMainDefinition } from '@apollo/client/utilities'
 import { createClient } from 'graphql-ws'
 import { AuthUtils } from '@/utils/auth'
+import { runtimeEnv } from '@/runtime-env'
 
 const wsLink = new GraphQLWsLink(
   createClient({
-    url: import.meta.env.VITE_SERVER_GRAPHQL_WS_URL || 'ws://localhost:3000/graphql/ws',
+    url: runtimeEnv('VITE_SERVER_GRAPHQL_WS_URL', 'ws://localhost:3000/graphql/ws') as string,
     connectionParams: async () => {
       const tokens = await AuthUtils.getTokens();
       return {
@@ -21,7 +22,7 @@ const wsLink = new GraphQLWsLink(
 
 // HTTP connection to the API
 const httpLink = createHttpLink({
-  uri: import.meta.env.VITE_APP_SERVER_GRAPHQL_URL || '/graphql'
+  uri: runtimeEnv('VITE_APP_SERVER_GRAPHQL_URL', '/graphql')
 })
 
 const authLink = setContext(async (_, { headers }) => {
