@@ -4,6 +4,9 @@ services:
   point-id-client:
     image: ghcr.io/${IMAGE_REPOSITORY:-pointidx/client}:${RELEASE_VERSION:-latest}
     container_name: ${CONTAINER_PREFIX:-point_id}-client
+    environment:
+      - VITE_APP_SERVER_GRAPHQL_URL=${PRODUCTION_GRAPHQL_URL:-http://localhost:8000/graphql}
+      - VITE_SERVER_GRAPHQL_WS_URL=${PRODUCTION_GRAPHQL_WS_URL:-ws://localhost:8000/graphql/ws}
     ports:
       - "${SERVER_PORT:-8001}:80"
     healthcheck:
