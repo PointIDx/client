@@ -48,6 +48,7 @@ import {
 } from "@/constants"
 import { validatePdfFile } from "@/utils/file-validation"
 import { handleError, showSuccess, showInfo } from "@/utils/error-handling"
+import { AuthUtils } from "@/utils/auth"
 
 const router = useRouter()
 const assureurStore = useAssureurStore()
@@ -346,6 +347,13 @@ const submitRegistration = async () => {
           const { tokens, user } = result.assureurSignup;
           authStore.tokens = tokens;
           authStore.user = user;
+          
+          // Save tokens to localStorage like in prestataire signup
+          AuthUtils.saveTokens(tokens);
+          AuthUtils.saveUser(user);
+          
+          // Reinitialize auth store to pick up the new tokens
+          await authStore.initAuth();
           
           success = true;
           router.push("/assureur-dashboard");
