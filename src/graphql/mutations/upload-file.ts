@@ -41,7 +41,7 @@ export const UPLOAD_SOCIETAIRE_FILE_MUTATION = gql`
 `;
 
 export const UPLOAD_MISSION_FILE_MUTATION = gql`
-  mutation UploadMissionFile($input: MissionDocumentUploadInput!) {
+  mutation UploadMissionFile($input: MissionDocumentInput!) {
     uploadMissionFile(input: $input) {
       id
       filename

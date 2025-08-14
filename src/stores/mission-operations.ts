@@ -33,7 +33,7 @@ export const useMissionOperationsStore = defineStore('mission-operations', () =>
       // Add the GraphQL operation
       formData.append('operations', JSON.stringify({
         query: `
-          mutation UploadMissionDocument($input: MissionDocumentUploadInput!) {
+          mutation UploadMissionDocument($input: MissionDocumentInput!) {
             uploadMissionDocument(input: $input) {
               id
               filename
@@ -49,7 +49,9 @@ export const useMissionOperationsStore = defineStore('mission-operations', () =>
         variables: {
           input: {
             missionId: input.missionId,
-            file: null,
+            filename: input.file.name,
+            contentType: input.file.type || 'application/octet-stream',
+            size: input.file.size,
             description: input.description
           }
         }
@@ -119,7 +121,7 @@ export const useMissionOperationsStore = defineStore('mission-operations', () =>
       // Add the GraphQL operation
       formData.append('operations', JSON.stringify({
         query: `
-          mutation UploadMissionFile($input: MissionDocumentUploadInput!) {
+          mutation UploadMissionFile($input: MissionDocumentInput!) {
             uploadMissionFile(input: $input) {
               id
               filename
@@ -135,7 +137,9 @@ export const useMissionOperationsStore = defineStore('mission-operations', () =>
         variables: {
           input: {
             missionId: input.missionId,
-            file: null,
+            filename: input.file.name,
+            contentType: input.file.type || 'application/octet-stream',
+            size: input.file.size,
             description: input.description
           }
         }

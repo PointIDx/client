@@ -1,7 +1,7 @@
 import { gql } from '@apollo/client/core'
 
 export const UPLOAD_MISSION_DOCUMENT_MUTATION = gql`
-  mutation UploadMissionDocument($input: MissionDocumentUploadInput!) {
+  mutation UploadMissionDocument($input: MissionDocumentInput!) {
     uploadMissionDocument(input: $input) {
       id
       filename
@@ -16,7 +16,7 @@ export const UPLOAD_MISSION_DOCUMENT_MUTATION = gql`
 `
 
 export const UPLOAD_MISSION_FILE_MUTATION = gql`
-  mutation UploadMissionFile($input: MissionDocumentUploadInput!) {
+  mutation UploadMissionFile($input: MissionDocumentInput!) {
     uploadMissionFile(input: $input) {
       id
       filename
