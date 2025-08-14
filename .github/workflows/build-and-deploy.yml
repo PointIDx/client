@@ -143,9 +143,9 @@ jobs:
           - name: production
             dockerfile: Dockerfile
             suffix: ""
-          - name: test
-            dockerfile: Dockerfile.test
-            suffix: "-test"
+          # - name: test
+          #   dockerfile: Dockerfile.test
+          #   suffix: "-test"
 
     steps:
       - name: Checkout repository
