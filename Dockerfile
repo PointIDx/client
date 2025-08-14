@@ -12,6 +12,10 @@ RUN npm ci --only=production
 # Copy source code
 COPY . .
 
+# Build arguments for production URLs
+ARG VITE_APP_SERVER_GRAPHQL_URL=http://127.0.0.1:8000/graphql
+ARG VITE_SERVER_GRAPHQL_WS_URL=ws://127.0.0.1:8000/graphql/ws
+
 # Build the application
 RUN npm run build
 
