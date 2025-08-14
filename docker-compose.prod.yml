@@ -1,0 +1,15 @@
+version: '3.8'
+services:
+  # Application service (production image)
+  point-id-client:
+    image: ghcr.io/${IMAGE_REPOSITORY:-pointidx/client}:${RELEASE_VERSION:-latest}
+    container_name: ${CONTAINER_PREFIX:-point_id}-client
+    ports:
+      - "${SERVER_PORT:-8001}:80"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped

@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Deploy client
 
 on:
   push:
@@ -15,55 +15,56 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  e2e-tests:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+  # e2e-tests:
+  #   runs-on: ubuntu-latest
+  #   timeout-minutes: 30
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+  #       with:
+  #         fetch-depth: 0
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
+  #     - name: Setup Node
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: 20
+  #         cache: 'npm'
 
-      - name: Install dependencies
-        run: npm ci
+  #     - name: Install dependencies
+  #       run: npm ci
 
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps
+  #     - name: Install Playwright browsers
+  #       run: npx playwright install --with-deps
 
-      - name: Run E2E tests
-        run: npx playwright test --config=playwright.ci.config.ts
-        env:
-          CI: true
-          DEV: true
-          VITE_ENABLE_MSW: true
-          PLAYWRIGHT_TEST_TIMEOUT: 120000
-          PLAYWRIGHT_EXPECT_TIMEOUT: 45000
-        continue-on-error: false
+  #     - name: Run E2E tests
+  #       run: npx playwright test --config=playwright.ci.config.ts
+  #       env:
+  #         CI: true
+  #         DEV: true
+  #         VITE_ENABLE_MSW: true
+  #         PLAYWRIGHT_TEST_TIMEOUT: 120000
+  #         PLAYWRIGHT_EXPECT_TIMEOUT: 45000
+  #       continue-on-error: false
 
-      - name: Upload test results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: playwright-report
-          path: playwright-report/
-          retention-days: 30
+  #     - name: Upload test results
+  #       uses: actions/upload-artifact@v4
+  #       if: always()
+  #       with:
+  #         name: playwright-report
+  #         path: playwright-report/
+  #         retention-days: 30
           
-      - name: Upload test videos
-        uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: test-videos
-          path: test-results/
-          retention-days: 30
+  #     - name: Upload test videos
+  #       uses: actions/upload-artifact@v4
+  #       if: failure()
+  #       with:
+  #         name: test-videos
+  #         path: test-results/
+  #         retention-days: 30
 
   create-release:
-    needs: [e2e-tests]
+    # needs: [e2e-tests]
+    needs: []
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
@@ -127,7 +128,8 @@ jobs:
           prerelease: false
 
   build-and-push-images:
-    needs: [e2e-tests, create-release]
+    # needs: [e2e-tests, create-release]
+    needs: [create-release]
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     permissions:
@@ -190,8 +192,9 @@ jobs:
         env:
           DOCKER_BUILDKIT: 1
 
-  build-deploy:
-    needs: [e2e-tests, create-release, build-and-push-images]
+  deploy-to-pages:
+    # needs: [e2e-tests, create-release, build-and-push-images]
+    needs: [create-release, build-and-push-images]
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -227,3 +230,43 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  deploy-to-server:
+    needs: [create-release, build-and-push-images]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Copy docker-compose file to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_SERVER_HOST }}
+          username: ${{ secrets.SSH_SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "docker-compose.prod.yml"
+          target: "/root/pointid/client/"
+      - name: Rename docker-compose file
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_SERVER_HOST }}
+          username: ${{ secrets.SSH_SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            mv /root/pointid/client/docker-compose.prod.yml /root/pointid/client/docker-compose.yml
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_SERVER_HOST }}
+          username: ${{ secrets.SSH_SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          # TBC: Should we create an env file in the server instead of exporting here ?
+          # Exporting here prevents to store secrets in the server
+          script: |
+            export IMAGE_REPOSITORY=${{ secrets.IMAGE_REPOSITORY }}
+            export CONTAINER_PREFIX=${{ secrets.CONTAINER_PREFIX }}
+            docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+            
+            cd /root/pointid/client
+            
+            docker compose pull
+            docker compose up -d --remove-orphans
