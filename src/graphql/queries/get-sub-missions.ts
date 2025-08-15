@@ -1,4 +1,4 @@
-import { gql } from '@apollo/client/core'
+import { gql } from 'graphql-tag';
 
 export const GET_SUB_MISSIONS_BY_MISSION = gql`
   query GetSubMissionsByMission($missionId: UUID!) {
@@ -27,10 +27,11 @@ export const GET_SUB_MISSIONS_BY_MISSION = gql`
 `
 
 export const GET_SUB_MISSION_DETAILS = gql`
-  query GetSubMissionDetails($subMissionId: UUID!) {
-    getSubMissionDetails(subMissionId: $subMissionId) {
+  query GetSubMission($subMissionId: UUID!) {
+    getSubMission(subMissionId: $subMissionId) {
       id
       missionId
+      prestataireId
       reference
       title
       description
@@ -46,21 +47,7 @@ export const GET_SUB_MISSION_DETAILS = gql`
       specialRequirements
       accessRequirements
       estimatedDurationHours
-      dependsOnSubMission {
-        id
-        reference
-        title
-        specialization
-        statut
-      }
-      prestataire {
-        id
-        companyName
-        contactPerson
-        phone
-        email
-      }
-      parentMissionReference
+      dependsOnSubMissionId
     }
   }
 `
@@ -68,6 +55,32 @@ export const GET_SUB_MISSION_DETAILS = gql`
 export const GET_PRESTATAIRE_SUB_MISSIONS = gql`
   query GetPrestataireSubMissions($prestataireId: UUID) {
     getPrestataireSubMissions(prestataireId: $prestataireId) {
+      id
+      missionId
+      prestataireId
+      reference
+      title
+      description
+      specialization
+      urgence
+      statut
+      createdAt
+      updatedAt
+      deadline
+      estimatedCost
+      actualCost
+      materialsNeeded
+      specialRequirements
+      accessRequirements
+      estimatedDurationHours
+      dependsOnSubMissionId
+    }
+  }
+`
+
+export const GET_AVAILABLE_SUB_MISSIONS = gql`
+  query GetAvailableSubMissions($specialization: String) {
+    getAvailableSubMissions(specialization: $specialization) {
       id
       missionId
       prestataireId

@@ -9,7 +9,7 @@ import { handleError, handleGraphQLError, showSuccess } from '@/utils/error-hand
 // GraphQL imports
 import { GET_MISSION_DETAILS_QUERY } from '@/graphql/queries/get-mission-details'
 import { GET_ASSUREUR_MISSIONS_ENHANCED_QUERY } from '@/graphql/queries/get-assureur-missions-enhanced'
-import { GET_PRESTATAIRE_MISSIONS_QUERY } from '@/graphql/queries/get-prestataire-missions'
+import { GET_PRESTATAIRE_MISSIONS_ENHANCED_QUERY } from '@/graphql/queries/get-prestataire-missions-enhanced'
 import { CREATE_MISSION_MUTATION } from '@/graphql/mutations/create-mission'
 import { UPDATE_MISSION_STATUS_MUTATION } from '@/graphql/mutations/update-mission-status'
 import {
@@ -32,9 +32,9 @@ import {
 } from '@/graphql/mutations/mission-documents'
 import { EXPORT_MISSIONS_QUERY, EXPORT_MISSION_DETAILS_QUERY, type ExportFilters, type ExportFormat } from '@/graphql/queries/export-missions'
 import { EXPORT_PRESTATAIRE_MISSIONS_QUERY, EXPORT_PRESTATAIRE_REPORT_QUERY, type PrestataireExportFilters, type ReportPeriod } from '@/graphql/queries/export-prestataire-missions'
-import { GET_SUB_MISSIONS_BY_MISSION, GET_SUB_MISSION_DETAILS, GET_PRESTATAIRE_SUB_MISSIONS } from '@/graphql/queries/get-sub-missions'
-import { CREATE_SUB_MISSION, ASSIGN_SUB_MISSION, UPDATE_SUB_MISSION, UPDATE_SUB_MISSION_STATUS } from '@/graphql/mutations/sub-mission-operations'
-import type { SubMission, SubMissionCreateInput, SubMissionAssignInput, SubMissionUpdateInput, SubMissionStatusUpdateInput } from '@/interfaces/sub-mission'
+import { GET_SUB_MISSIONS_BY_MISSION, GET_SUB_MISSION_DETAILS, GET_PRESTATAIRE_SUB_MISSIONS, GET_AVAILABLE_SUB_MISSIONS } from '@/graphql/queries/get-sub-missions'
+import { CREATE_SUB_MISSION, ASSIGN_SUB_MISSION, UPDATE_SUB_MISSION, UPDATE_SUB_MISSION_STATUS, ACCEPT_SUB_MISSION } from '@/graphql/mutations/sub-mission-operations'
+import type { SubMission, SubMissionDetails, SubMissionCreateInput, SubMissionAssignInput, SubMissionUpdateInput, SubMissionStatusUpdateInput } from '@/interfaces/sub-mission'
 
 export const useMissionStore = defineStore('mission', () => {
   const { client } = useApolloClient()
@@ -47,7 +47,7 @@ export const useMissionStore = defineStore('mission', () => {
   const comments = ref<any[]>([])
   const history = ref<any[]>([])
   const subMissions = ref<SubMission[]>([])
-  const currentSubMission = ref<SubMission | null>(null)
+  const currentSubMission = ref<SubMissionDetails | null>(null)
 
   // Loading states
   const loadingStates = ref({
@@ -56,6 +56,7 @@ export const useMissionStore = defineStore('mission', () => {
     subMissions: false,
     createSubMission: false,
     assignSubMission: false,
+    acceptSubMission: false,
     updateSubMission: false,
     updateSubMissionStatus: false,
     fetchSubMissions: false,
@@ -121,6 +122,13 @@ export const useMissionStore = defineStore('mission', () => {
     loadingStates.value[operation] = loading
   }
 
+  // Helper function to get user type
+  const getUserType = (): 'ASSUREUR' | 'PRESTATAIRE' | null => {
+    return authStore.user?.accountType === 'ASSUREUR' ? 'ASSUREUR' :
+           authStore.user?.accountType === 'PRESTATAIRE' ? 'PRESTATAIRE' : 
+           null
+  }
+
   // Mission fetching functions
   const fetchMissions = async (userType?: 'ASSUREUR' | 'PRESTATAIRE') => {
     if (!authStore.user?.id) {
@@ -128,39 +136,107 @@ export const useMissionStore = defineStore('mission', () => {
       return
     }
 
+    // Auto-detect user type if not provided
+    const detectedUserType = userType || getUserType()
+    if (!detectedUserType) {
+      console.warn('Unable to determine user type for mission fetching')
+      return
+    }
+
     setLoading('missions', true)
     try {
-      let query = GET_ASSUREUR_MISSIONS_ENHANCED_QUERY
-      if (userType === 'PRESTATAIRE') {
-        query = GET_PRESTATAIRE_MISSIONS_QUERY
+      if (detectedUserType === 'PRESTATAIRE') {
+        // For prestataires, fetch sub-missions instead of missions
+        await fetchPrestataireSubMissions()
+      } else {
+        // For assureurs, use the regular missions query
+        const { onResult, onError } = useQuery(GET_ASSUREUR_MISSIONS_ENHANCED_QUERY)
+
+        onResult((queryResult) => {
+          console.log('🔍 GraphQL assureur missions query result:', queryResult)
+          if (queryResult.data) {
+            const missionData = queryResult.data.getAssureurMissionsEnhanced
+            console.log('✅ Assureur missions data received:', missionData)
+            console.log('📊 Number of missions:', missionData?.length || 0)
+            missions.value = missionData || []
+          } else {
+            console.log('❌ No missions data in response')
+          }
+        })
+
+        onError((error) => {
+          console.error('❌ GraphQL Error fetching assureur missions:', error)
+          handleGraphQLError(error, 'Fetch Missions', { showToast: true })
+        })
       }
-
-      const { onResult, onError } = useQuery(query)
-
-      onResult((queryResult) => {
-        console.log('🔍 GraphQL missions query result:', queryResult)
-        if (queryResult.data) {
-          const missionData = userType === 'PRESTATAIRE' 
-            ? queryResult.data.getPrestataireMissionsEnhanced
-            : queryResult.data.getAssureurMissionsEnhanced
-          
-          console.log('✅ Missions data received:', missionData)
-          console.log('📊 Number of missions:', missionData?.length || 0)
-          
-          missions.value = missionData || []
-        } else {
-          console.log('❌ No missions data in response')
-        }
-      })
-
-      onError((error) => {
-        console.error('❌ GraphQL Error fetching missions:', error)
-        handleGraphQLError(error, 'Fetch Missions', { showToast: true })
-      })
     } catch (error) {
       handleError(error, 'Fetch Missions', { showToast: true })
     } finally {
       setLoading('missions', false)
+    }
+  }
+
+  // Fetch sub-missions for prestataires (modern approach)
+  const fetchPrestataireSubMissions = async () => {
+    if (!authStore.user?.id) {
+      console.warn('No authenticated user found, cannot fetch sub-missions')
+      return
+    }
+
+    setLoading('fetchSubMissions', true)
+    try {
+      // Fetch both available sub-missions and assigned sub-missions
+      const [availableResult, assignedResult] = await Promise.all([
+        // Get available sub-missions that can be accepted
+        client.query({
+          query: GET_AVAILABLE_SUB_MISSIONS,
+          variables: { specialization: null }, // Get all available sub-missions
+          fetchPolicy: 'no-cache' // Force fresh data from server
+        }),
+        // Get sub-missions already assigned to this prestataire  
+        client.query({
+          query: GET_PRESTATAIRE_SUB_MISSIONS,
+          variables: { prestataireId: null }, // Let server auto-detect prestataire_id
+          fetchPolicy: 'no-cache' // Force fresh data from server
+        })
+      ])
+
+      console.log('🔍 Available sub-missions result:', availableResult)
+      console.log('🔍 Assigned sub-missions result:', assignedResult)
+
+      const availableSubMissions = availableResult.data?.getAvailableSubMissions || []
+      const assignedSubMissions = assignedResult.data?.getPrestataireSubMissions || []
+
+      console.log('🔍 Raw available sub-missions:', availableSubMissions)
+      console.log('🔍 Raw assigned sub-missions:', assignedSubMissions)
+
+      // Combine both available and assigned sub-missions
+      const allSubMissions = [...availableSubMissions, ...assignedSubMissions]
+      
+      console.log('✅ Available sub-missions count:', availableSubMissions.length)
+      console.log('✅ Assigned sub-missions count:', assignedSubMissions.length)
+      console.log('📊 Total sub-missions count:', allSubMissions.length)
+      
+      // Log details about each sub-mission for debugging
+      allSubMissions.forEach((sm, index) => {
+        console.log(`📝 Sub-mission ${index + 1}:`, {
+          id: sm.id,
+          reference: sm.reference,
+          title: sm.title,
+          statut: sm.statut,
+          prestataireId: sm.prestataireId,
+          specialization: sm.specialization
+        })
+      })
+      
+      // Store combined sub-missions in the missions array for compatibility with existing UI
+      missions.value = allSubMissions
+      
+    } catch (error) {
+      console.error('❌ Error fetching sub-missions:', error)
+      handleError(error, 'Fetch Sub-Missions', { showToast: true })
+    } finally {
+      setLoading('fetchSubMissions', false)
     }
   }
 
@@ -231,10 +307,16 @@ export const useMissionStore = defineStore('mission', () => {
 
   // Mission status updates
   const updateMissionStatus = async (missionId: string, status: string) => {
+    const userType = getUserType()
     setLoading('updateStatus', true)
     try {
       await updateMissionStatusMutation({ missionId, status })
-      await fetchMissions() // Refresh missions list
+      // Refresh missions with correct user type
+      if (userType) {
+        await fetchMissions(userType)
+      } else {
+        await fetchMissions()
+      }
       showSuccess('Statut de la mission mis à jour')
     } catch (error) {
       handleGraphQLError(error, 'Update Mission Status', { showToast: true })
@@ -246,16 +328,30 @@ export const useMissionStore = defineStore('mission', () => {
 
   // Prestataire actions
   const acceptMission = async (missionId: string, estimatedCompletionDate?: string, comment?: string) => {
+    const userType = getUserType()
+    if (!userType) {
+      throw new Error('Unable to determine user type for mission acceptance')
+    }
+
     setLoading('acceptMission', true)
     try {
-      await acceptMissionMutation({
-        input: {
-          missionId,
-          estimatedCompletionDate,
-          comment
-        }
-      })
-      await fetchMissions()
+      if (userType === 'PRESTATAIRE') {
+        // For prestataires, use acceptSubMission mutation instead of acceptMission
+        // The missionId is actually the sub-mission ID in the prestataire context
+        await acceptSubMission(missionId)
+      } else if (userType === 'ASSUREUR') {
+        // Assureurs use the regular accept mission mutation
+        await acceptMissionMutation({
+          input: {
+            missionId,
+            estimatedCompletionDate,
+            comment
+          }
+        })
+      }
+      
+      // Refresh missions with correct user type
+      await fetchMissions(userType)
       showSuccess('Mission acceptée avec succès')
     } catch (error) {
       handleGraphQLError(error, 'Accept Mission', { showToast: true })
@@ -266,6 +362,7 @@ export const useMissionStore = defineStore('mission', () => {
   }
 
   const refuseMission = async (missionId: string, reason: string) => {
+    const userType = getUserType()
     setLoading('refuseMission', true)
     try {
       await refuseMissionMutation({
@@ -274,7 +371,12 @@ export const useMissionStore = defineStore('mission', () => {
           reason
         }
       })
-      await fetchMissions()
+      // Refresh missions with correct user type
+      if (userType) {
+        await fetchMissions(userType)
+      } else {
+        await fetchMissions()
+      }
       showSuccess('Mission refusée')
     } catch (error) {
       handleGraphQLError(error, 'Refuse Mission', { showToast: true })
@@ -285,6 +387,7 @@ export const useMissionStore = defineStore('mission', () => {
   }
 
   const startMission = async (missionId: string, startComment?: string) => {
+    const userType = getUserType()
     setLoading('startMission', true)
     try {
       await startMissionMutation({
@@ -293,7 +396,11 @@ export const useMissionStore = defineStore('mission', () => {
           startComment
         }
       })
-      await fetchMissions()
+      if (userType) {
+        await fetchMissions(userType)
+      } else {
+        await fetchMissions()
+      }
       showSuccess('Mission démarrée')
     } catch (error) {
       handleGraphQLError(error, 'Start Mission', { showToast: true })
@@ -675,6 +782,7 @@ export const useMissionStore = defineStore('mission', () => {
   // Sub-mission management
   const { mutate: createSubMissionMutation } = useMutation(CREATE_SUB_MISSION)
   const { mutate: assignSubMissionMutation } = useMutation(ASSIGN_SUB_MISSION)
+  const { mutate: acceptSubMissionMutation } = useMutation(ACCEPT_SUB_MISSION)
   const { mutate: updateSubMissionMutation } = useMutation(UPDATE_SUB_MISSION)
   const { mutate: updateSubMissionStatusMutation } = useMutation(UPDATE_SUB_MISSION_STATUS)
 
@@ -715,6 +823,26 @@ export const useMissionStore = defineStore('mission', () => {
       throw error
     } finally {
       setLoading('assignSubMission', false)
+    }
+  }
+
+  const acceptSubMission = async (subMissionId: string): Promise<SubMission | null> => {
+    setLoading('acceptSubMission', true)
+    try {
+      const result = await acceptSubMissionMutation({
+        subMissionId
+      })
+      
+      if (result?.data?.acceptSubMission) {
+        showSuccess('Sous-mission acceptée avec succès')
+        return result.data.acceptSubMission
+      }
+      return null
+    } catch (error) {
+      handleGraphQLError(error, 'Accept SubMission', { showToast: true })
+      throw error
+    } finally {
+      setLoading('acceptSubMission', false)
     }
   }
 
@@ -761,22 +889,50 @@ export const useMissionStore = defineStore('mission', () => {
   const fetchSubMissions = async (missionId: string): Promise<SubMission[]> => {
     setLoading('fetchSubMissions', true)
     try {
+      console.log('🔍 Fetching sub-missions for mission:', missionId)
       const { data } = await client.query({
         query: GET_SUB_MISSIONS_BY_MISSION,
         variables: { missionId },
-        fetchPolicy: 'cache-and-network' as any
+        fetchPolicy: 'network-only'
       })
+      
+      console.log('📝 Sub-missions query response:', data)
       
       if (data?.getSubMissionsByMission) {
         subMissions.value = data.getSubMissionsByMission
+        console.log('✅ Sub-missions loaded:', data.getSubMissionsByMission)
         return data.getSubMissionsByMission
       }
+      console.log('⚠️ No sub-missions found in response')
       return []
     } catch (error) {
+      console.error('❌ Error fetching sub-missions:', error)
       handleGraphQLError(error, 'Fetch SubMissions')
       return []
     } finally {
       setLoading('fetchSubMissions', false)
+    }
+  }
+
+  const fetchSubMissionDetails = async (subMissionId: string): Promise<SubMissionDetails | null> => {
+    setLoading('subMissions', true)
+    try {
+      const { data } = await client.query({
+        query: GET_SUB_MISSION_DETAILS,
+        variables: { subMissionId },
+        fetchPolicy: 'network-only'
+      })
+      
+      if (data?.getSubMission) {
+        currentSubMission.value = data.getSubMission
+        return data.getSubMission
+      }
+      return null
+    } catch (error) {
+      handleGraphQLError(error, 'Fetch SubMission Details')
+      return null
+    } finally {
+      setLoading('subMissions', false)
     }
   }
 
@@ -851,9 +1007,11 @@ export const useMissionStore = defineStore('mission', () => {
     // Sub-mission management
     createSubMission,
     assignSubMission,
+    acceptSubMission,
     updateSubMission,
     updateSubMissionStatus,
     fetchSubMissions,
+    fetchSubMissionDetails,
     
     // Utilities
     getMissionById,

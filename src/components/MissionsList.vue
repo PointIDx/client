@@ -410,8 +410,7 @@ const getSubMissionProgress = (missionId: string) => {
 }
 
 const viewSubMissionDetails = (subMission: SubMission) => {
-  // Navigate to sub-mission details or show in dialog
-  console.log('Viewing sub-mission details:', subMission)
+  router.push(`/sub-mission/${subMission.id}`)
 }
 </script>
 

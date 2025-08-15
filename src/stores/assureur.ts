@@ -67,7 +67,7 @@ export const useAssureurStore = defineStore('assureur', () => {
           telephone: p.phone,
           adresse: `${p.address.street}, ${p.address.postalCode} ${p.address.city}`,
           notemoyenne: p.rating,
-          secteurs: [],
+          secteurs: p.specialties || [],
           nombreAvis: 0,
           siret: '',
           formeJuridique: '',

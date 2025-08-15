@@ -2,7 +2,23 @@
 import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { AlertTriangle } from 'lucide-vue-next'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { 
+  AlertTriangle, 
+  Briefcase, 
+  Plus, 
+  Eye, 
+  Euro, 
+  Clock, 
+  Calendar,
+  MoreHorizontal,
+  User,
+  FileText
+} from 'lucide-vue-next'
 import { useQuery } from '@vue/apollo-composable'
 import { GET_MISSION_DETAILS_QUERY } from '@/graphql/queries/get-mission-details'
 import type { MissionDetails } from '@/interfaces/MissionDetails'
@@ -42,10 +58,19 @@ const hoverRating = ref(0)
 const ratingComment = ref('')
 const ratingLoading = ref(false)
 
+// Computed properties
+const isAssureur = computed(() => authStore.user?.accountType === 'ASSUREUR')
+const isPrestataire = computed(() => authStore.user?.accountType === 'PRESTATAIRE')
+const isSocietaire = computed(() => authStore.user?.accountType === 'SOCIETAIRE')
+
 // Load mission details using the mission store
 const loadMissionDetails = async () => {
   try {
     await missionStore.fetchMissionDetails(missionId)
+    // Also load sub-missions if user is assureur
+    if (isAssureur.value) {
+      await missionStore.fetchSubMissions(missionId)
+    }
   } catch (err) {
     console.error('❌ Error loading mission details:', err)
   }
@@ -54,11 +79,6 @@ const loadMissionDetails = async () => {
 // Initialize on mount
 loadMissionDetails()
 
-// Computed properties
-const isAssureur = computed(() => authStore.user?.accountType === 'ASSUREUR')
-const isPrestataire = computed(() => authStore.user?.accountType === 'PRESTATAIRE')
-const isSocietaire = computed(() => authStore.user?.accountType === 'SOCIETAIRE')
-
 const goBack = () => {
   if (isAssureur.value) {
     router.push('/assureur-dashboard')
@@ -66,6 +86,68 @@ const goBack = () => {
     router.push('/prestataire-dashboard')
   } else {
     router.back()
+  }
+}
+
+// Sub-mission helper methods
+const viewSubMissionDetails = (subMissionId: string) => {
+  router.push(`/sub-mission/${subMissionId}`)
+}
+
+const openCreateSubMissionDialog = () => {
+  router.push(`/mission/${missionId}/create-sub-mission`)
+}
+
+const getSubMissionStatusClass = (statut: string) => {
+  switch (statut) {
+    case "EN_ATTENTE":
+      return "bg-yellow-100 text-yellow-800"
+    case "ASSIGNEE":
+      return "bg-blue-100 text-blue-800"
+    case "EN_COURS":
+      return "bg-blue-100 text-blue-800"
+    case "TERMINEE":
+      return "bg-green-100 text-green-800"
+    case "ANNULEE":
+      return "bg-red-100 text-red-800"
+    case "SUSPENDUE":
+      return "bg-orange-100 text-orange-800"
+    default:
+      return "bg-gray-100 text-gray-800"
+  }
+}
+
+const getSubMissionStatusText = (statut: string) => {
+  switch (statut) {
+    case "EN_ATTENTE":
+      return "En attente"
+    case "ASSIGNEE":
+      return "Assignée"
+    case "EN_COURS":
+      return "En cours"
+    case "TERMINEE":
+      return "Terminée"
+    case "ANNULEE":
+      return "Annulée"
+    case "SUSPENDUE":
+      return "Suspendue"
+    default:
+      return statut
+  }
+}
+
+const getUrgenceClass = (urgence: string) => {
+  switch (urgence) {
+    case "FAIBLE":
+      return "bg-green-100 text-green-800"
+    case "MOYENNE":
+      return "bg-yellow-100 text-yellow-800"
+    case "HAUTE":
+      return "bg-orange-100 text-orange-800"
+    case "CRITIQUE":
+      return "bg-red-100 text-red-800"
+    default:
+      return "bg-gray-100 text-gray-800"
   }
 }
 
@@ -267,6 +349,140 @@ const availableActions = computed(() => {
         v-if="missionStore.currentMission.societaire || missionStore.currentMission.prestataire" 
         :mission="missionStore.currentMission" 
       />
+
+      <!-- Submissions Section (Assureurs only) -->
+      <div v-if="isAssureur" class="space-y-4">
+        <Card>
+          <CardHeader>
+            <div class="flex items-center justify-between">
+              <CardTitle class="flex items-center space-x-2">
+                <Briefcase class="w-5 h-5" />
+                <span>Sous-missions ({{ missionStore.subMissions.length }})</span>
+              </CardTitle>
+              <Button 
+                variant="outline" 
+                size="sm"
+                @click="openCreateSubMissionDialog"
+                data-testid="create-sub-mission-button"
+              >
+                <Plus class="w-4 h-4 mr-2" />
+                Créer une sous-mission
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <!-- Loading state for sub-missions -->
+            <div v-if="missionStore.loadingStates.fetchSubMissions" class="flex items-center justify-center py-8">
+              <div class="text-center">
+                <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-black mx-auto"></div>
+                <p class="mt-2 text-sm text-gray-600">Chargement des sous-missions...</p>
+              </div>
+            </div>
+
+            <!-- Sub-missions table -->
+            <div v-else-if="missionStore.subMissions.length > 0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Titre & Spécialisation</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Statut</TableHead>
+                    <TableHead>Urgence</TableHead>
+                    <TableHead>Coût & Durée</TableHead>
+                    <TableHead>Prestataire</TableHead>
+                    <TableHead>Créé le</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow 
+                    v-for="subMission in missionStore.subMissions" 
+                    :key="subMission.id"
+                    class="hover:bg-gray-50 cursor-pointer"
+                    @click="viewSubMissionDetails(subMission.id)"
+                    :data-testid="`sub-mission-row-${subMission.id}`"
+                  >
+                    <TableCell>
+                      <div>
+                        <p class="font-semibold text-sm">{{ subMission.title }}</p>
+                        <p class="text-xs text-gray-600">{{ subMission.specialization }}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <p class="text-sm text-gray-700 line-clamp-2 max-w-xs">{{ subMission.description }}</p>
+                    </TableCell>
+                    <TableCell>
+                      <Badge :class="getSubMissionStatusClass(subMission.statut)" class="text-xs">
+                        {{ getSubMissionStatusText(subMission.statut) }}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge :class="getUrgenceClass(subMission.urgence)" class="text-xs">
+                        {{ subMission.urgence }}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div class="text-sm text-gray-600 space-y-1">
+                        <div v-if="subMission.estimatedCost" class="flex items-center">
+                          <Euro class="w-3 h-3 mr-1" />
+                          {{ subMission.estimatedCost }}€
+                        </div>
+                        <div v-if="subMission.estimatedDurationHours" class="flex items-center">
+                          <Clock class="w-3 h-3 mr-1" />
+                          {{ subMission.estimatedDurationHours }}h
+                        </div>
+                        <div v-if="!subMission.estimatedCost && !subMission.estimatedDurationHours" class="text-gray-400">-</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div v-if="subMission.prestataireId" class="flex items-center text-sm">
+                        <User class="w-3 h-3 mr-1 text-gray-500" />
+                        <span class="text-green-600">Assignée</span>
+                      </div>
+                      <span v-else class="text-sm text-gray-400">Non assignée</span>
+                    </TableCell>
+                    <TableCell>
+                      <div class="flex items-center text-sm text-gray-600">
+                        <Calendar class="w-3 h-3 mr-1" />
+                        {{ new Date(subMission.createdAt).toLocaleDateString() }}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger as-child>
+                          <Button variant="ghost" size="sm" @click.stop>
+                            <MoreHorizontal class="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem @click.stop="viewSubMissionDetails(subMission.id)">
+                            <Eye class="w-4 h-4 mr-2" />
+                            Voir détails
+                          </DropdownMenuItem>
+                          <DropdownMenuItem @click.stop="viewSubMissionDetails(subMission.id)">
+                            <FileText class="w-4 h-4 mr-2" />
+                            Modifier
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+
+            <!-- Empty state for sub-missions -->
+            <div v-else class="text-center py-8">
+              <Briefcase class="w-12 h-12 mx-auto mb-4 text-gray-300" />
+              <p class="text-gray-500 mb-4">Aucune sous-mission créée</p>
+              <Button variant="outline" @click="openCreateSubMissionDialog">
+                <Plus class="w-4 h-4 mr-2" />
+                Créer la première sous-mission
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       <!-- Documents Section -->
       <MissionDocuments 

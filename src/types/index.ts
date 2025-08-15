@@ -9,6 +9,17 @@ export type {
 } from '@/interfaces/chat'
 export type { Mission } from '@/interfaces/mission'
 export type { MissionDetails } from '@/interfaces/MissionDetails'
+export type { 
+  SubMission, 
+  SubMissionDetails, 
+  SubMissionCreateInput, 
+  SubMissionAssignInput, 
+  SubMissionUpdateInput, 
+  SubMissionStatusUpdateInput,
+  UrgenceLevel,
+  MissionStatut,
+  Specialization 
+} from '@/interfaces/sub-mission'
 export type { Prestataire } from '@/interfaces/prestataire'
 export type { CompanyInfo } from '@/interfaces/company-info'
 export type { Contact } from '@/interfaces/contact'

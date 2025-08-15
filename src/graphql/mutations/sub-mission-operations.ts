@@ -1,4 +1,4 @@
-import { gql } from '@apollo/client/core'
+import { gql } from 'graphql-tag'
 
 export const CREATE_SUB_MISSION = gql`
   mutation CreateSubMission($input: SubMissionCreateInput!) {
@@ -79,6 +79,32 @@ export const UPDATE_SUB_MISSION = gql`
 export const UPDATE_SUB_MISSION_STATUS = gql`
   mutation UpdateSubMissionStatus($input: SubMissionStatusUpdateInput!) {
     updateSubMissionStatus(input: $input) {
+      id
+      missionId
+      prestataireId
+      reference
+      title
+      description
+      specialization
+      urgence
+      statut
+      createdAt
+      updatedAt
+      deadline
+      estimatedCost
+      actualCost
+      materialsNeeded
+      specialRequirements
+      accessRequirements
+      estimatedDurationHours
+      dependsOnSubMissionId
+    }
+  }
+`
+
+export const ACCEPT_SUB_MISSION = gql`
+  mutation AcceptSubMission($subMissionId: UUID!) {
+    acceptSubMission(subMissionId: $subMissionId) {
       id
       missionId
       prestataireId

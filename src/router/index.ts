@@ -61,6 +61,20 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/sub-mission/:id',
+      name: 'sub-mission-detail',
+      component: () => import('../pages/SubMissionDetailPage.vue'),
+      props: true,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/mission/:missionId/create-sub-mission',
+      name: 'sub-mission-creation',
+      component: () => import('../pages/SubMissionCreationPage.vue'),
+      props: true,
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/chat',
       name: 'chat',
       component: () => import('../pages/ChatPage.vue'),

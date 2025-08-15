@@ -2,6 +2,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -17,7 +18,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-// Dialog restored for "Voir fiche" functionality
+// Dialog for "Voir fiche" functionality
 import {
   Search,
   Filter,
@@ -38,6 +39,12 @@ import {
   RefreshCw,
   Download,
   AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
+  MoreHorizontal,
+  User,
+  LogOut,
+  Settings
 } from 'lucide-vue-next'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 // MissionCreationDialog removed - now using separate page
@@ -61,6 +68,13 @@ const selectedSecteur = ref("all")
 const selectedRegion = ref("all")
 const selectedDepartement = ref("all")
 const selectedPrestataire = ref<Prestataire | null>(null)
+const viewPrestataire = ref<Prestataire | null>(null)
+const showPrestataireDetails = ref(false)
+const showLogoutDialog = ref(false)
+
+// Pagination state
+const currentPage = ref(1)
+const itemsPerPage = ref(8)
 // Removed communication request functionality - only chat remains
 
 // Mission dialog refs removed - now using separate page
@@ -120,7 +134,35 @@ const resetFilters = () => {
   selectedSecteur.value = "all"
   selectedRegion.value = "all"
   selectedDepartement.value = "all"
+  currentPage.value = 1
   applyFilters();
+}
+
+// Pagination computed properties
+const totalPages = computed(() => Math.ceil(assureurStore.prestataires.length / itemsPerPage.value))
+const paginatedPrestataires = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage.value
+  const end = start + itemsPerPage.value
+  return assureurStore.prestataires.slice(start, end)
+})
+
+// Pagination functions
+const goToPage = (page: number) => {
+  if (page >= 1 && page <= totalPages.value) {
+    currentPage.value = page
+  }
+}
+
+const nextPage = () => {
+  if (currentPage.value < totalPages.value) {
+    currentPage.value++
+  }
+}
+
+const previousPage = () => {
+  if (currentPage.value > 1) {
+    currentPage.value--
+  }
 }
 
 
@@ -183,6 +225,28 @@ const navigateToChat = () => {
   })
 }
 
+const handleLogout = () => {
+  authStore.logout()
+  showLogoutDialog.value = false
+  router.push('/login')
+}
+
+const userInitials = computed(() => {
+  if (!authStore.user?.profile) return 'U'
+  
+  // Check if it's an assureur profile with contactInfo
+  if (authStore.user.profile.contactInfo?.prenom) {
+    return authStore.user.profile.contactInfo.prenom.charAt(0).toUpperCase()
+  }
+  
+  // Fallback to first letter of email if no profile info
+  if (authStore.user.email) {
+    return authStore.user.email.charAt(0).toUpperCase()
+  }
+  
+  return 'U'
+})
+
 const handleMissionClick = (prestataire: Prestataire) => {
   // Navigate to mission creation page with prestataire data in query params
   router.push({
@@ -199,7 +263,17 @@ const handleMissionClick = (prestataire: Prestataire) => {
   });
 };
 
+const viewPrestataireDetails = (prestataire: Prestataire) => {
+  viewPrestataire.value = prestataire
+  showPrestataireDetails.value = true
+}
+
 import placeholderImage from '@/assets/placeholder.svg'
+
+// Watch for changes in filters to reset pagination
+watch([searchTerm, selectedSecteur, selectedRegion, selectedDepartement], () => {
+  currentPage.value = 1
+})
 </script>
 
 <template>
@@ -245,9 +319,35 @@ import placeholderImage from '@/assets/placeholder.svg'
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Avatar>
-              <AvatarFallback>AD</AvatarFallback>
-            </Avatar>
+            <DropdownMenu>
+              <DropdownMenuTrigger as-child>
+                <Button variant="ghost" class="relative h-8 w-8 rounded-full hover:bg-gray-100 cursor-pointer">
+                  <Avatar class="h-8 w-8">
+                    <AvatarFallback class="bg-gray-100 text-gray-700 hover:bg-gray-200">
+                      {{ userInitials }}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent class="w-56" align="end">
+                <div class="flex items-center justify-start gap-2 p-2">
+                  <div class="flex flex-col space-y-1 leading-none">
+                    <p class="text-sm font-medium leading-none">
+                      {{ authStore.user?.profile?.contactInfo?.prenom || 'Utilisateur' }}
+                      {{ authStore.user?.profile?.contactInfo?.nom || '' }}
+                    </p>
+                    <p class="text-xs leading-none text-muted-foreground">
+                      {{ authStore.user?.email }}
+                    </p>
+                  </div>
+                </div>
+                <div class="border-t border-gray-200 my-1"></div>
+                <DropdownMenuItem class="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer" @click="showLogoutDialog = true">
+                  <LogOut class="mr-2 h-4 w-4" />
+                  <span>Se déconnecter</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
@@ -258,13 +358,13 @@ import placeholderImage from '@/assets/placeholder.svg'
     <!-- Communication request alerts removed - only chat functionality remains -->
 
     <div class="mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <Tabs default-value="recherche" class="space-y-6">
+      <Tabs default-value="missions" class="space-y-6">
         <TabsList>
-          <TabsTrigger value="recherche" class="data-[state=active]:bg-black data-[state=active]:text-white">Recherche
-            Prestataires</TabsTrigger>
           <TabsTrigger value="missions" @click="missionStore.fetchMissions('ASSUREUR')"
             class="data-[state=active]:bg-black data-[state=active]:text-white">Mes Missions ({{ missions.length }})
           </TabsTrigger>
+          <TabsTrigger value="recherche" class="data-[state=active]:bg-black data-[state=active]:text-white">Recherche
+            Prestataires</TabsTrigger>
           <!-- Communication requests tab removed - only chat functionality remains -->
         </TabsList>
 
@@ -348,232 +448,165 @@ import placeholderImage from '@/assets/placeholder.svg'
           </Card>
 
           <!-- Résultats -->
-          <div>
-            <div class="flex justify-between items-center mb-4">
-              <h2 class="text-lg font-semibold">{{ assureurStore.prestataires.length }} prestataire(s) trouvé(s)</h2>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <Card v-for="prestataire in assureurStore.prestataires" :key="prestataire.id"
-                class="hover:shadow-lg transition-shadow" data-testid="prestataire-card">
-                <CardHeader class="pb-3">
-                  <div class="flex items-start justify-between">
-                    <div class="flex items-center space-x-3">
-                      <Avatar>
-                        <AvatarImage :src="prestataire.avatar || placeholderImage" />
-                        <AvatarFallback>
-                          {{prestataire.contactPerson.split(' ').map((n) => n[0]).join('')}}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <CardTitle class="text-lg">{{ prestataire.companyName }}</CardTitle>
-                        <CardDescription class="text-sm">{{ prestataire.contactPerson }}</CardDescription>
-                      </div>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent class="space-y-3">
-                  <div class="flex items-center space-x-2">
-                    <MapPin class="w-4 h-4 text-gray-500" />
-                    <span class="text-sm text-gray-600">{{ prestataire.address.city }}</span>
-                  </div>
-
-                  <div class="flex items-center space-x-2">
-                    <Star class="w-4 h-4 text-yellow-500 fill-current" />
-                    <span class="text-sm font-medium">{{ prestataire.rating }}</span>
-                  </div>
-
-                  <div class="flex items-center space-x-2" data-testid="availability-status">
-                    <div class="flex items-center space-x-1">
-                      <div :class="{
-                        'w-2 h-2 rounded-full': true,
-                        'bg-green-500': prestataire.availabilityStatus === 'AVAILABLE',
-                        'bg-yellow-500': prestataire.availabilityStatus === 'BUSY',
-                        'bg-red-500': prestataire.availabilityStatus === 'UNAVAILABLE',
-                        'bg-gray-500': !prestataire.availabilityStatus
-                      }"></div>
-                      <span class="text-xs text-gray-600">
-                        {{ prestataire.availabilityStatus === 'AVAILABLE' ? 'Disponible' :
-                          prestataire.availabilityStatus === 'BUSY' ? 'Occupé' :
-                            prestataire.availabilityStatus === 'UNAVAILABLE' ? 'Indisponible' : 'Statut inconnu' }}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div class="flex flex-wrap gap-1">
-                    <Badge v-for="specialty in prestataire.specialties.slice(0, 2)" :key="specialty" variant="secondary"
-                      class="text-xs">
-                      {{ specialty }}
-                    </Badge>
-                    <Badge v-if="prestataire.specialties.length > 2" variant="outline" class="text-xs">
-                      +{{ prestataire.specialties.length - 2 }}
-                    </Badge>
-                  </div>
-
-                  <div class="flex space-x-2 pt-2">
-                    <Dialog>
-                      <DialogTrigger as-child>
-                        <Button variant="outline" size="sm"
-                          class="flex-1 bg-white border-gray-400 text-gray-700 hover:bg-gray-100 hover:border-gray-500">
-                          <Eye class="w-4 h-4 mr-1" />
-                          Voir fiche
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent class="max-w-2xl max-h-[80vh] overflow-y-auto bg-white">
-                        <DialogHeader>
-                          <DialogTitle class="flex items-center space-x-3">
-                            <Avatar class="w-12 h-12">
-                              <AvatarImage :src="prestataire.avatar || placeholderImage" />
-                              <AvatarFallback>
-                                {{prestataire.contactPerson.split(' ').map((n) => n[0]).join('')}}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <h3 class="text-xl font-bold">{{ prestataire.companyName }}</h3>
-                              <p class="text-gray-600">{{ prestataire.contactPerson }}</p>
-                            </div>
-                          </DialogTitle>
-                        </DialogHeader>
-
-                        <div class="space-y-6">
-                          <!-- Informations générales -->
+          <Card>
+            <CardHeader>
+              <div class="flex justify-between items-center">
+                <CardTitle>{{ assureurStore.prestataires.length }} prestataire(s) trouvé(s)</CardTitle>
+                <div class="text-sm text-gray-600" v-if="totalPages > 1">
+                  Page {{ currentPage }} sur {{ totalPages }} ({{ itemsPerPage }} par page)
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent class="space-y-4">
+              <div v-if="assureurStore.prestataires.length === 0" class="text-center py-8 text-gray-500">
+                <User class="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                <p>Aucun prestataire trouvé</p>
+                <p class="text-sm">Modifiez les filtres pour élargir votre recherche</p>
+              </div>
+              
+              <div v-else>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Prestataire</TableHead>
+                      <TableHead>Localisation</TableHead>
+                      <TableHead>Spécialités</TableHead>
+                      <TableHead>Note</TableHead>
+                      <TableHead>Statut</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow v-for="prestataire in paginatedPrestataires" :key="prestataire.id" class="hover:bg-gray-50" :data-testid="`prestataire-row-${prestataire.id}`">
+                      <TableCell>
+                        <div class="flex items-center space-x-3">
+                          <Avatar class="w-10 h-10">
+                            <AvatarImage :src="prestataire.avatar || placeholderImage" />
+                            <AvatarFallback>
+                              {{ prestataire.contactPerson.split(' ').map(n => n[0]).join('') }}
+                            </AvatarFallback>
+                          </Avatar>
                           <div>
-                            <h4 class="font-semibold mb-3">Informations générales</h4>
-                            <div class="grid grid-cols-2 gap-4 text-sm">
-                              <div>
-                                <span class="text-gray-500">Localisation:</span>
-                                <p>
-                                  {{ prestataire.address.city }}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-
-                          <!-- Contact -->
-                          <div>
-                            <h4 class="font-semibold mb-3">Contact</h4>
-                            <div class="space-y-2 text-sm">
-                              <div class="flex items-center space-x-2">
-                                <Phone class="w-4 h-4 text-gray-500" />
-                                <span>{{ prestataire.phone }}</span>
-                              </div>
-                              <div class="flex items-center space-x-2">
-                                <Mail class="w-4 h-4 text-gray-500" />
-                                <span>{{ prestataire.email }}</span>
-                              </div>
-                              <div class="flex items-center space-x-2">
-                                <Building class="w-4 h-4 text-gray-500" />
-                                <span>{{ prestataire.address.street }}, {{ prestataire.address.postalCode }} {{
-                                  prestataire.address.city }}</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          <!-- Spécialités -->
-                          <div>
-                            <h4 class="font-semibold mb-3">Spécialités</h4>
-                            <div class="space-y-2">
-                              <div>
-                                <div class="flex flex-wrap gap-1 mt-1">
-                                  <Badge v-for="specialite in prestataire.specialties" :key="specialite"
-                                    variant="secondary">
-                                    {{ specialite }}
-                                  </Badge>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-
-
-                          <!-- Évaluations -->
-                          <div>
-                            <h4 class="font-semibold mb-3">Évaluations</h4>
-                            <div class="flex items-center space-x-4">
-                              <div class="flex items-center space-x-2">
-                                <Star class="w-5 h-5 text-yellow-500 fill-current" />
-                                <span class="text-lg font-semibold">{{ prestataire.rating }}</span>
-                                <span class="text-gray-500">/ 5</span>
-                              </div>
-                            </div>
+                            <p class="font-semibold">{{ prestataire.companyName }}</p>
+                            <p class="text-sm text-gray-600">{{ prestataire.contactPerson }}</p>
                           </div>
                         </div>
-                      </DialogContent>
-                    </Dialog>
-
-                    <Button size="sm" class="flex-1 bg-black border-black text-white"
-                      @click="handleContactClick(prestataire)">
-                      <MessageCircle class="w-4 h-4 mr-1" />
-                      Contacter
+                      </TableCell>
+                      <TableCell>
+                        <div class="flex items-center space-x-1">
+                          <MapPin class="w-4 h-4 text-gray-500" />
+                          <span class="text-sm">{{ prestataire.address.city }}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div class="flex flex-wrap gap-1">
+                          <Badge v-for="specialty in prestataire.specialties.slice(0, 2)" :key="specialty" variant="secondary" class="text-xs">
+                            {{ specialty }}
+                          </Badge>
+                          <Badge v-if="prestataire.specialties.length > 2" variant="outline" class="text-xs">
+                            +{{ prestataire.specialties.length - 2 }}
+                          </Badge>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div class="flex items-center space-x-1" v-if="prestataire.rating">
+                          <Star class="w-4 h-4 text-yellow-500 fill-current" />
+                          <span class="text-sm font-medium">{{ prestataire.rating }}</span>
+                        </div>
+                        <span v-else class="text-sm text-gray-400">-</span>
+                      </TableCell>
+                      <TableCell>
+                        <div class="flex items-center space-x-1">
+                          <div :class="{
+                            'w-2 h-2 rounded-full': true,
+                            'bg-green-500': prestataire.availabilityStatus === 'AVAILABLE',
+                            'bg-yellow-500': prestataire.availabilityStatus === 'BUSY',
+                            'bg-red-500': prestataire.availabilityStatus === 'UNAVAILABLE',
+                            'bg-gray-500': !prestataire.availabilityStatus
+                          }"></div>
+                          <span class="text-xs">
+                            {{ prestataire.availabilityStatus === 'AVAILABLE' ? 'Disponible' :
+                              prestataire.availabilityStatus === 'BUSY' ? 'Occupé' :
+                              prestataire.availabilityStatus === 'UNAVAILABLE' ? 'Indisponible' : 'Inconnu' }}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger as-child>
+                            <Button variant="ghost" size="sm">
+                              <MoreHorizontal class="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem @click="viewPrestataireDetails(prestataire)">
+                              <Eye class="w-4 h-4 mr-2" />
+                              Voir fiche
+                            </DropdownMenuItem>
+                            <DropdownMenuItem @click="handleContactClick(prestataire)">
+                              <MessageCircle class="w-4 h-4 mr-2" />
+                              Contacter
+                            </DropdownMenuItem>
+                            <DropdownMenuItem @click="handleMissionClick(prestataire)" data-testid="mission-dropdown-item">
+                              <Plus class="w-4 h-4 mr-2" />
+                              Créer mission
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+                
+                <!-- Pagination -->
+                <div class="flex items-center justify-between pt-4" v-if="totalPages > 1">
+                  <div class="text-sm text-gray-600">
+                    Affichage {{ (currentPage - 1) * itemsPerPage + 1 }} - 
+                    {{ Math.min(currentPage * itemsPerPage, assureurStore.prestataires.length) }} 
+                    sur {{ assureurStore.prestataires.length }} prestataires
+                  </div>
+                  <div class="flex items-center space-x-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      @click="previousPage" 
+                      :disabled="currentPage === 1"
+                    >
+                      <ChevronLeft class="w-4 h-4" />
+                      Précédent
                     </Button>
-
-                    <Button size="sm" class="bg-black border-black text-white" data-testid="mission-button"
-                      @click="handleMissionClick(prestataire)">
-                      <Plus class="w-4 h-4 mr-1" />
-                      Mission
+                    
+                    <div class="flex items-center space-x-1">
+                      <Button 
+                        v-for="page in Math.min(totalPages, 5)" 
+                        :key="page"
+                        variant="outline" 
+                        size="sm"
+                        :class="{ 'bg-black text-white': currentPage === page }"
+                        @click="goToPage(page)"
+                      >
+                        {{ page }}
+                      </Button>
+                      <span v-if="totalPages > 5" class="text-sm text-gray-500">...</span>
+                    </div>
+                    
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      @click="nextPage" 
+                      :disabled="currentPage === totalPages"
+                    >
+                      Suivant
+                      <ChevronRight class="w-4 h-4" />
                     </Button>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
         <!-- Onglet Missions -->
         <TabsContent value="missions">
-          <!-- Statistics cards -->
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <Card>
-              <CardContent class="p-4">
-                <div class="flex items-center space-x-2">
-                  <Briefcase class="w-5 h-5 text-blue-600" />
-                  <div>
-                    <p class="text-sm text-gray-600">Total missions</p>
-                    <p class="text-2xl font-bold">{{ missions.length }}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent class="p-4">
-                <div class="flex items-center space-x-2">
-                  <Clock class="w-5 h-5 text-yellow-600" />
-                  <div>
-                    <p class="text-sm text-gray-600">En cours</p>
-                    <p class="text-2xl font-bold">{{missions.filter(m => m.status === 'ASSIGNEE' || m.status ===
-                      'EN_COURS').length }}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent class="p-4">
-                <div class="flex items-center space-x-2">
-                  <CheckCircle class="w-5 h-5 text-green-600" />
-                  <div>
-                    <p class="text-sm text-gray-600">Terminées</p>
-                    <p class="text-2xl font-bold">{{missions.filter(m => m.status === 'TERMINEE' || m.status ===
-                      'VALIDEE').length }}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent class="p-4">
-                <div class="flex items-center space-x-2">
-                  <AlertTriangle class="w-5 h-5 text-red-600" />
-                  <div>
-                    <p class="text-sm text-gray-600">Urgentes</p>
-                    <p class="text-2xl font-bold">{{missions.filter(m => m.urgence === 'CRITIQUE' || m.urgence ===
-                      'HAUTE').length }}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <!-- Create Mission Button -->
-
-
           <!-- Working missions interface -->
           <Card class="mt-6">
             <CardHeader>
@@ -614,5 +647,93 @@ import placeholderImage from '@/assets/placeholder.svg'
       </Tabs>
     </div>
   </div>
-  <!-- Communication request dialog removed - only chat functionality remains -->
+
+  <!-- Prestataire Details Dialog -->
+  <Dialog :open="showPrestataireDetails" @update:open="showPrestataireDetails = $event">
+    <DialogContent class="max-w-2xl max-h-[80vh] overflow-y-auto bg-white" v-if="viewPrestataire">
+      <DialogHeader>
+        <DialogTitle class="flex items-center space-x-3">
+          <Avatar class="w-12 h-12">
+            <AvatarImage :src="viewPrestataire.avatar || placeholderImage" />
+            <AvatarFallback>
+              {{ viewPrestataire.contactPerson.split(' ').map(n => n[0]).join('') }}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <h3 class="text-xl font-bold">{{ viewPrestataire.companyName }}</h3>
+            <p class="text-gray-600">{{ viewPrestataire.contactPerson }}</p>
+          </div>
+        </DialogTitle>
+      </DialogHeader>
+      <div class="space-y-6">
+        <!-- Informations générales -->
+        <div>
+          <h4 class="font-semibold mb-3">Informations générales</h4>
+          <div class="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span class="text-gray-500">Localisation:</span>
+              <p>{{ viewPrestataire.address.city }}</p>
+            </div>
+          </div>
+        </div>
+        <!-- Contact -->
+        <div>
+          <h4 class="font-semibold mb-3">Contact</h4>
+          <div class="space-y-2 text-sm">
+            <div class="flex items-center space-x-2">
+              <Phone class="w-4 h-4 text-gray-500" />
+              <span>{{ viewPrestataire.phone }}</span>
+            </div>
+            <div class="flex items-center space-x-2">
+              <Mail class="w-4 h-4 text-gray-500" />
+              <span>{{ viewPrestataire.email }}</span>
+            </div>
+            <div class="flex items-center space-x-2">
+              <Building class="w-4 h-4 text-gray-500" />
+              <span>{{ viewPrestataire.address.street }}, {{ viewPrestataire.address.postalCode }} {{ viewPrestataire.address.city }}</span>
+            </div>
+          </div>
+        </div>
+        <!-- Spécialités -->
+        <div>
+          <h4 class="font-semibold mb-3">Spécialités</h4>
+          <div class="flex flex-wrap gap-1 mt-1">
+            <Badge v-for="specialite in viewPrestataire.specialties" :key="specialite" variant="secondary">
+              {{ specialite }}
+            </Badge>
+          </div>
+        </div>
+        <!-- Évaluations -->
+        <div>
+          <h4 class="font-semibold mb-3">Évaluations</h4>
+          <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-2" v-if="viewPrestataire.rating">
+              <Star class="w-5 h-5 text-yellow-500 fill-current" />
+              <span class="text-lg font-semibold">{{ viewPrestataire.rating }}</span>
+              <span class="text-gray-500">/ 5</span>
+            </div>
+            <span v-else class="text-gray-500">Aucune évaluation</span>
+          </div>
+        </div>
+      </div>
+    </DialogContent>
+  </Dialog>
+
+  <!-- Logout Confirmation Dialog -->
+  <Dialog v-model:open="showLogoutDialog">
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>Confirmer la déconnexion</DialogTitle>
+        <DialogDescription>
+          Êtes-vous sûr de vouloir vous déconnecter ? Vous devrez vous reconnecter pour accéder à votre compte.
+        </DialogDescription>
+      </DialogHeader>
+      <div class="flex justify-end space-x-2 mt-4">
+        <Button variant="outline" @click="showLogoutDialog = false">Annuler</Button>
+        <Button @click="handleLogout" class="bg-red-600 hover:bg-red-700 text-white">
+          Se déconnecter
+        </Button>
+      </div>
+    </DialogContent>
+  </Dialog>
 </template>

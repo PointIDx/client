@@ -4,7 +4,13 @@
       <div>
         <h1 class="text-3xl font-bold">Mission #{{ mission?.reference || missionId }}</h1>
         <p class="text-muted-foreground text-lg">{{ mission?.titre || mission?.description }}</p>
-        <p class="text-sm text-gray-500">Créée le {{ mission ? formatDate(mission.dateDeCreation) : '' }}</p>
+        <div class="flex items-center gap-4 text-sm text-gray-500">
+          <p>Créée le {{ mission ? formatDate(mission.dateDeCreation) : '' }}</p>
+          <p v-if="mission?.societaire?.dossierNumber" class="flex items-center">
+            <span class="mr-1">•</span>
+            Dossier: {{ mission.societaire.dossierNumber }}
+          </p>
+        </div>
       </div>
       <div class="flex items-center gap-4">
         <Badge v-if="statusBadge" variant="outline" :class="`${statusBadge.class} px-3 py-1 text-sm`">
