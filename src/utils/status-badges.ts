@@ -30,6 +30,13 @@ export function getMissionStatusBadge(status: string): StatusBadgeConfig {
         icon: Bell,
         variant: 'outline'
       }
+    case 'INVITE':
+      return {
+        text: 'Invitée',
+        class: 'bg-purple-100 text-purple-800 border-purple-300',
+        icon: Bell,
+        variant: 'outline'
+      }
     case 'ASSIGNEE':
       return {
         text: 'Assignée',

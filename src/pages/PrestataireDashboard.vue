@@ -67,15 +67,19 @@ const missions = computed(() => missionStore.missions as unknown as SubMission[]
 
 // Filter sub-missions by status and assignment
 const nouvellesMissions = computed(() => {
-  // Available sub-missions that can be accepted (not assigned to any prestataire)
+  // Available sub-missions that can be accepted 
   const nouvelles = missions.value.filter((subMission) => {
+    // For INVITE status, show even if prestataireId is set (prestataire invited but not accepted)
+    const isInvited = subMission.statut === 'INVITE'
+    
+    // For other statuses, only show if no prestataire assigned
     const noPrestataire = !subMission.prestataireId
     const isWaiting = subMission.statut === 'EN_ATTENTE' ||
                      subMission.statut === 'EnAttente' ||   // Case variation
                      subMission.statut === 'WAITING' ||     // Alternative naming
                      subMission.statut === 'PENDING'       // Alternative naming
     
-    return isWaiting && noPrestataire
+    return isInvited || (isWaiting && noPrestataire)
   })
   
   console.log('🎯 Available sub-missions filter result:', nouvelles.length, 'from total:', missions.value.length)
@@ -191,6 +195,10 @@ const navigateToChat = () => {
 
 const viewMissionDetails = (missionId: string) => {
   router.push(`/mission/${missionId}`)
+}
+
+const viewSubMissionDetails = (subMissionId: string) => {
+  router.push(`/sub-mission/${subMissionId}`)
 }
 
 const openChat = (mission: any) => {
@@ -391,9 +399,9 @@ const userInitials = computed(() => {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem @click="viewMissionDetails(subMission.missionId)">
+                            <DropdownMenuItem @click="viewSubMissionDetails(subMission.id)">
                               <Eye class="w-4 h-4 mr-2" />
-                              Voir détails mission
+                              Voir détails sous-mission
                             </DropdownMenuItem>
                             <DropdownMenuItem @click="openChat(subMission)">
                               <MessageCircle class="w-4 h-4 mr-2" />
@@ -477,9 +485,9 @@ const userInitials = computed(() => {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem @click="viewMissionDetails(subMission.missionId)">
+                            <DropdownMenuItem @click="viewSubMissionDetails(subMission.id)">
                               <Eye class="w-4 h-4 mr-2" />
-                              Voir détails mission
+                              Voir détails sous-mission
                             </DropdownMenuItem>
                             <DropdownMenuItem @click="openChat(subMission)">
                               <MessageCircle class="w-4 h-4 mr-2" />
@@ -567,9 +575,9 @@ const userInitials = computed(() => {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem @click="viewMissionDetails(subMission.missionId)">
+                            <DropdownMenuItem @click="viewSubMissionDetails(subMission.id)">
                               <Eye class="w-4 h-4 mr-2" />
-                              Voir détails mission
+                              Voir détails sous-mission
                             </DropdownMenuItem>
                             <DropdownMenuItem @click="openChat(subMission)">
                               <MessageCircle class="w-4 h-4 mr-2" />

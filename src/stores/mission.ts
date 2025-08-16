@@ -185,40 +185,22 @@ export const useMissionStore = defineStore('mission', () => {
 
     setLoading('fetchSubMissions', true)
     try {
-      // Fetch both available sub-missions and assigned sub-missions
-      const [availableResult, assignedResult] = await Promise.all([
-        // Get available sub-missions that can be accepted
-        client.query({
-          query: GET_AVAILABLE_SUB_MISSIONS,
-          variables: { specialization: null }, // Get all available sub-missions
-          fetchPolicy: 'no-cache' // Force fresh data from server
-        }),
-        // Get sub-missions already assigned to this prestataire  
-        client.query({
-          query: GET_PRESTATAIRE_SUB_MISSIONS,
-          variables: { prestataireId: null }, // Let server auto-detect prestataire_id
-          fetchPolicy: 'no-cache' // Force fresh data from server
-        })
-      ])
+      // Get sub-missions assigned to this prestataire  
+      const result = await client.query({
+        query: GET_PRESTATAIRE_SUB_MISSIONS,
+        variables: { prestataireId: null }, // Let server auto-detect prestataire_id
+        fetchPolicy: 'network-only' // Force fresh data from server
+      })
 
-      console.log('🔍 Available sub-missions result:', availableResult)
-      console.log('🔍 Assigned sub-missions result:', assignedResult)
+      console.log('🔍 Prestataire sub-missions result:', result)
 
-      const availableSubMissions = availableResult.data?.getAvailableSubMissions || []
-      const assignedSubMissions = assignedResult.data?.getPrestataireSubMissions || []
+      const prestataireSubMissions = result.data?.getPrestataireSubMissions || []
 
-      console.log('🔍 Raw available sub-missions:', availableSubMissions)
-      console.log('🔍 Raw assigned sub-missions:', assignedSubMissions)
-
-      // Combine both available and assigned sub-missions
-      const allSubMissions = [...availableSubMissions, ...assignedSubMissions]
-      
-      console.log('✅ Available sub-missions count:', availableSubMissions.length)
-      console.log('✅ Assigned sub-missions count:', assignedSubMissions.length)
-      console.log('📊 Total sub-missions count:', allSubMissions.length)
+      console.log('🔍 Raw prestataire sub-missions:', prestataireSubMissions)
+      console.log('✅ Prestataire sub-missions count:', prestataireSubMissions.length)
       
       // Log details about each sub-mission for debugging
-      allSubMissions.forEach((sm, index) => {
+      prestataireSubMissions.forEach((sm, index) => {
         console.log(`📝 Sub-mission ${index + 1}:`, {
           id: sm.id,
           reference: sm.reference,
@@ -229,8 +211,8 @@ export const useMissionStore = defineStore('mission', () => {
         })
       })
       
-      // Store combined sub-missions in the missions array for compatibility with existing UI
-      missions.value = allSubMissions
+      // Store sub-missions in the missions array for compatibility with existing UI
+      missions.value = prestataireSubMissions
       
     } catch (error) {
       console.error('❌ Error fetching sub-missions:', error)
