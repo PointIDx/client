@@ -70,16 +70,6 @@ export const GET_MISSION_DETAILS_QUERY = gql`
         phone
         email
       }
-      documents {
-        id
-        filename
-        url
-        contentType
-        size
-        uploadDate
-        description
-        uploadedBy
-      }
       historique {
         id
         entityType
@@ -91,16 +81,6 @@ export const GET_MISSION_DETAILS_QUERY = gql`
         timestamp
         ipAddress
         userAgent
-      }
-      commentaires {
-        id
-        missionId
-        userId
-        expediteur
-        contenu
-        dateEnvoi
-        lu
-        createdAt
       }
       location {
         street

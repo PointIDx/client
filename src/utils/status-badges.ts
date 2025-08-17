@@ -52,6 +52,7 @@ export function getMissionStatusBadge(status: string): StatusBadgeConfig {
         variant: 'default'
       }
     case 'COMPLETEE':
+    case 'TERMINEE':
       return {
         text: 'Terminée',
         class: 'bg-green-100 text-green-800 border-green-300',

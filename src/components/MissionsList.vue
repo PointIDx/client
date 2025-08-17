@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -43,14 +43,17 @@ import {
   FileText,
   Briefcase,
   Plus,
+  Star,
 } from 'lucide-vue-next'
 import type { MissionDetails } from '@/interfaces/MissionDetails'
 import type { SubMission } from '@/interfaces/sub-mission'
 import { useMissionStore } from '@/stores/mission'
 import { SPECIALIZATIONS, UrgenceLevel } from '@/interfaces/sub-mission'
+import { GET_SUB_MISSION_RATING_QUERY } from '@/graphql/queries/get-mission-rating'
+import { useApolloClient } from '@vue/apollo-composable'
 
 const router = useRouter()
-
+const { client } = useApolloClient()
 const missionStore = useMissionStore()
 
 // Props
@@ -80,6 +83,12 @@ const selectedMission = ref<MissionDetails | null>(null)
 const subMissions = ref<Record<string, SubMission[]>>({}) // missionId -> SubMission[]
 const expandedMissions = ref<Set<string>>(new Set())
 const showSubMissionDialog = ref(false)
+const loadingSubMissions = ref<Set<string>>(new Set())
+const showRatingDialog = ref(false)
+const ratingSubMission = ref<SubMission | null>(null)
+const rating = ref(0)
+const ratingComment = ref('')
+const existingRatings = ref<Set<string>>(new Set()) // Track which sub-missions already have ratings
 const newSubMission = reactive({
   missionId: '',
   specialization: '',
@@ -338,12 +347,60 @@ const viewMissionDetails = (missionId: string) => {
 
 // Sub-mission management methods
 const loadSubMissions = async (missionId: string) => {
+  if (loadingSubMissions.value.has(missionId)) return
+  
+  loadingSubMissions.value.add(missionId)
   try {
     const subs = await missionStore.fetchSubMissions(missionId)
     subMissions.value[missionId] = subs
+    // Auto-expand missions that have sub-missions
+    if (subs.length > 0) {
+      expandedMissions.value.add(missionId)
+    }
   } catch (error) {
     console.error('Error loading sub-missions:', error)
+  } finally {
+    loadingSubMissions.value.delete(missionId)
   }
+}
+
+// Check if a sub-mission already has a rating
+const checkSubMissionRating = async (subMissionId: string) => {
+  try {
+    const result = await client.query({
+      query: GET_SUB_MISSION_RATING_QUERY,
+      variables: { subMissionId },
+      fetchPolicy: 'network-only',
+      errorPolicy: 'all'
+    })
+    
+    if (result.data?.subMissionRating) {
+      existingRatings.value.add(subMissionId)
+      return true
+    }
+    return false
+  } catch (error) {
+    // If there's an error (like rating not found), assume no rating exists
+    return false
+  }
+}
+
+// Load all sub-missions when missions are updated
+const loadAllSubMissions = async () => {
+  if (missions.value.length === 0) return
+  
+  console.log('🔄 Loading sub-missions for all missions...')
+  const loadPromises = missions.value.map(mission => loadSubMissions(mission.id))
+  await Promise.allSettled(loadPromises)
+  
+  // Check ratings for all sub-missions
+  const allSubMissions = Object.values(subMissions.value).flat()
+  const ratingCheckPromises = allSubMissions
+    .filter(sub => sub.statut === 'TERMINEE')
+    .map(sub => checkSubMissionRating(sub.id))
+  await Promise.allSettled(ratingCheckPromises)
+  
+  console.log('✅ All sub-missions and ratings loaded')
 }
 
 const toggleMissionExpansion = async (missionId: string) => {
@@ -412,6 +469,47 @@ const getSubMissionProgress = (missionId: string) => {
 const viewSubMissionDetails = (subMission: SubMission) => {
   router.push(`/sub-mission/${subMission.id}`)
 }
+
+const openRatingDialog = (subMission: SubMission) => {
+  ratingSubMission.value = subMission
+  rating.value = 0
+  ratingComment.value = ''
+  showRatingDialog.value = true
+}
+
+const submitRating = async () => {
+  if (!ratingSubMission.value || rating.value === 0) return
+  
+  try {
+    await missionStore.rateSubMission(ratingSubMission.value.id, rating.value, ratingComment.value)
+    
+    // Mark this sub-mission as rated
+    existingRatings.value.add(ratingSubMission.value.id)
+    
+    showRatingDialog.value = false
+    ratingSubMission.value = null
+    rating.value = 0
+    ratingComment.value = ''
+    
+    console.log('✅ Rating submitted successfully')
+  } catch (error) {
+    console.error('Error submitting rating:', error)
+  }
+}
+
+// Watch for changes in missions and auto-load sub-missions
+watch(
+  () => missions.value,
+  (newMissions) => {
+    if (newMissions.length > 0) {
+      // Delay to ensure missions are properly loaded
+      setTimeout(() => {
+        loadAllSubMissions()
+      }, 100)
+    }
+  },
+  { immediate: true, deep: false }
+)
 </script>
 
 <template>
@@ -644,20 +742,32 @@ const viewSubMissionDetails = (subMission: SubMission) => {
                   <div>
                     <p class="font-medium" data-testid="mission-reference">{{ mission.reference }}</p>
                     <p class="text-sm text-gray-500" data-testid="mission-date">{{ new Date(mission.dateDeCreation).toLocaleDateString() }}</p>
-                    <!-- Add expand/collapse button for sub-missions -->
-                    <Button
-                      v-if="subMissions[mission.id]?.length > 0 || expandedMissions.has(mission.id)"
-                      variant="ghost"
-                      size="sm"
-                      @click.stop="toggleMissionExpansion(mission.id)"
-                      :data-testid="`expand-mission-${mission.id}`"
-                      class="mt-1 p-1 h-6"
-                    >
-                      <span class="text-xs">
-                        {{ expandedMissions.has(mission.id) ? '▼' : '▶' }} 
-                        {{ subMissions[mission.id]?.length || 0 }} sous-missions
-                      </span>
-                    </Button>
+                    <!-- Sub-missions indicator -->
+                    <div class="mt-1">
+                      <Button
+                        v-if="loadingSubMissions.has(mission.id)"
+                        variant="ghost"
+                        size="sm"
+                        disabled
+                        class="p-1 h-6"
+                      >
+                        <span class="text-xs text-gray-400">⏳ Chargement...</span>
+                      </Button>
+                      <Button
+                        v-else-if="subMissions[mission.id]?.length > 0"
+                        variant="ghost"
+                        size="sm"
+                        @click.stop="toggleMissionExpansion(mission.id)"
+                        :data-testid="`expand-mission-${mission.id}`"
+                        class="p-1 h-6"
+                      >
+                        <span class="text-xs">
+                          {{ expandedMissions.has(mission.id) ? '▼' : '▶' }} 
+                          {{ subMissions[mission.id]?.length }} sous-missions
+                        </span>
+                      </Button>
+                      <span v-else class="text-xs text-gray-400">0 sous-missions</span>
+                    </div>
                   </div>
                 </TableCell>
                 <TableCell>
@@ -744,17 +854,28 @@ const viewSubMissionDetails = (subMission: SubMission) => {
                 <TableRow 
                   v-for="subMission in (subMissions[mission.id] || [])" 
                   :key="subMission.id"
-                  class="bg-gray-50"
+                  class="bg-blue-50 border-l-4 border-blue-300"
                   :data-testid="`sub-mission-row-${subMission.id}`"
+                  @click="viewSubMissionDetails(subMission)"
                 >
                   <TableCell class="pl-8">
                     <div>
+                      <p class="font-medium text-sm text-blue-800" data-testid="sub-mission-reference">
+                        ↳ {{ subMission.reference }}
+                      </p>
                       <p class="font-medium text-sm" data-testid="sub-mission-title">{{ subMission.title }}</p>
-                      <p class="text-xs text-gray-500">{{ subMission.specialization }}</p>
+                      <p class="text-xs text-gray-600">{{ subMission.specialization }}</p>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <span class="text-sm text-gray-600">Sous-mission</span>
+                    <div v-if="subMission.prestataireId" class="flex items-center space-x-2">
+                      <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span class="text-sm text-green-600">Assignée</span>
+                    </div>
+                    <div v-else class="flex items-center space-x-2">
+                      <div class="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                      <span class="text-sm text-yellow-600">Non assignée</span>
+                    </div>
                   </TableCell>
                   <TableCell>
                     <span class="text-sm text-gray-600">-</span>
@@ -790,6 +911,22 @@ const viewSubMissionDetails = (subMission: SubMission) => {
                         <DropdownMenuItem @click="viewSubMissionDetails(subMission)">
                           <Eye class="w-4 h-4 mr-2" />
                           Voir détails
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          v-if="subMission.statut === 'TERMINEE' && !existingRatings.has(subMission.id)" 
+                          @click="openRatingDialog(subMission)"
+                          class="text-yellow-600"
+                        >
+                          <Star class="w-4 h-4 mr-2" />
+                          Noter prestataire
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          v-if="subMission.statut === 'TERMINEE' && existingRatings.has(subMission.id)" 
+                          disabled
+                          class="text-gray-400"
+                        >
+                          <Star class="w-4 h-4 mr-2 fill-current" />
+                          Déjà noté
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -1016,6 +1153,64 @@ const viewSubMissionDetails = (subMission: SubMission) => {
             </Button>
             <Button @click="createSubMission" data-testid="create-sub-mission-button">
               Créer sous-mission
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+
+    <!-- Rating Dialog -->
+    <Dialog :open="showRatingDialog" @update:open="(open) => { if (!open) showRatingDialog = false }">
+      <DialogContent class="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Noter le prestataire</DialogTitle>
+          <DialogDescription v-if="ratingSubMission">
+            Évaluer le travail effectué pour: {{ ratingSubMission.title }}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div class="space-y-4">
+          <div>
+            <Label>Note (1-5 étoiles)</Label>
+            <div class="flex items-center space-x-2 mt-2">
+              <button
+                v-for="star in 5"
+                :key="star"
+                @click="rating = star"
+                class="focus:outline-none"
+                :data-testid="`rating-star-${star}`"
+              >
+                <Star 
+                  :class="[
+                    'w-8 h-8 transition-colors',
+                    star <= rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
+                  ]"
+                />
+              </button>
+              <span class="ml-2 text-sm text-gray-600">{{ rating }}/5</span>
+            </div>
+          </div>
+
+          <div>
+            <Label for="rating-comment">Commentaire (optionnel)</Label>
+            <Textarea
+              id="rating-comment"
+              v-model="ratingComment"
+              placeholder="Votre évaluation du travail..."
+              data-testid="rating-comment"
+            />
+          </div>
+
+          <div class="flex justify-end space-x-2">
+            <Button variant="outline" @click="showRatingDialog = false" data-testid="cancel-rating">
+              Annuler
+            </Button>
+            <Button 
+              @click="submitRating" 
+              :disabled="rating === 0"
+              data-testid="submit-rating"
+            >
+              Noter
             </Button>
           </div>
         </div>

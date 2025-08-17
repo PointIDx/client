@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -48,14 +49,20 @@ import {
 import { useMissionStore } from '@/stores/mission'
 import { useAuthStore } from '@/stores/auth'
 import { useAssureurStore } from '@/stores/assureur'
+import { GET_SUB_MISSION_RATING_QUERY } from '@/graphql/queries/get-mission-rating'
+import { useApolloClient } from '@vue/apollo-composable'
 import type { SubMission, SubMissionDetails, MissionStatut } from '@/interfaces/sub-mission'
 import type { Prestataire } from '@/interfaces/prestataire'
 import type { FiltresDeRecherche } from '@/interfaces/filtres-de-recherche'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import placeholderImage from '@/assets/placeholder.svg'
+import SubMissionDocuments from '@/components/SubMissionDocuments.vue'
+import SubMissionComments from '@/components/SubMissionComments.vue'
+import MissionHistory from '@/components/MissionHistory.vue'
 
 const route = useRoute()
 const router = useRouter()
+const { client } = useApolloClient()
 const missionStore = useMissionStore()
 const authStore = useAuthStore()
 const assureurStore = useAssureurStore()
@@ -77,6 +84,14 @@ const isAssigning = ref(false)
 const isAccepting = ref(false)
 const isUpdatingStatus = ref(false)
 const newStatus = ref<MissionStatut>('EN_COURS' as MissionStatut)
+
+// Rating state
+const showRatingDialog = ref(false)
+const currentRating = ref<any>(null)
+const loadingRating = ref(false)
+const rating = ref(0)
+const ratingComment = ref('')
+const hasExistingRating = ref(false)
 
 // Pagination state
 const currentPage = ref(1)
@@ -104,8 +119,80 @@ const paginatedPrestataires = computed(() => {
 const loadSubMissionDetails = async () => {
   try {
     await missionStore.fetchSubMissionDetails(subMissionId)
+    // Check for existing rating after loading details
+    await checkExistingRating()
   } catch (error) {
     console.error('Error loading sub-mission details:', error)
+  }
+}
+
+// Check if sub-mission already has a rating
+const checkExistingRating = async () => {
+  if (!missionStore.currentSubMission || missionStore.currentSubMission.statut !== 'TERMINEE') {
+    return
+  }
+  
+  loadingRating.value = true
+  try {
+    const result = await client.query({
+      query: GET_SUB_MISSION_RATING_QUERY,
+      variables: { subMissionId },
+      fetchPolicy: 'network-only',
+      errorPolicy: 'all'
+    })
+    
+    if (result.data?.subMissionRating) {
+      currentRating.value = result.data.subMissionRating
+      hasExistingRating.value = true
+    } else {
+      hasExistingRating.value = false
+    }
+  } catch (error) {
+    console.error('Error checking rating:', error)
+    hasExistingRating.value = false
+  } finally {
+    loadingRating.value = false
+  }
+}
+
+// Event handlers for child components
+const handleDocumentAdded = (document: any) => {
+  // The sub-mission store will handle refreshing the sub-mission details
+  loadSubMissionDetails()
+}
+
+const handleCommentAdded = (comment: any) => {
+  // The sub-mission store will handle refreshing the sub-mission details
+  loadSubMissionDetails()
+}
+
+const handleCommentsRefresh = () => {
+  // Trigger refresh using mission store
+  loadSubMissionDetails()
+}
+
+// Open rating dialog
+const openRatingDialog = () => {
+  rating.value = 0
+  ratingComment.value = ''
+  showRatingDialog.value = true
+}
+
+// Submit rating
+const submitRating = async () => {
+  if (!missionStore.currentSubMission || rating.value === 0) return
+  
+  try {
+    await missionStore.rateSubMission(missionStore.currentSubMission.id, rating.value, ratingComment.value)
+    
+    showRatingDialog.value = false
+    rating.value = 0
+    ratingComment.value = ''
+    
+    // Refresh rating status
+    await checkExistingRating()
+  } catch (error) {
+    console.error('Error submitting rating:', error)
   }
 }
 
@@ -282,6 +369,17 @@ const canUpdateStatus = computed(() => {
          missionStore.currentSubMission?.prestataireId
 })
 
+const canRate = computed(() => {
+  return isAssureur.value && 
+         missionStore.currentSubMission?.statut === 'TERMINEE' &&
+         !hasExistingRating.value
+})
+
+const canViewRating = computed(() => {
+  return missionStore.currentSubMission?.statut === 'TERMINEE' &&
+         hasExistingRating.value
+})
+
 const getStatutBadge = (statut: string) => {
   switch (statut) {
     case "EN_ATTENTE":
@@ -357,6 +455,18 @@ const getUrgenceBadge = (urgence: string) => {
         >
           <Play class="w-4 h-4 mr-2" />
           Mettre à jour le statut
+        </Button>
+        
+        <!-- Rating Button -->
+        <Button 
+          v-if="canRate" 
+          @click="openRatingDialog" 
+          variant="default"
+          class="bg-yellow-600 hover:bg-yellow-700"
+          data-testid="rating-button"
+        >
+          <Star class="w-4 h-4 mr-2" />
+          Noter le prestataire
         </Button>
       </div>
     </div>
@@ -557,6 +667,69 @@ const getUrgenceBadge = (urgence: string) => {
                 <Eye class="w-4 h-4 mr-2" />
                 Voir détails complets
               </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <!-- Documents Section -->
+      <SubMissionDocuments 
+        :sub-mission-id="subMissionId"
+        :can-upload="true"
+        :can-delete="isAssureur"
+        @document-added="handleDocumentAdded"
+        data-testid="sub-mission-documents"
+      />
+
+      <!-- Comments Section -->
+      <SubMissionComments 
+        :sub-mission-id="subMissionId"
+        :can-comment="true"
+        @comment-added="handleCommentAdded"
+        @refresh-requested="handleCommentsRefresh"
+        data-testid="sub-mission-comments"
+      />
+
+      <!-- History Section -->
+      <MissionHistory 
+        :history="missionStore.subMissionHistory || []"
+        data-testid="sub-mission-history"
+      />
+
+      <!-- Rating Display (if exists) -->
+      <Card v-if="canViewRating && currentRating">
+        <CardHeader>
+          <CardTitle class="flex items-center space-x-2">
+            <Star class="w-5 h-5 text-yellow-500" />
+            <span>Évaluation du prestataire</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div class="space-y-4">
+            <!-- Rating Stars -->
+            <div class="flex items-center space-x-4">
+              <div class="flex items-center space-x-1">
+                <Star 
+                  v-for="star in 5" 
+                  :key="star"
+                  :class="[
+                    'w-6 h-6',
+                    star <= currentRating.rating ? 'text-yellow-500 fill-current' : 'text-gray-300'
+                  ]"
+                />
+              </div>
+              <div class="text-xl font-bold">{{ currentRating.rating }}/5</div>
+            </div>
+            
+            <!-- Comment -->
+            <div v-if="currentRating.comment">
+              <h4 class="font-semibold mb-2">Commentaire:</h4>
+              <p class="text-gray-700 bg-gray-50 p-3 rounded-lg">{{ currentRating.comment }}</p>
+            </div>
+            
+            <!-- Date -->
+            <div class="text-sm text-gray-500">
+              Évalué le {{ new Date(currentRating.createdAt).toLocaleDateString() }}
             </div>
           </div>
         </CardContent>
@@ -1004,6 +1177,64 @@ const getUrgenceBadge = (urgence: string) => {
             <Button size="sm" class="bg-black border-black text-white" @click="assignToPrestataire(viewPrestataire)" :disabled="isAssigning">
               <UserPlus class="w-4 h-4 mr-1" />
               {{ isAssigning ? 'Attribution...' : 'Assigner' }}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+
+    <!-- Rating Dialog -->
+    <Dialog :open="showRatingDialog" @update:open="(open) => { if (!open) showRatingDialog = false }">
+      <DialogContent class="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Noter le prestataire</DialogTitle>
+          <DialogDescription v-if="missionStore.currentSubMission">
+            Évaluer le travail effectué pour: {{ missionStore.currentSubMission.title }}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div class="space-y-4">
+          <div>
+            <Label>Note (1-5 étoiles)</Label>
+            <div class="flex items-center space-x-2 mt-2">
+              <button
+                v-for="star in 5"
+                :key="star"
+                @click="rating = star"
+                class="focus:outline-none"
+                :data-testid="`rating-star-${star}`"
+              >
+                <Star 
+                  :class="[
+                    'w-8 h-8 transition-colors',
+                    star <= rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
+                  ]"
+                />
+              </button>
+              <span class="ml-2 text-sm text-gray-600">{{ rating }}/5</span>
+            </div>
+          </div>
+
+          <div>
+            <Label for="rating-comment">Commentaire (optionnel)</Label>
+            <Textarea
+              id="rating-comment"
+              v-model="ratingComment"
+              placeholder="Votre évaluation du travail..."
+              data-testid="rating-comment"
+            />
+          </div>
+
+          <div class="flex justify-end space-x-2">
+            <Button variant="outline" @click="showRatingDialog = false" data-testid="cancel-rating">
+              Annuler
+            </Button>
+            <Button 
+              @click="submitRating" 
+              :disabled="rating === 0"
+              data-testid="submit-rating"
+            >
+              Noter
             </Button>
           </div>
         </div>

@@ -16,6 +16,22 @@ export const GET_MISSION_RATING_QUERY = gql`
   }
 `
 
+export const GET_SUB_MISSION_RATING_QUERY = gql`
+  query GetSubMissionRating($subMissionId: UUID!) {
+    subMissionRating(subMissionId: $subMissionId) {
+      id
+      subMissionId
+      subMissionTitle
+      missionReference
+      assureurCompanyName
+      prestataireCompanyName
+      rating
+      comment
+      createdAt
+    }
+  }
+`
+
 export const GET_PRESTATAIRE_RATING_SUMMARY = gql`
   query GetPrestataireRatingSummary($prestataireId: UUID!) {
     prestataireRatingSummary(prestataireId: $prestataireId) {

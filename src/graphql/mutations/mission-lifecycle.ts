@@ -93,7 +93,7 @@ export const RATE_PRESTATAIRE_MUTATION = gql`
   mutation RatePrestataire($input: RatePrestaireInput!) {
     ratePrestataire(input: $input) {
       id
-      missionId
+      subMissionId
       rating
       comment
       createdAt

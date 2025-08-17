@@ -24,16 +24,6 @@ export const GET_ASSUREUR_MISSIONS_ENHANCED_QUERY = gql`
         phone
         email
       }
-      documents {
-        id
-        filename
-        url
-        contentType
-        size
-        uploadDate
-        description
-        uploadedBy
-      }
       historique {
         id
         entityType
@@ -45,16 +35,6 @@ export const GET_ASSUREUR_MISSIONS_ENHANCED_QUERY = gql`
         timestamp
         ipAddress
         userAgent
-      }
-      commentaires {
-        id
-        missionId
-        userId
-        expediteur
-        contenu
-        dateEnvoi
-        lu
-        createdAt
       }
       estimatedCost
       actualCost

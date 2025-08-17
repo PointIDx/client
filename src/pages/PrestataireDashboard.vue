@@ -29,7 +29,8 @@ import {
   Settings,
   MoreHorizontal,
   Calendar,
-  Building
+  Building,
+  Star
 } from "lucide-vue-next"
 
 import { usePrestataireStore } from '@/stores/prestataire'
@@ -37,8 +38,11 @@ import { useMissionStore } from '@/stores/mission'
 import { useAuthStore } from '@/stores/auth'
 import { onMounted, computed, ref, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
+import { useApolloClient } from '@vue/apollo-composable'
+import { GET_MY_RECEIVED_RATINGS, GET_PRESTATAIRE_RATING_SUMMARY } from '@/graphql/queries/get-mission-rating'
 import { MissionStatutPrestataire } from '@/enums/mission-statut-prestataire'
 import type { SubMission } from '@/interfaces/sub-mission'
+import { MissionStatut } from '@/interfaces/sub-mission'
 import { getMissionStatusBadge } from '@/utils/status-badges'
 import { handleError } from '@/utils/error-handling'
 import ExportMissions from '@/components/ExportMissions.vue'
@@ -51,6 +55,74 @@ const router = useRouter()
 const prestataireStore = usePrestataireStore()
 const missionStore = useMissionStore()
 const authStore = useAuthStore()
+const { client } = useApolloClient()
+
+// Ratings state
+const ratings = ref([])
+const loadingRatings = ref(false)
+const ratingSummary = ref(null)
+const loadingRatingSummary = ref(false)
+
+// Fetch ratings function
+const fetchRatings = async () => {
+  loadingRatings.value = true
+  try {
+    console.log('🌟 Fetching prestataire ratings...')
+    const result = await client.query({
+      query: GET_MY_RECEIVED_RATINGS,
+      fetchPolicy: 'network-only',
+      errorPolicy: 'all'
+    })
+    
+    if (result.data?.myReceivedRatings) {
+      ratings.value = result.data.myReceivedRatings
+      console.log('✅ Ratings fetched:', ratings.value.length)
+    } else {
+      console.log('❌ No ratings data in result')
+      ratings.value = []
+    }
+  } catch (error) {
+    console.error('❌ Error fetching ratings:', error)
+    ratings.value = []
+  } finally {
+    loadingRatings.value = false
+  }
+}
+
+// Fetch rating summary function
+const fetchRatingSummary = async () => {
+  loadingRatingSummary.value = true
+  try {
+    // Get prestataire ID from user profile
+    const prestataireId = authStore.user?.profile?.id
+    
+    if (!prestataireId) {
+      console.log('❌ No prestataire ID found in user profile')
+      return
+    }
+    
+    console.log('🌟 Fetching prestataire rating summary for ID:', prestataireId)
+    const result = await client.query({
+      query: GET_PRESTATAIRE_RATING_SUMMARY,
+      variables: { prestataireId },
+      fetchPolicy: 'network-only',
+      errorPolicy: 'all'
+    })
+    
+    if (result.data?.prestataireRatingSummary) {
+      ratingSummary.value = result.data.prestataireRatingSummary
+      console.log('✅ Rating summary fetched:', ratingSummary.value)
+    } else {
+      console.log('❌ No rating summary data in result')
+      ratingSummary.value = null
+    }
+  } catch (error) {
+    console.error('❌ Error fetching rating summary:', error)
+    ratingSummary.value = null
+  } finally {
+    loadingRatingSummary.value = false
+  }
+}
 
 onMounted(async () => {
   console.log('🔧 Prestataire dashboard mounted, fetching missions...')
@@ -61,6 +133,8 @@ onMounted(async () => {
     console.error('❌ Failed to fetch missions:', error)
   }
   prestataireStore.fetchNotifications()
+  fetchRatings()
+  fetchRatingSummary()
 })
 
 const missions = computed(() => missionStore.missions as unknown as SubMission[])
@@ -145,6 +219,7 @@ const missionsTerminees = computed(() => {
   return terminees
 })
 
+// Use rating summary from server instead of calculating manually
 
 const selectedMission = ref<SubMission | null>(null)
 const showChat = ref(false)
@@ -171,6 +246,24 @@ const changerStatutMission = async (missionId: string, nouveauStatut: MissionSta
     setTimeout(() => (showSuccess.value = false), 3000)
   } catch (error) {
     handleError(error, 'Update Mission Status', { showToast: true })
+  }
+}
+
+const changerStatutSousMission = async (subMissionId: string, nouveauStatut: MissionStatut) => {
+  try {
+    await missionStore.updateSubMissionStatus({
+      subMissionId,
+      statut: nouveauStatut
+    })
+    // Ensure the UI updates
+    await nextTick()
+    successMessage.value = `Statut de la sous-mission mis à jour: ${nouveauStatut}`
+    showSuccess.value = true
+    setTimeout(() => (showSuccess.value = false), 3000)
+    // Refresh missions to see updated data
+    await missionStore.fetchMissions('PRESTATAIRE')
+  } catch (error) {
+    handleError(error, 'Update SubMission Status', { showToast: true })
   }
 }
 
@@ -219,7 +312,7 @@ const showLogoutDialog = ref(false)
 const handleLogout = () => {
   authStore.logout()
   showLogoutDialog.value = false
-  router.push('/login')
+  router.push('/')
 }
 
 const userInitials = computed(() => {
@@ -333,6 +426,9 @@ const userInitials = computed(() => {
           </TabsTrigger>
           <TabsTrigger value="profile" data-testid="profile-tab" class="data-[state=active]:bg-black data-[state=active]:text-white">
             Profil
+          </TabsTrigger>
+          <TabsTrigger value="ratings" data-testid="ratings-tab" class="data-[state=active]:bg-black data-[state=active]:text-white">
+            Mes Évaluations ({{ ratingSummary?.totalRatings || 0 }})
           </TabsTrigger>
           <TabsTrigger value="debug" data-testid="debug-tab" class="data-[state=active]:bg-black data-[state=active]:text-white">
             Debug ({{ missions.length }})
@@ -493,11 +589,11 @@ const userInitials = computed(() => {
                               <MessageCircle class="w-4 h-4 mr-2" />
                               Contacter
                             </DropdownMenuItem>
-                            <DropdownMenuItem v-if="subMission.statut === 'ASSIGNEE'" @click="changerStatutMission(subMission.id, MissionStatutPrestataire.EnCours)" class="text-blue-600">
+                            <DropdownMenuItem v-if="subMission.statut === 'ASSIGNEE'" @click="changerStatutSousMission(subMission.id, MissionStatut.EN_COURS)" class="text-blue-600">
                               <Send class="w-4 h-4 mr-2" />
                               Démarrer sous-mission
                             </DropdownMenuItem>
-                            <DropdownMenuItem v-if="subMission.statut === 'EN_COURS'" @click="changerStatutMission(subMission.id, MissionStatutPrestataire.Terminee)" class="text-green-600">
+                            <DropdownMenuItem v-if="subMission.statut === 'EN_COURS'" @click="changerStatutSousMission(subMission.id, MissionStatut.TERMINEE)" class="text-green-600">
                               <CheckCircle class="w-4 h-4 mr-2" />
                               Terminer sous-mission
                             </DropdownMenuItem>
@@ -610,6 +706,127 @@ const userInitials = computed(() => {
           <div class="p-8 text-center text-gray-500">
             <p>Profil en cours de développement</p>
           </div>
+        </TabsContent>
+
+        <!-- Onglet Évaluations -->
+        <TabsContent value="ratings" data-testid="ratings-tab-content">
+          <Card>
+            <CardHeader>
+              <CardTitle>Mes Évaluations ({{ ratingSummary?.totalRatings || 0 }})</CardTitle>
+              <CardDescription>Toutes les évaluations reçues de la part des assureurs</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <!-- Loading state -->
+              <div v-if="loadingRatings" class="flex items-center justify-center py-8">
+                <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
+                <span class="ml-2 text-gray-600">Chargement des évaluations...</span>
+              </div>
+              
+              <!-- No ratings state -->
+              <div v-else-if="ratings.length === 0" class="text-center py-8 text-gray-500">
+                <Star class="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                <p class="text-lg font-medium">Aucune évaluation</p>
+                <p class="text-sm">Vous n'avez pas encore reçu d'évaluations</p>
+              </div>
+              
+              <!-- Ratings table -->
+              <div v-else>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Mission</TableHead>
+                      <TableHead>Assureur</TableHead>
+                      <TableHead>Note</TableHead>
+                      <TableHead>Commentaire</TableHead>
+                      <TableHead>Date</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow v-for="rating in ratings" :key="rating.id" class="hover:bg-gray-50">
+                      <TableCell>
+                        <div>
+                          <p class="font-medium">{{ rating.missionTitle }}</p>
+                          <p class="text-sm text-gray-500">{{ rating.missionReference }}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <p class="font-medium">{{ rating.assureurCompanyName }}</p>
+                      </TableCell>
+                      <TableCell>
+                        <div class="flex items-center space-x-1">
+                          <div class="flex">
+                            <Star 
+                              v-for="i in 5" 
+                              :key="i"
+                              class="w-4 h-4"
+                              :class="i <= rating.rating ? 'text-yellow-500 fill-current' : 'text-gray-300'"
+                            />
+                          </div>
+                          <span class="text-sm font-medium ml-1">{{ rating.rating }}/5</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <p v-if="rating.comment" class="text-sm">{{ rating.comment }}</p>
+                        <span v-else class="text-sm text-gray-400 italic">Aucun commentaire</span>
+                      </TableCell>
+                      <TableCell>
+                        <p class="text-sm">{{ new Date(rating.createdAt).toLocaleDateString('fr-FR') }}</p>
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+                
+                <!-- Rating summary -->
+                <div v-if="ratingSummary && ratingSummary.totalRatings > 0" class="mt-6 p-4 bg-gray-50 rounded-lg">
+                  <h4 class="font-medium mb-2">Résumé de vos évaluations</h4>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div class="text-center">
+                      <p class="text-gray-600">Total</p>
+                      <p class="text-xl font-bold">{{ ratingSummary.totalRatings }}</p>
+                    </div>
+                    <div class="text-center">
+                      <p class="text-gray-600">Note moyenne</p>
+                      <div class="flex items-center justify-center space-x-1">
+                        <Star class="w-5 h-5 text-yellow-500 fill-current" />
+                        <p class="text-xl font-bold">{{ ratingSummary.averageRating.toFixed(1) }}</p>
+                      </div>
+                    </div>
+                    <div class="text-center">
+                      <p class="text-gray-600">Dernière évaluation</p>
+                      <p class="text-lg font-medium">{{ 
+                        ratingSummary.latestRatings.length > 0 
+                          ? new Date(ratingSummary.latestRatings[0].createdAt).toLocaleDateString('fr-FR')
+                          : 'Aucune'
+                      }}</p>
+                    </div>
+                  </div>
+                  
+                  <!-- Rating breakdown -->
+                  <div class="mt-4">
+                    <h5 class="font-medium mb-2">Répartition des notes</h5>
+                    <div class="space-y-2">
+                      <div v-for="(count, stars) in {
+                        5: ratingSummary.ratingBreakdown.fiveStars,
+                        4: ratingSummary.ratingBreakdown.fourStars,
+                        3: ratingSummary.ratingBreakdown.threeStars,
+                        2: ratingSummary.ratingBreakdown.twoStars,
+                        1: ratingSummary.ratingBreakdown.oneStar
+                      }" :key="stars" class="flex items-center space-x-2 text-sm">
+                        <span class="w-8">{{ stars }}★</span>
+                        <div class="flex-1 bg-gray-200 rounded-full h-2">
+                          <div 
+                            class="bg-yellow-500 h-2 rounded-full" 
+                            :style="{ width: `${ratingSummary.totalRatings > 0 ? (count / ratingSummary.totalRatings) * 100 : 0}%` }"
+                          ></div>
+                        </div>
+                        <span class="w-8 text-gray-600">{{ count }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <!-- Debug Tab -->

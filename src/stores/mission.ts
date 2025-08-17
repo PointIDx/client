@@ -23,13 +23,6 @@ import {
   CANCEL_MISSION_MUTATION,
   RATE_PRESTATAIRE_MUTATION
 } from '@/graphql/mutations/mission-lifecycle'
-import {
-  GET_MISSION_DOCUMENTS_QUERY,
-  GET_DOCUMENT_DOWNLOAD_URL_QUERY
-} from '@/graphql/queries/mission-documents'
-import {
-  UPLOAD_MISSION_DOCUMENT_MUTATION
-} from '@/graphql/mutations/mission-documents'
 import { EXPORT_MISSIONS_QUERY, EXPORT_MISSION_DETAILS_QUERY, type ExportFilters, type ExportFormat } from '@/graphql/queries/export-missions'
 import { EXPORT_PRESTATAIRE_MISSIONS_QUERY, EXPORT_PRESTATAIRE_REPORT_QUERY, type PrestataireExportFilters, type ReportPeriod } from '@/graphql/queries/export-prestataire-missions'
 import { GET_SUB_MISSIONS_BY_MISSION, GET_SUB_MISSION_DETAILS, GET_PRESTATAIRE_SUB_MISSIONS, GET_AVAILABLE_SUB_MISSIONS } from '@/graphql/queries/get-sub-missions'
@@ -43,8 +36,7 @@ export const useMissionStore = defineStore('mission', () => {
   // State
   const missions = ref<MissionDetails[]>([])
   const currentMission = ref<MissionDetails | null>(null)
-  const documents = ref<any[]>([])
-  const comments = ref<any[]>([])
+  // documents and comments are now managed at sub-mission level
   const history = ref<any[]>([])
   const subMissions = ref<SubMission[]>([])
   const currentSubMission = ref<SubMissionDetails | null>(null)
@@ -71,8 +63,6 @@ export const useMissionStore = defineStore('mission', () => {
     validateMission: false,
     cancelMission: false,
     rateMission: false,
-    uploadDocument: false,
-    downloadDocument: false,
     exportMissions: false,
     exportMissionDetails: false,
     exportPrestataireReport: false
@@ -95,8 +85,6 @@ export const useMissionStore = defineStore('mission', () => {
   const isValidatingMission = computed(() => loadingStates.value.validateMission)
   const isCancellingMission = computed(() => loadingStates.value.cancelMission)
   const isRatingMission = computed(() => loadingStates.value.rateMission)
-  const isUploadingDocument = computed(() => loadingStates.value.uploadDocument)
-  const isDownloadingDocument = computed(() => loadingStates.value.downloadDocument)
   const isExportingMissions = computed(() => loadingStates.value.exportMissions)
   const isExportingMissionDetails = computed(() => loadingStates.value.exportMissionDetails)
   const isExportingPrestataireReport = computed(() => loadingStates.value.exportPrestataireReport)
@@ -235,8 +223,7 @@ export const useMissionStore = defineStore('mission', () => {
           console.log('📋 Mission details loaded:', currentMission.value)
           
           // Initialize related data
-          documents.value = currentMission.value?.documents || []
-          comments.value = currentMission.value?.commentaires || []
+          // documents and comments are now managed at sub-mission level
           history.value = currentMission.value?.historique || []
         }
       })
@@ -513,127 +500,32 @@ export const useMissionStore = defineStore('mission', () => {
     }
   }
 
-  // Document management
-  const { mutate: uploadDocumentMutation } = useMutation(UPLOAD_MISSION_DOCUMENT_MUTATION)
-
-  const uploadMissionDocument = async (input: any) => {
-    setLoading('uploadDocument', true)
+  const rateSubMission = async (subMissionId: string, rating: number, comment?: string) => {
+    setLoading('rateMission', true)
     try {
-      // Use direct fetch for file upload with multipart/form-data
-      const formData = new FormData()
-      
-      // Add the GraphQL operation
-      formData.append('operations', JSON.stringify({
-        query: `
-          mutation UploadMissionDocument($input: MissionDocumentInput!) {
-            uploadMissionDocument(input: $input) {
-              id
-              filename
-              url
-              contentType
-              size
-              uploadDate
-              description
-              uploadedBy
-            }
-          }
-        `,
-        variables: {
-          input: {
-            missionId: input.missionId,
-            filename: input.file.name,
-            contentType: input.file.type || 'application/octet-stream',
-            size: input.file.size,
-            description: input.description
-          }
+      const result = await rateMissionMutation({
+        input: {
+          subMissionId,
+          rating,
+          comment
         }
-      }))
-      
-      // Map the file to the correct variable
-      formData.append('map', JSON.stringify({
-        '0': ['variables.input.file']
-      }))
-      
-      // Add the actual file
-      formData.append('0', input.file)
-      
-      // Get auth token
-      const tokens = authStore.tokens
-      
-      // Make the request
-      const response = await fetch(import.meta.env.VITE_APP_SERVER_GRAPHQL_URL || '/graphql', {
-        method: 'POST',
-        headers: {
-          'Authorization': tokens?.token ? `Bearer ${tokens.token}` : ''
-        },
-        body: formData
       })
       
-      // Check if the response is ok
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error('Upload response not ok:', response.status, response.statusText, errorText)
-        throw new Error(`Upload failed with status ${response.status}: ${response.statusText}`)
-      }
-      
-      // Get response text first to debug
-      const responseText = await response.text()
-      console.log('Upload response text:', responseText)
-      
-      // Try to parse as JSON
-      let result
-      try {
-        result = JSON.parse(responseText)
-      } catch (parseError) {
-        console.error('Failed to parse response as JSON:', parseError)
-        console.error('Response was:', responseText)
-        throw new Error(`Server returned invalid JSON response: ${responseText.substring(0, 200)}`)
-      }
-      
-      if (result.data?.uploadMissionDocument) {
-        showSuccess('Document uploadé avec succès')
-        // Refresh documents
-        if (currentMission.value) {
-          await fetchMissionDetails(currentMission.value.id)
-        }
-        return result.data.uploadMissionDocument
-      } else if (result.errors) {
-        throw new Error(result.errors[0]?.message || 'Upload failed')
-      } else {
-        throw new Error('Unknown upload error')
+      if (result?.data?.ratePrestataire) {
+        showSuccess('Prestataire évalué avec succès pour la sous-mission')
+        return result.data.ratePrestataire
       }
     } catch (error) {
-      handleGraphQLError(error, 'Upload Mission Document', { showToast: true })
+      handleGraphQLError(error, 'Rate SubMission', { showToast: true })
       throw error
     } finally {
-      setLoading('uploadDocument', false)
+      setLoading('rateMission', false)
     }
   }
 
-  const downloadDocument = async (documentId: string) => {
-    setLoading('downloadDocument', true)
-    try {
-      const { onResult, onError } = useQuery(GET_DOCUMENT_DOWNLOAD_URL_QUERY, { documentId })
-      
-      onResult((queryResult) => {
-        if (queryResult.data?.getDocumentDownloadUrl) {
-          const { url } = queryResult.data.getDocumentDownloadUrl
-          // Trigger download
-          const link = document.createElement('a')
-          link.href = url
-          link.click()
-        }
-      })
-      
-      onError((error) => {
-        handleGraphQLError(error, 'Download Document', { showToast: true })
-      })
-    } catch (error) {
-      handleError(error, 'Download Document', { showToast: true })
-    } finally {
-      setLoading('downloadDocument', false)
-    }
-  }
+  // Document management
+
+  // Document management has been moved to sub-mission level
 
   // Export functionality
   const exportMissions = (filters: ExportFilters, format: ExportFormat = 'pdf') => {
@@ -749,8 +641,7 @@ export const useMissionStore = defineStore('mission', () => {
 
   const clearCurrentMission = () => {
     currentMission.value = null
-    documents.value = []
-    comments.value = []
+    // documents and comments are now managed at sub-mission level
     history.value = []
   }
 
@@ -922,8 +813,6 @@ export const useMissionStore = defineStore('mission', () => {
     // State
     missions,
     currentMission,
-    documents,
-    comments,
     history,
     subMissions,
     currentSubMission,
@@ -947,8 +836,6 @@ export const useMissionStore = defineStore('mission', () => {
     isValidatingMission,
     isCancellingMission,
     isRatingMission,
-    isUploadingDocument,
-    isDownloadingDocument,
     isExportingMissions,
     isExportingMissionDetails,
     isExportingPrestataireReport,
@@ -975,10 +862,9 @@ export const useMissionStore = defineStore('mission', () => {
     validateMissionCompletion,
     cancelMission,
     rateMission,
+    rateSubMission,
     
-    // Document management
-    uploadMissionDocument,
-    downloadDocument,
+    // Document management has been moved to sub-mission level
     
     // Export functionality
     exportMissions,

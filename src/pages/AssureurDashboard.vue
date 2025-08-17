@@ -55,12 +55,15 @@ import { useMissionStore } from '@/stores/mission'
 import { useAuthStore } from '@/stores/auth'
 import { useGraphQL } from '@/composables/useGraphQL'
 import { DOWNLOAD_DOCUMENT_QUERY } from '@/graphql/queries/download-document'
+import { GET_PRESTATAIRE_RATING_SUMMARY } from '@/graphql/queries/get-mission-rating'
 import { useRouter } from 'vue-router'
+import { useApolloClient } from '@vue/apollo-composable'
 
 const assureurStore = useAssureurStore()
 const missionStore = useMissionStore()
 const authStore = useAuthStore()
 const { executeQuery } = useGraphQL()
+const { client } = useApolloClient()
 const router = useRouter()
 
 const searchTerm = ref("")
@@ -71,6 +74,8 @@ const selectedPrestataire = ref<Prestataire | null>(null)
 const viewPrestataire = ref<Prestataire | null>(null)
 const showPrestataireDetails = ref(false)
 const showLogoutDialog = ref(false)
+const ratingSummary = ref<any>(null)
+const loadingRatingSummary = ref(false)
 
 // Pagination state
 const currentPage = ref(1)
@@ -228,7 +233,7 @@ const navigateToChat = () => {
 const handleLogout = () => {
   authStore.logout()
   showLogoutDialog.value = false
-  router.push('/login')
+  router.push('/')
 }
 
 const userInitials = computed(() => {
@@ -263,9 +268,41 @@ const handleMissionClick = (prestataire: Prestataire) => {
   });
 };
 
-const viewPrestataireDetails = (prestataire: Prestataire) => {
+const viewPrestataireDetails = async (prestataire: Prestataire) => {
   viewPrestataire.value = prestataire
+  ratingSummary.value = null
   showPrestataireDetails.value = true
+  
+  // Fetch rating summary
+  loadingRatingSummary.value = true
+  try {
+    console.log('🔍 Fetching rating summary for prestataire:', prestataire.id)
+    
+    // Use Apollo Client directly for better error handling
+    const result = await client.query({
+      query: GET_PRESTATAIRE_RATING_SUMMARY,
+      variables: { prestataireId: prestataire.id },
+      fetchPolicy: 'network-only',
+      errorPolicy: 'all'
+    })
+    
+    console.log('📊 Apollo result:', result)
+    console.log('📊 Data:', result.data)
+    console.log('📊 Errors:', result.errors)
+    
+    if (result.data?.prestataireRatingSummary) {
+      console.log('✅ Setting rating summary:', result.data.prestataireRatingSummary)
+      ratingSummary.value = result.data.prestataireRatingSummary
+    } else {
+      console.log('❌ No rating summary found in result.data')
+      console.log('❌ Result.data content:', result.data)
+    }
+  } catch (error) {
+    console.error('❌ Error fetching rating summary:', error)
+    console.error('❌ Error details:', error.graphQLErrors, error.networkError)
+  } finally {
+    loadingRatingSummary.value = false
+  }
 }
 
 import placeholderImage from '@/assets/placeholder.svg'
@@ -706,13 +743,73 @@ watch([searchTerm, selectedSecteur, selectedRegion, selectedDepartement], () => 
         <!-- Évaluations -->
         <div>
           <h4 class="font-semibold mb-3">Évaluations</h4>
-          <div class="flex items-center space-x-4">
-            <div class="flex items-center space-x-2" v-if="viewPrestataire.rating">
-              <Star class="w-5 h-5 text-yellow-500 fill-current" />
-              <span class="text-lg font-semibold">{{ viewPrestataire.rating }}</span>
-              <span class="text-gray-500">/ 5</span>
+          <!-- DEBUG INFO -->
+          <div class="text-xs text-red-500 mb-2">
+            DEBUG: loadingRatingSummary={{ loadingRatingSummary }}, ratingSummary={{ ratingSummary ? 'exists' : 'null' }}
+          </div>
+          
+          <!-- Loading state -->
+          <div v-if="loadingRatingSummary" class="flex items-center space-x-2">
+            <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
+            <span class="text-sm text-gray-600">Chargement des évaluations...</span>
+          </div>
+          
+          <!-- Rating summary -->
+          <div v-else-if="ratingSummary" class="space-y-4">
+            <!-- Overall rating -->
+            <div class="flex items-center space-x-4">
+              <div class="flex items-center space-x-2">
+                <Star class="w-6 h-6 text-yellow-500 fill-current" />
+                <span class="text-2xl font-bold">{{ ratingSummary.averageRating.toFixed(1) }}</span>
+                <span class="text-gray-500">/ 5</span>
+              </div>
+              <span class="text-sm text-gray-600">({{ ratingSummary.totalRatings }} évaluation{{ ratingSummary.totalRatings > 1 ? 's' : '' }})</span>
             </div>
-            <span v-else class="text-gray-500">Aucune évaluation</span>
+            
+            <!-- Rating breakdown -->
+            <div class="space-y-2">
+              <div v-for="(count, stars) in {
+                5: ratingSummary.ratingBreakdown.fiveStars,
+                4: ratingSummary.ratingBreakdown.fourStars,
+                3: ratingSummary.ratingBreakdown.threeStars,
+                2: ratingSummary.ratingBreakdown.twoStars,
+                1: ratingSummary.ratingBreakdown.oneStar
+              }" :key="stars" class="flex items-center space-x-2 text-sm">
+                <span class="w-8">{{ stars }}★</span>
+                <div class="flex-1 bg-gray-200 rounded-full h-2">
+                  <div 
+                    class="bg-yellow-500 h-2 rounded-full" 
+                    :style="{ width: `${ratingSummary.totalRatings > 0 ? (count / ratingSummary.totalRatings) * 100 : 0}%` }"
+                  ></div>
+                </div>
+                <span class="w-8 text-gray-600">{{ count }}</span>
+              </div>
+            </div>
+            
+            <!-- Latest ratings -->
+            <div v-if="ratingSummary.latestRatings.length > 0" class="mt-4">
+              <h5 class="font-medium mb-2">Dernières évaluations:</h5>
+              <div class="space-y-2 max-h-32 overflow-y-auto">
+                <div v-for="rating in ratingSummary.latestRatings.slice(0, 3)" :key="rating.id" 
+                     class="text-sm bg-gray-50 p-2 rounded">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-1">
+                      <Star class="w-3 h-3 text-yellow-500 fill-current" />
+                      <span class="font-medium">{{ rating.rating }}/5</span>
+                    </div>
+                    <span class="text-xs text-gray-500">{{ new Date(rating.createdAt).toLocaleDateString() }}</span>
+                  </div>
+                  <p v-if="rating.comment" class="text-gray-700 mt-1">{{ rating.comment }}</p>
+                  <p class="text-xs text-gray-500 mt-1">Mission: {{ rating.missionReference }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- No ratings -->
+          <div v-else class="flex items-center space-x-2">
+            <Star class="w-5 h-5 text-gray-300" />
+            <span class="text-gray-500">Aucune évaluation disponible</span>
           </div>
         </div>
       </div>

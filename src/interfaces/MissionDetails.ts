@@ -15,9 +15,7 @@ export interface MissionDetails {
   // Related entities
   societaire?: MissionSocietaire;
   prestataire?: MissionPrestataire;
-  documents: MissionDocument[];
   historique: Historique[];
-  commentaires: Comment[];
 
   // Client information
   civilite?: string;

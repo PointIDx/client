@@ -67,7 +67,7 @@ export interface SubMissionUpdateInput {
 
 export interface SubMissionStatusUpdateInput {
   subMissionId: string
-  status: MissionStatut
+  statut: MissionStatut
   comment?: string
 }
 
@@ -80,7 +80,8 @@ export enum UrgenceLevel {
 
 export enum MissionStatut {
   EN_ATTENTE = 'EN_ATTENTE',
-  ASSIGNEE = 'ASSIGNEE',
+  INVITE = 'INVITE',
+  ASSIGNEE = 'ASSIGNEE', 
   EN_COURS = 'EN_COURS',
   TERMINEE = 'TERMINEE',
   ANNULEE = 'ANNULEE',

@@ -36,12 +36,9 @@ import MissionSummary from '@/components/mission/MissionSummary.vue'
 import MissionDetailedInfo from '@/components/mission/MissionDetailedInfo.vue'
 import MissionParticipants from '@/components/mission/MissionParticipants.vue'
 import MissionActionButtons from '@/components/mission/MissionActionButtons.vue'
-import MissionQuickActions from '@/components/mission/MissionQuickActions.vue'
 import MissionRatingDialog from '@/components/mission/MissionRatingDialog.vue'
 
 // Existing Components
-import MissionDocuments from '@/components/MissionDocuments.vue'
-import MissionComments from '@/components/MissionComments.vue'
 import MissionHistory from '@/components/MissionHistory.vue'
 
 const route = useRoute()
@@ -248,21 +245,8 @@ const handleSubmitRating = async (data: { rating: number; comment: string }) => 
   }
 }
 
-// Event handlers for child components
-const handleDocumentAdded = (document: any) => {
-  // The mission store will handle refreshing the mission details
-  loadMissionDetails()
-}
-
-const handleCommentAdded = (comment: any) => {
-  // The mission store will handle refreshing the mission details
-  loadMissionDetails()
-}
-
-const handleCommentsRefresh = () => {
-  // Trigger refresh using mission store
-  loadMissionDetails()
-}
+// Historic tracking is now only on mission level for mission lifecycle events
+// Document and comment functionality has been moved to sub-missions
 
 // Check what actions are available based on mission status and user role
 const availableActions = computed(() => {
@@ -484,39 +468,12 @@ const availableActions = computed(() => {
         </Card>
       </div>
 
-      <!-- Documents Section -->
-      <MissionDocuments 
-        :mission-id="missionId"
-        :can-upload="true"
-        :can-delete="isAssureur"
-        :loading="missionStore.loadingStates.uploadDocument"
-        @document-added="handleDocumentAdded"
-        data-testid="mission-documents"
-      />
-
-      <!-- Comments Section -->
-      <MissionComments 
-        :mission-id="missionId"
-        :comments="missionStore.comments"
-        :can-comment="true"
-        @comment-added="handleCommentAdded"
-        @refresh-requested="handleCommentsRefresh"
-        data-testid="mission-comments"
-      />
-
       <!-- History Section -->
       <MissionHistory 
         :history="missionStore.history"
         data-testid="mission-history"
       />
 
-      <!-- Quick Actions -->
-      <MissionQuickActions 
-        @upload-document="() => console.log('Upload document')"
-        @new-message="() => console.log('New message')"
-        @schedule-appointment="() => console.log('Schedule appointment')"
-        @report-issue="() => console.log('Report issue')"
-      />
     </div>
 
     <!-- Rating Dialog -->
