@@ -1,12 +1,14 @@
 <template>
-  <Card>
-    <CardHeader>
-      <CardTitle class="flex items-center gap-2">
-        <User class="h-5 w-5" />
-        Informations Client
+  <Card class="shadow-sm border-0 bg-white">
+    <CardHeader class="pb-4">
+      <CardTitle class="flex items-center space-x-3">
+        <div class="flex items-center justify-center w-8 h-8 bg-blue-50 rounded-lg">
+          <User class="w-4 h-4 text-blue-600" />
+        </div>
+        <span class="text-lg font-semibold">Informations Client</span>
       </CardTitle>
     </CardHeader>
-    <CardContent class="space-y-3">
+    <CardContent class="pt-0 space-y-3">
       <div v-if="mission.civilite || mission.nom || mission.prenom" class="flex items-center justify-between py-2">
         <div class="text-sm font-medium text-gray-600">Nom complet</div>
         <div class="text-sm text-gray-900 font-medium">

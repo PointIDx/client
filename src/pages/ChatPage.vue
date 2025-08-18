@@ -356,6 +356,7 @@ onUnmounted(() => {
         :selectedChatId="selectedChat?.id"
         :totalUnreadCount="chatStore.totalUnreadCount"
         @selectChat="handleSelectChat"
+        @goBack="router.back()"
       />
 
       <!-- Main Chat Area -->

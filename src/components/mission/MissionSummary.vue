@@ -1,12 +1,14 @@
 <template>
-  <Card>
-    <CardHeader>
-      <CardTitle class="flex items-center gap-2">
-        <Briefcase class="h-5 w-5" />
-        Résumé de la Mission
+  <Card class="shadow-sm border-0 bg-white">
+    <CardHeader class="pb-4">
+      <CardTitle class="flex items-center space-x-3">
+        <div class="flex items-center justify-center w-8 h-8 bg-purple-50 rounded-lg">
+          <Briefcase class="w-4 h-4 text-purple-600" />
+        </div>
+        <span class="text-lg font-semibold">Résumé de la Mission</span>
       </CardTitle>
     </CardHeader>
-    <CardContent class="space-y-3">
+    <CardContent class="pt-0 space-y-3">
       <div class="flex items-center justify-between py-2">
         <div class="flex items-center gap-2 text-sm font-medium text-gray-600">
           <Euro class="h-4 w-4" />

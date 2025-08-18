@@ -1,12 +1,14 @@
 <template>
-  <Card>
-    <CardHeader>
-      <CardTitle class="flex items-center gap-2">
-        <AlertTriangle class="h-5 w-5" />
-        Informations Sinistre
+  <Card class="shadow-sm border-0 bg-white">
+    <CardHeader class="pb-4">
+      <CardTitle class="flex items-center space-x-3">
+        <div class="flex items-center justify-center w-8 h-8 bg-red-50 rounded-lg">
+          <AlertTriangle class="w-4 h-4 text-red-600" />
+        </div>
+        <span class="text-lg font-semibold">Informations Sinistre</span>
       </CardTitle>
     </CardHeader>
-    <CardContent class="space-y-3">
+    <CardContent class="pt-0 space-y-3">
       <div v-if="mission.sinistreType" class="flex items-center justify-between py-2">
         <div class="text-sm font-medium text-gray-600">Type de sinistre</div>
         <div class="text-sm text-gray-900 font-medium">{{ mission.sinistreType }}</div>

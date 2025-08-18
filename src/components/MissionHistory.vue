@@ -1,12 +1,14 @@
 <template>
-  <Card>
-    <CardHeader>
-      <CardTitle class="flex items-center space-x-2">
-        <History class="w-5 h-5" />
-        <span>Historique des modifications ({{ history.length }})</span>
+  <Card class="shadow-sm border-0 bg-white">
+    <CardHeader class="pb-4">
+      <CardTitle class="flex items-center space-x-3">
+        <div class="flex items-center justify-center w-8 h-8 bg-gray-50 rounded-lg">
+          <History class="w-4 h-4 text-gray-600" />
+        </div>
+        <span class="text-lg font-semibold">Historique des modifications ({{ history.length }})</span>
       </CardTitle>
     </CardHeader>
-    <CardContent>
+    <CardContent class="pt-0">
       <!-- Empty State -->
       <div v-if="history.length === 0" class="text-center py-8 text-gray-500">
         <History class="w-12 h-12 mx-auto mb-4 text-gray-300" />

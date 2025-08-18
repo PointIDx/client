@@ -1,12 +1,14 @@
 <template>
-  <Card>
-    <CardHeader>
-      <CardTitle class="flex items-center space-x-2">
-        <Upload class="w-5 h-5" />
-        <span>Ajouter un document</span>
+  <Card class="shadow-sm border-0 bg-white">
+    <CardHeader class="pb-4">
+      <CardTitle class="flex items-center space-x-3">
+        <div class="flex items-center justify-center w-8 h-8 bg-orange-50 rounded-lg">
+          <Upload class="w-4 h-4 text-orange-600" />
+        </div>
+        <span class="text-lg font-semibold">Ajouter un document</span>
       </CardTitle>
     </CardHeader>
-    <CardContent class="space-y-4">
+    <CardContent class="pt-0 space-y-4">
       <!-- File Upload Area -->
       <div
         class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors cursor-pointer"

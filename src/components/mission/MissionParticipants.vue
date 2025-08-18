@@ -1,12 +1,14 @@
 <template>
-  <Card>
-    <CardHeader>
-      <CardTitle class="flex items-center gap-2">
-        <Users class="h-5 w-5" />
-        Participants à la Mission
+  <Card class="shadow-sm border-0 bg-white">
+    <CardHeader class="pb-4">
+      <CardTitle class="flex items-center space-x-3">
+        <div class="flex items-center justify-center w-8 h-8 bg-amber-50 rounded-lg">
+          <Users class="w-4 h-4 text-amber-600" />
+        </div>
+        <span class="text-lg font-semibold">Participants à la Mission</span>
       </CardTitle>
     </CardHeader>
-    <CardContent>
+    <CardContent class="pt-0">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <!-- Client -->
         <div v-if="mission.societaire" class="text-center space-y-4">

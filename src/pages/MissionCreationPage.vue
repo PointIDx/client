@@ -32,6 +32,7 @@ import {
 import { useForm, Form } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import * as z from 'zod'
+import { toast } from 'vue-sonner'
 
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 
@@ -102,7 +103,10 @@ const clientFormSchema = toTypedSchema(z.object({
   // Incident Information (Required)
   sinistreType: z.string().min(1, 'Le type de sinistre est requis.'),
   sinistreDescription: z.string().min(1, 'La description est requise.'),
-  sinistreUrgence: z.string().min(1, "Le niveau d'urgence est requis."),
+  sinistreUrgence: z.string().min(1, "Le niveau d'urgence est requis.").refine(
+    (value) => ['BASSE', 'MOYENNE', 'HAUTE', 'CRITIQUE'].includes(value),
+    { message: "Le niveau d'urgence est requis." }
+  ),
   sinistreDateSinistre: z.string().optional(),
   sinistreDateIntervention: z.string().optional(),
   numeroSinistre: z.string().optional(),
@@ -129,16 +133,21 @@ const clientFormSchema = toTypedSchema(z.object({
 }))
 
 
-const {handleSubmit, values, setFieldValue} = useForm({
+const {handleSubmit, values, setFieldValue, validate, validateField, errors} = useForm({
   validationSchema: clientFormSchema,
   initialValues: {
     chantierMemeAdresseClient: false,
     emailClient: true,
     smsClient: false,
     creerAccesClient: true,
-    sinistreUrgence: 'MOYENNE',
+    sinistreUrgence: '',
   }
 })
+
+// Helper function to get error styling for form fields
+const getFieldErrorClass = (fieldName: string) => {
+  return errors.value[fieldName] ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+}
 
 // Function to copy client address to chantier address
 const copyClientAddressToChantier = () => {
@@ -228,7 +237,42 @@ const removeDocument = (index: number) => {
   documents.value = documents.value.filter((_, i) => i !== index)
 }
 
-const nextStep = () => {
+const nextStep = async () => {
+  if (currentStep.value === 1) {
+    // Validate current form before proceeding to next step
+    const result = await validate()
+    if (!result.valid) {
+      // Show error toast with field errors
+      const errorFields = Object.keys(result.errors)
+      toast.error('Veuillez remplir tous les champs obligatoires', {
+        description: `Erreurs dans: ${errorFields.map(field => {
+          const fieldLabels: Record<string, string> = {
+            'civilite': 'Civilité',
+            'nom': 'Nom', 
+            'prenom': 'Prénom',
+            'telephone': 'Téléphone',
+            'chantierAdresse': 'Adresse du chantier',
+            'chantierCodePostal': 'Code postal du chantier',
+            'chantierVille': 'Ville du chantier',
+            'sinistreType': 'Type de sinistre',
+            'sinistreDescription': 'Description du sinistre',
+            'sinistreUrgence': "Niveau d'urgence",
+            'titre': 'Titre de la mission',
+            'description': 'Description de la mission'
+          }
+          return fieldLabels[field] || field
+        }).join(', ')}`,
+        duration: 5000
+      })
+      
+      // Log current form values for debugging
+      console.log('❌ Form validation failed on step 1')
+      console.log('Current form values:', values)
+      console.log('Validation errors:', result.errors)
+      return
+    }
+  }
+  
   if (currentStep.value < 3) {
     currentStep.value++
   }
@@ -335,9 +379,33 @@ const onSubmit = handleSubmit(async (values) => {
     console.error('Error creating mission:', error)
     console.error('Failed to create mission. Please try again.')
   }
-}, (errors) => {
-  console.log('❌ Form validation failed:', errors)
+}, (validationErrors) => {
+  console.log('❌ Form validation failed:', validationErrors)
   console.log('Current form values:', values)
+  
+  // Show detailed error toast
+  const errorFields = Object.keys(validationErrors)
+  toast.error('Veuillez corriger les erreurs dans le formulaire', {
+    description: `Erreurs dans: ${errorFields.map(field => {
+      const fieldLabels: Record<string, string> = {
+        'civilite': 'Civilité',
+        'nom': 'Nom', 
+        'prenom': 'Prénom',
+        'telephone': 'Téléphone',
+        'email': 'Email',
+        'chantierAdresse': 'Adresse du chantier',
+        'chantierCodePostal': 'Code postal du chantier',
+        'chantierVille': 'Ville du chantier',
+        'sinistreType': 'Type de sinistre',
+        'sinistreDescription': 'Description du sinistre',
+        'sinistreUrgence': "Niveau d'urgence",
+        'titre': 'Titre de la mission',
+        'description': 'Description de la mission'
+      }
+      return fieldLabels[field] || field
+    }).join(', ')}`,
+    duration: 8000
+  })
 })
 
 
@@ -423,7 +491,7 @@ const onSubmit = handleSubmit(async (values) => {
                     <FormLabel>Civilité *</FormLabel>
                     <FormControl>
                       <Select :model-value="field.value" @update:model-value="field.onChange" :name="field.name">
-                        <SelectTrigger data-testid="client-civilite-select">
+                        <SelectTrigger data-testid="client-civilite-select" :class="getFieldErrorClass('civilite')">
                           <SelectValue placeholder="Sélectionnez" />
                         </SelectTrigger>
                         <SelectContent>
@@ -441,7 +509,7 @@ const onSubmit = handleSubmit(async (values) => {
                   <FormItem>
                     <FormLabel>Nom *</FormLabel>
                     <FormControl>
-                      <Input type="text" placeholder="Nom de famille" v-bind="field" data-testid="client-nom-input" />
+                      <Input type="text" placeholder="Nom de famille" v-bind="field" data-testid="client-nom-input" :class="getFieldErrorClass('nom')" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -451,7 +519,7 @@ const onSubmit = handleSubmit(async (values) => {
                   <FormItem>
                     <FormLabel>Prénom *</FormLabel>
                     <FormControl>
-                      <Input type="text" placeholder="Prénom" v-bind="field" data-testid="client-prenom-input" />
+                      <Input type="text" placeholder="Prénom" v-bind="field" data-testid="client-prenom-input" :class="getFieldErrorClass('prenom')" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -464,7 +532,7 @@ const onSubmit = handleSubmit(async (values) => {
                     <FormLabel>Téléphone *</FormLabel>
                     <FormControl>
                       <Input type="tel" placeholder="06 12 34 56 78" v-bind="field"
-                        data-testid="client-telephone-input" />
+                        data-testid="client-telephone-input" :class="getFieldErrorClass('telephone')" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -548,7 +616,7 @@ const onSubmit = handleSubmit(async (values) => {
                   <FormLabel>Adresse du chantier *</FormLabel>
                   <FormControl>
                     <Input type="text" placeholder="Adresse complète du lieu d'intervention" v-bind="field"
-                       data-testid="chantier-adresse-input" :disabled="values.chantierMemeAdresseClient" />
+                       data-testid="chantier-adresse-input" :disabled="values.chantierMemeAdresseClient" :class="getFieldErrorClass('chantierAdresse')" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -560,7 +628,7 @@ const onSubmit = handleSubmit(async (values) => {
                     <FormLabel>Code postal *</FormLabel>
                     <FormControl>
                       <Input type="text" placeholder="75001" v-bind="field"
-                         data-testid="chantier-codepostal-input" :disabled="values.chantierMemeAdresseClient" />
+                         data-testid="chantier-codepostal-input" :disabled="values.chantierMemeAdresseClient" :class="getFieldErrorClass('chantierCodePostal')" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -571,7 +639,7 @@ const onSubmit = handleSubmit(async (values) => {
                     <FormLabel>Ville *</FormLabel>
                     <FormControl>
                       <Input type="text" placeholder="Paris" v-bind="field"
-                         data-testid="chantier-ville-input" :disabled="values.chantierMemeAdresseClient" />
+                         data-testid="chantier-ville-input" :disabled="values.chantierMemeAdresseClient" :class="getFieldErrorClass('chantierVille')" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -644,7 +712,7 @@ const onSubmit = handleSubmit(async (values) => {
                   <FormLabel>Type de sinistre *</FormLabel>
                   <FormControl>
                     <Select :model-value="field.value" @update:model-value="field.onChange" :name="field.name">
-                      <SelectTrigger data-testid="sinistre-type-select">
+                      <SelectTrigger data-testid="sinistre-type-select" :class="getFieldErrorClass('sinistreType')">
                         <SelectValue placeholder="Sélectionnez le type" />
                       </SelectTrigger>
                       <SelectContent>
@@ -684,9 +752,9 @@ const onSubmit = handleSubmit(async (values) => {
 
             <FormField v-slot="{ field }"  name="sinistreUrgence">
               <FormItem>
-                <FormLabel>Niveau d'urgence *</FormLabel>
+                <FormLabel :class="errors.sinistreUrgence ? 'text-red-600' : ''">Niveau d'urgence *</FormLabel>
                 <FormControl>
-                  <RadioGroup v-bind="field" class="flex space-x-6 mt-2" data-testid="sinistre-urgence-radiogroup">
+                  <RadioGroup v-bind="field" class="flex space-x-6 mt-2" data-testid="sinistre-urgence-radiogroup" :class="errors.sinistreUrgence ? 'border-2 border-red-500 rounded-md p-3 bg-red-50' : 'p-3'">
                     <div v-for="niveau in niveauxUrgence" :key="niveau.value" class="flex items-center space-x-2">
                       <RadioGroupItem :value="niveau.value" :id="niveau.value" />
                       <Label :for="niveau.value" :class="`px-3 py-1 rounded-full text-sm font-medium ${niveau.color}`">
@@ -726,7 +794,7 @@ const onSubmit = handleSubmit(async (values) => {
                 <FormLabel>Description détaillée *</FormLabel>
                 <FormControl>
                   <Textarea placeholder="Décrivez précisément les dégâts constatés et les travaux à réaliser..."
-                    v-bind="field" rows="4" data-testid="sinistre-description-textarea" />
+                    v-bind="field" rows="4" data-testid="sinistre-description-textarea" :class="getFieldErrorClass('sinistreDescription')" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -754,7 +822,7 @@ const onSubmit = handleSubmit(async (values) => {
                 <FormLabel>Titre de la mission *</FormLabel>
                 <FormControl>
                   <Input type="text" placeholder="Ex: Réparation dégât des eaux - Salle de bain" v-bind="field"
-                    data-testid="mission-titre-input" />
+                    data-testid="mission-titre-input" :class="getFieldErrorClass('titre')" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -765,7 +833,7 @@ const onSubmit = handleSubmit(async (values) => {
                 <FormLabel>Description de la mission *</FormLabel>
                 <FormControl>
                   <Textarea placeholder="Décrivez précisément les travaux à réaliser, les prestations attendues..."
-                    v-bind="field" rows="4" data-testid="mission-description-textarea" />
+                    v-bind="field" rows="4" data-testid="mission-description-textarea" :class="getFieldErrorClass('description')" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -1004,8 +1072,8 @@ const onSubmit = handleSubmit(async (values) => {
 
 
           <!-- Step 1 Navigation -->
-          <div class="flex space-x-2 w-full">
-            <Button @click="nextStep" class="flex items-center w-full space-x-2 bg-blue-600 text-white">
+          <div class="flex justify-end">
+            <Button @click="nextStep" class="flex items-center space-x-2 bg-blue-600 text-white px-8 py-2">
               <span>Suivant: Sous-missions</span>
             </Button>
           </div>
@@ -1100,11 +1168,11 @@ const onSubmit = handleSubmit(async (values) => {
             </Card>
 
             <!-- Step 2 Navigation -->
-            <div class="flex space-x-2 w-full mt-6">
-              <Button @click="previousStep" variant="outline" class="w-full">
+            <div class="flex justify-between mt-6">
+              <Button @click="previousStep" variant="outline" class="px-8 py-2">
                 <span>Précédent</span>
               </Button>
-              <Button @click="nextStep" class="flex items-center w-full space-x-2 bg-blue-600 text-white">
+              <Button @click="nextStep" class="flex items-center space-x-2 bg-blue-600 text-white px-8 py-2">
                 <span>Suivant: Récapitulatif</span>
               </Button>
             </div>
@@ -1193,12 +1261,12 @@ const onSubmit = handleSubmit(async (values) => {
               </Card>
 
               <!-- Final Navigation -->
-              <div class="flex space-x-2 w-full mt-6">
-                <Button @click="previousStep" variant="outline" class="w-full" type="button">
+              <div class="flex justify-between mt-6">
+                <Button @click="previousStep" variant="outline" class="px-8 py-2" type="button">
                   <span>Précédent</span>
                 </Button>
                 <Button type="submit"
-                  class="flex items-center w-full space-x-2 bg-black text-white rounded-md px-4 py-2" data-testid="create-mission-button">
+                  class="flex items-center space-x-2 bg-black text-white rounded-md px-8 py-2" data-testid="create-mission-button">
                   <Send class="w-4 h-4" />
                   <span>Créer la mission</span>
                 </Button>

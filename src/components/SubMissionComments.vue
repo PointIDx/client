@@ -1,14 +1,16 @@
 <template>
   <div class="space-y-4">
     <!-- Add Comment Section -->
-    <Card v-if="canComment">
-      <CardHeader>
-        <CardTitle class="flex items-center space-x-2">
-          <MessageCircle class="w-5 h-5" />
-          <span>Ajouter un commentaire</span>
+    <Card v-if="canComment" class="shadow-sm border-0 bg-white">
+      <CardHeader class="pb-4">
+        <CardTitle class="flex items-center space-x-3">
+          <div class="flex items-center justify-center w-8 h-8 bg-green-50 rounded-lg">
+            <MessageCircle class="w-4 h-4 text-green-600" />
+          </div>
+          <span class="text-lg font-semibold">Ajouter un commentaire</span>
         </CardTitle>
       </CardHeader>
-      <CardContent class="space-y-4">
+      <CardContent class="pt-0 space-y-4">
         <Textarea
           v-model="newComment"
           placeholder="Écrivez votre commentaire ici..."
@@ -35,12 +37,14 @@
     </Card>
     
     <!-- Comments List -->
-    <Card>
-      <CardHeader>
+    <Card class="shadow-sm border-0 bg-white">
+      <CardHeader class="pb-4">
         <CardTitle class="flex items-center justify-between">
-          <div class="flex items-center space-x-2">
-            <MessageCircle class="w-5 h-5" />
-            <span>Messages et commentaires ({{ comments.length }})</span>
+          <div class="flex items-center space-x-3">
+            <div class="flex items-center justify-center w-8 h-8 bg-purple-50 rounded-lg">
+              <MessageCircle class="w-4 h-4 text-purple-600" />
+            </div>
+            <span class="text-lg font-semibold">Messages et commentaires ({{ comments.length }})</span>
           </div>
           <Button 
             variant="outline" 
@@ -53,7 +57,7 @@
           </Button>
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent class="pt-0">
         <!-- Loading State -->
         <div v-if="loading" class="text-center py-8">
           <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>

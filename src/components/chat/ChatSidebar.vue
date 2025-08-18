@@ -3,7 +3,16 @@
     <!-- Header -->
     <div class="px-6 py-4 border-b border-gray-100">
       <div class="flex items-center justify-between mb-4">
-        <h1 class="text-2xl font-bold text-gray-900">Messages</h1>
+        <div class="flex items-center space-x-3">
+          <button 
+            @click="$emit('goBack')"
+            class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
+            title="Retour"
+          >
+            <ArrowLeft class="w-5 h-5" />
+          </button>
+          <h1 class="text-2xl font-bold text-gray-900">Messages</h1>
+        </div>
         <div class="flex items-center gap-2">
           <!-- New Message Button -->
           <button class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors">
@@ -161,6 +170,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { ArrowLeft } from 'lucide-vue-next'
 import type { Chat } from '@/interfaces/chat'
 
 interface Props {
@@ -175,6 +185,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 defineEmits<{
   selectChat: [chat: Chat]
+  goBack: []
 }>()
 
 const searchQuery = ref('')

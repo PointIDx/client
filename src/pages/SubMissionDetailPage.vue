@@ -51,6 +51,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useAssureurStore } from '@/stores/assureur'
 import { GET_SUB_MISSION_RATING_QUERY } from '@/graphql/queries/get-mission-rating'
 import { useApolloClient } from '@vue/apollo-composable'
+import { toast } from 'vue-sonner'
 import type { SubMission, SubMissionDetails, MissionStatut } from '@/interfaces/sub-mission'
 import type { Prestataire } from '@/interfaces/prestataire'
 import type { FiltresDeRecherche } from '@/interfaces/filtres-de-recherche'
@@ -92,6 +93,8 @@ const loadingRating = ref(false)
 const rating = ref(0)
 const ratingComment = ref('')
 const hasExistingRating = ref(false)
+const ratingError = ref(false)
+const statusError = ref(false)
 
 // Pagination state
 const currentPage = ref(1)
@@ -175,15 +178,45 @@ const handleCommentsRefresh = () => {
 const openRatingDialog = () => {
   rating.value = 0
   ratingComment.value = ''
+  ratingError.value = false
   showRatingDialog.value = true
+}
+
+// Clear rating error when user selects a rating
+const selectRating = (star: number) => {
+  rating.value = star
+  ratingError.value = false
+}
+
+// Clear status error when user selects a status  
+const selectStatus = (status: string) => {
+  newStatus.value = status
+  statusError.value = false
 }
 
 // Submit rating
 const submitRating = async () => {
-  if (!missionStore.currentSubMission || rating.value === 0) return
+  if (!missionStore.currentSubMission) return
+  
+  // Validate rating is selected
+  if (rating.value === 0) {
+    ratingError.value = true
+    toast.error('Veuillez sélectionner une note', {
+      description: 'Une note entre 1 et 5 étoiles est requise pour évaluer le prestataire.',
+      duration: 4000
+    })
+    return
+  }
+  
+  ratingError.value = false
   
   try {
     await missionStore.rateSubMission(missionStore.currentSubMission.id, rating.value, ratingComment.value)
+    
+    toast.success('Évaluation envoyée avec succès', {
+      description: `Note de ${rating.value}/5 attribuée au prestataire.`,
+      duration: 3000
+    })
     
     showRatingDialog.value = false
     rating.value = 0
@@ -193,6 +226,10 @@ const submitRating = async () => {
     await checkExistingRating()
   } catch (error) {
     console.error('Error submitting rating:', error)
+    toast.error('Erreur lors de l\'envoi de l\'évaluation', {
+      description: 'Veuillez réessayer plus tard.',
+      duration: 4000
+    })
   }
 }
 
@@ -240,6 +277,11 @@ const viewPrestataireDetails = (prestataire: Prestataire) => {
 // Watch for changes in filters to reset pagination
 watch([searchTerm, selectedSecteur, selectedRegion, selectedDepartement], () => {
   currentPage.value = 1
+})
+
+// Watch for status change to clear errors
+watch(newStatus, () => {
+  statusError.value = false
 })
 
 const goBack = () => {
@@ -334,6 +376,18 @@ const acceptSubMission = async () => {
 const updateSubMissionStatus = async () => {
   if (!missionStore.currentSubMission) return
   
+  // Validate status is selected
+  if (!newStatus.value || newStatus.value.trim() === '') {
+    statusError.value = true
+    toast.error('Veuillez sélectionner un statut', {
+      description: 'Un statut doit être sélectionné pour mettre à jour la sous-mission.',
+      duration: 4000
+    })
+    return
+  }
+  
+  statusError.value = false
+  
   isUpdatingStatus.value = true
   try {
     await missionStore.updateSubMissionStatus({
@@ -342,11 +396,29 @@ const updateSubMissionStatus = async () => {
       comment: `Status updated to ${newStatus.value}`
     })
     
+    const statusLabels: Record<string, string> = {
+      'EN_ATTENTE': 'En attente',
+      'ASSIGNEE': 'Assignée',
+      'EN_COURS': 'En cours', 
+      'TERMINEE': 'Terminée',
+      'SUSPENDUE': 'Suspendue',
+      'ANNULEE': 'Annulée'
+    }
+    
+    toast.success('Statut mis à jour avec succès', {
+      description: `Statut changé vers: ${statusLabels[newStatus.value] || newStatus.value}`,
+      duration: 3000
+    })
+    
     // Refresh sub-mission details
     await loadSubMissionDetails()
     showStatusDialog.value = false
   } catch (error) {
     console.error('Error updating sub-mission status:', error)
+    toast.error('Erreur lors de la mise à jour du statut', {
+      description: 'Veuillez réessayer plus tard.',
+      duration: 4000
+    })
   } finally {
     isUpdatingStatus.value = false
   }
@@ -416,386 +488,511 @@ const getUrgenceBadge = (urgence: string) => {
 </script>
 
 <template>
-  <div class="p-6 space-y-6">
-    <!-- Header -->
-    <div class="flex items-center justify-between">
-      <div class="flex items-center space-x-4">
-        <Button variant="outline" size="sm" @click="goBack" data-testid="back-button">
-          <ArrowLeft class="w-4 h-4 mr-2" />
-          Retour
-        </Button>
-        <div>
-          <h1 class="text-2xl font-bold">Détails de la sous-mission</h1>
-          <p class="text-gray-600" v-if="missionStore.currentSubMission">
-            Référence: {{ missionStore.currentSubMission.reference }}
-          </p>
+  <div class="min-h-screen bg-gray-100">
+    <!-- Navigation Header -->
+    <div class="bg-white border-b border-gray-200 sticky top-0 z-50">
+      <div class="p-4">
+        <div class="flex items-center justify-between h-12">
+          <!-- Left side - Back button and title -->
+          <div class="flex items-center space-x-3">
+            <Button variant="ghost" size="sm" @click="goBack" data-testid="back-button" class="hover:bg-gray-100">
+              <ArrowLeft class="w-4 h-4 mr-2" />
+              Retour
+            </Button>
+            <Separator orientation="vertical" class="h-4" />
+            <div class="flex items-center space-x-2">
+              <div class="flex items-center justify-center w-8 h-8 bg-blue-100 rounded-lg">
+                <Briefcase class="w-4 h-4 text-blue-600" />
+              </div>
+              <div>
+                <h1 class="text-lg font-semibold text-gray-900">Détails de la sous-mission</h1>
+                <p class="text-sm text-gray-500" v-if="missionStore.currentSubMission">
+                  Référence: {{ missionStore.currentSubMission.reference }}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Right side - Action buttons -->
+          <div v-if="missionStore.currentSubMission" class="flex items-center space-x-2">
+            <!-- Accept Button (Prestataires only) -->
+            <Button 
+              v-if="canAccept" 
+              @click="acceptSubMission" 
+              :disabled="isAccepting"
+              data-testid="accept-button"
+              class="bg-green-600 hover:bg-green-700 text-white"
+            >
+              <Check class="w-4 h-4 mr-2" />
+              {{ isAccepting ? 'Acceptation...' : 'Accepter' }}
+            </Button>
+            
+            <!-- Update Status Button -->
+            <Button 
+              v-if="canUpdateStatus" 
+              @click="showStatusDialog = true" 
+              variant="outline"
+              data-testid="status-button"
+              class="border-gray-300 hover:bg-gray-50"
+            >
+              <Play class="w-4 h-4 mr-2" />
+              Mettre à jour le statut
+            </Button>
+            
+            <!-- Rating Button -->
+            <Button 
+              v-if="canRate" 
+              @click="openRatingDialog" 
+              data-testid="rating-button"
+              class="bg-amber-500 hover:bg-amber-600 text-white"
+            >
+              <Star class="w-4 h-4 mr-2" />
+              Noter le prestataire
+            </Button>
+          </div>
         </div>
       </div>
-      
-      <!-- Action Buttons -->
-      <div v-if="missionStore.currentSubMission" class="flex flex-wrap gap-3">
-        
-        <!-- Accept Button (Prestataires only) -->
-        <Button 
-          v-if="canAccept" 
-          @click="acceptSubMission" 
-          :disabled="isAccepting"
-          data-testid="accept-button"
-        >
-          <Check class="w-4 h-4 mr-2" />
-          {{ isAccepting ? 'Acceptation...' : 'Accepter cette sous-mission' }}
-        </Button>
-        
-        <!-- Update Status Button -->
-        <Button 
-          v-if="canUpdateStatus" 
-          @click="showStatusDialog = true" 
-          variant="outline"
-          data-testid="status-button"
-        >
-          <Play class="w-4 h-4 mr-2" />
-          Mettre à jour le statut
-        </Button>
-        
-        <!-- Rating Button -->
-        <Button 
-          v-if="canRate" 
-          @click="openRatingDialog" 
-          variant="default"
-          class="bg-yellow-600 hover:bg-yellow-700"
-          data-testid="rating-button"
-        >
-          <Star class="w-4 h-4 mr-2" />
-          Noter le prestataire
-        </Button>
-      </div>
     </div>
 
-    <!-- Loading State -->
-    <div v-if="missionStore.isLoading" class="flex items-center justify-center py-12">
-      <div class="text-center">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-black mx-auto"></div>
-        <p class="mt-2 text-gray-600">Chargement des détails...</p>
+    <!-- Main Content -->
+    <div class="p-4">
+      <!-- Loading State -->
+      <div v-if="missionStore.isLoading" class="flex items-center justify-center py-20">
+        <div class="text-center">
+          <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto"></div>
+          <p class="mt-4 text-gray-600">Chargement des détails...</p>
+        </div>
       </div>
-    </div>
 
-    <!-- Sub-Mission Details -->
-    <div v-else-if="missionStore.currentSubMission" class="space-y-6">
-      <!-- Status and Info Card -->
-      <Card>
-        <CardHeader>
-          <div class="flex items-center justify-between">
-            <CardTitle class="flex items-center space-x-2">
-              <Briefcase class="w-5 h-5" />
-              <span>{{ missionStore.currentSubMission.title }}</span>
+      <!-- Sub-Mission Details -->
+      <div v-else-if="missionStore.currentSubMission" class="space-y-8">
+        <!-- Overview Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <!-- Main Info Card -->
+          <div class="lg:col-span-2">
+            <Card class="shadow-sm border-0 bg-white">
+              <CardHeader class="pb-4">
+                <div class="flex items-start justify-between">
+                  <div class="flex items-start space-x-3">
+                    <div class="flex items-center justify-center w-12 h-12 bg-blue-50 rounded-xl">
+                      <Briefcase class="w-6 h-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <CardTitle class="text-xl font-bold text-gray-900 mb-1">
+                        {{ missionStore.currentSubMission.title }}
+                      </CardTitle>
+                      <p class="text-sm text-gray-500">{{ missionStore.currentSubMission.specialization }}</p>
+                    </div>
+                  </div>
+                  <div class="flex flex-col space-y-2">
+                    <Badge :class="getStatutBadge(missionStore.currentSubMission.statut).class" class="w-fit">
+                      <component :is="getStatutBadge(missionStore.currentSubMission.statut).icon" class="w-3 h-3 mr-1" />
+                      {{ getStatutBadge(missionStore.currentSubMission.statut).text }}
+                    </Badge>
+                    <Badge :class="getUrgenceBadge(missionStore.currentSubMission.urgence).class" class="w-fit">
+                      {{ getUrgenceBadge(missionStore.currentSubMission.urgence).text }}
+                    </Badge>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent class="pt-0">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div class="space-y-4">
+                    <div v-if="missionStore.currentSubMission.estimatedCost">
+                      <div class="flex items-center space-x-2 text-green-600">
+                        <div class="flex items-center justify-center w-8 h-8 bg-green-50 rounded-lg">
+                          <Euro class="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p class="text-sm text-gray-600">Coût estimé</p>
+                          <p class="font-semibold">{{ missionStore.currentSubMission.estimatedCost }}€</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div v-if="missionStore.currentSubMission.estimatedDurationHours">
+                      <div class="flex items-center space-x-2 text-blue-600">
+                        <div class="flex items-center justify-center w-8 h-8 bg-blue-50 rounded-lg">
+                          <Clock class="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p class="text-sm text-gray-600">Durée estimée</p>
+                          <p class="font-semibold">{{ missionStore.currentSubMission.estimatedDurationHours }}h</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="space-y-4">
+                    <div>
+                      <div class="flex items-center space-x-2 text-gray-600">
+                        <div class="flex items-center justify-center w-8 h-8 bg-gray-50 rounded-lg">
+                          <Calendar class="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p class="text-sm text-gray-600">Date de création</p>
+                          <p class="font-semibold">{{ new Date(missionStore.currentSubMission.createdAt).toLocaleDateString() }}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <!-- Quick Actions Sidebar -->
+          <div class="space-y-6">
+            <!-- Quick Stats -->
+            <Card class="shadow-sm border-0 bg-white">
+              <CardHeader class="pb-3">
+                <CardTitle class="text-lg font-semibold">Informations rapides</CardTitle>
+              </CardHeader>
+              <CardContent class="pt-0 space-y-3">
+                <div class="flex items-center justify-between py-2">
+                  <span class="text-sm text-gray-600">Référence</span>
+                  <span class="text-sm font-medium">{{ missionStore.currentSubMission.reference }}</span>
+                </div>
+                <Separator />
+                <div class="flex items-center justify-between py-2">
+                  <span class="text-sm text-gray-600">Spécialisation</span>
+                  <Badge variant="secondary" class="text-xs">{{ missionStore.currentSubMission.specialization }}</Badge>
+                </div>
+                <Separator />
+                <div class="flex items-center justify-between py-2">
+                  <span class="text-sm text-gray-600">Urgence</span>
+                  <Badge :class="getUrgenceBadge(missionStore.currentSubMission.urgence).class" class="text-xs">
+                    {{ getUrgenceBadge(missionStore.currentSubMission.urgence).text }}
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        <!-- Description Section -->
+        <Card class="shadow-sm border-0 bg-white">
+          <CardHeader class="pb-4">
+            <CardTitle class="flex items-center space-x-3">
+              <div class="flex items-center justify-center w-8 h-8 bg-gray-50 rounded-lg">
+                <FileText class="w-4 h-4 text-gray-600" />
+              </div>
+              <span class="text-lg font-semibold">Description de la mission</span>
             </CardTitle>
-            <div class="flex space-x-2">
-              <Badge :class="getStatutBadge(missionStore.currentSubMission.statut).class">
-                <component :is="getStatutBadge(missionStore.currentSubMission.statut).icon" class="w-3 h-3 mr-1" />
-                {{ getStatutBadge(missionStore.currentSubMission.statut).text }}
-              </Badge>
-              <Badge :class="getUrgenceBadge(missionStore.currentSubMission.urgence).class">
-                {{ getUrgenceBadge(missionStore.currentSubMission.urgence).text }}
-              </Badge>
+          </CardHeader>
+          <CardContent class="pt-0">
+            <div class="prose prose-sm max-w-none">
+              <p class="text-gray-700 leading-relaxed whitespace-pre-wrap">{{ missionStore.currentSubMission.description }}</p>
             </div>
-          </div>
-        </CardHeader>
-        <CardContent class="space-y-4">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <h4 class="font-semibold mb-2">Spécialisation</h4>
-              <p class="text-gray-700">{{ missionStore.currentSubMission.specialization }}</p>
-            </div>
-            <div v-if="missionStore.currentSubMission.estimatedCost">
-              <h4 class="font-semibold mb-2">Coût estimé</h4>
-              <div class="flex items-center text-green-600 font-semibold">
-                <Euro class="w-4 h-4 mr-1" />
-                {{ missionStore.currentSubMission.estimatedCost }}€
-              </div>
-            </div>
-            <div v-if="missionStore.currentSubMission.estimatedDurationHours">
-              <h4 class="font-semibold mb-2">Durée estimée</h4>
-              <div class="flex items-center text-gray-700">
-                <Clock class="w-4 h-4 mr-1" />
-                {{ missionStore.currentSubMission.estimatedDurationHours }}h
-              </div>
-            </div>
-            <div>
-              <h4 class="font-semibold mb-2">Date de création</h4>
-              <div class="flex items-center text-gray-700">
-                <Calendar class="w-4 h-4 mr-1" />
-                {{ new Date(missionStore.currentSubMission.createdAt).toLocaleDateString() }}
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      <!-- Description -->
-      <Card>
-        <CardHeader>
-          <CardTitle class="flex items-center space-x-2">
-            <FileText class="w-5 h-5" />
-            <span>Description</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p class="text-gray-700 whitespace-pre-wrap">{{ missionStore.currentSubMission.description }}</p>
-        </CardContent>
-      </Card>
-
-      <!-- Prestataire Info (if assigned) -->
-      <Card v-if="missionStore.currentSubMission.prestataire">
-        <CardHeader>
-          <CardTitle class="flex items-center space-x-2">
-            <User class="w-5 h-5" />
-            <span>Prestataire assigné</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div class="space-y-4">
-            <!-- Prestataire Header -->
-            <div class="flex items-center space-x-4">
-              <Avatar class="w-16 h-16">
-                <AvatarImage :src="placeholderImage" />
-                <AvatarFallback class="text-lg">
-                  {{ missionStore.currentSubMission.prestataire.contactPerson.split(' ').map(n => n[0]).join('') }}
-                </AvatarFallback>
-              </Avatar>
-              <div class="flex-1">
-                <h3 class="text-xl font-bold">{{ missionStore.currentSubMission.prestataire.companyName }}</h3>
-                <p class="text-gray-600 text-lg">{{ missionStore.currentSubMission.prestataire.contactPerson }}</p>
-                <Badge class="mt-1 bg-green-100 text-green-800">
-                  <CheckCircle class="w-3 h-3 mr-1" />
-                  Assigné
-                </Badge>
+        <!-- Prestataire Section (if assigned) -->
+        <Card v-if="missionStore.currentSubMission.prestataire" class="shadow-sm border-0 bg-white">
+          <CardHeader class="pb-4">
+            <CardTitle class="flex items-center space-x-3">
+              <div class="flex items-center justify-center w-8 h-8 bg-green-50 rounded-lg">
+                <User class="w-4 h-4 text-green-600" />
               </div>
-            </div>
+              <span class="text-lg font-semibold">Prestataire assigné</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent class="pt-0">
+            <div class="space-y-6">
+              <!-- Prestataire Header -->
+              <div class="flex items-start space-x-4 p-4 bg-gray-50 rounded-xl">
+                <Avatar class="w-14 h-14">
+                  <AvatarImage :src="placeholderImage" />
+                  <AvatarFallback class="text-lg bg-green-100 text-green-700 font-semibold">
+                    {{ missionStore.currentSubMission.prestataire.contactPerson.split(' ').map(n => n[0]).join('') }}
+                  </AvatarFallback>
+                </Avatar>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-start justify-between">
+                    <div>
+                      <h3 class="text-lg font-bold text-gray-900 mb-1">{{ missionStore.currentSubMission.prestataire.companyName }}</h3>
+                      <p class="text-gray-600 mb-2">{{ missionStore.currentSubMission.prestataire.contactPerson }}</p>
+                      <Badge class="bg-green-50 text-green-700 border-green-200">
+                        <CheckCircle class="w-3 h-3 mr-1" />
+                        Assigné
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </div>
             
-            <!-- Contact Information -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <h4 class="font-semibold mb-3 text-gray-900">Contact</h4>
-                <div class="space-y-2">
-                  <div class="flex items-center space-x-2 text-gray-700">
-                    <Phone class="w-4 h-4 text-gray-500" />
-                    <span>{{ missionStore.currentSubMission.prestataire.phone }}</span>
+              <!-- Contact Information -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-4">
+                  <h4 class="font-semibold text-gray-900 mb-3">Informations de contact</h4>
+                  <div class="space-y-3">
+                    <div class="flex items-center space-x-3">
+                      <div class="flex items-center justify-center w-8 h-8 bg-blue-50 rounded-lg">
+                        <Phone class="w-4 h-4 text-blue-600" />
+                      </div>
+                      <div>
+                        <p class="text-xs text-gray-500 uppercase tracking-wide">Téléphone</p>
+                        <p class="font-medium text-gray-900">{{ missionStore.currentSubMission.prestataire.phone }}</p>
+                      </div>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                      <div class="flex items-center justify-center w-8 h-8 bg-purple-50 rounded-lg">
+                        <Mail class="w-4 h-4 text-purple-600" />
+                      </div>
+                      <div>
+                        <p class="text-xs text-gray-500 uppercase tracking-wide">Email</p>
+                        <p class="font-medium text-gray-900">{{ missionStore.currentSubMission.prestataire.email }}</p>
+                      </div>
+                    </div>
                   </div>
-                  <div class="flex items-center space-x-2 text-gray-700">
-                    <Mail class="w-4 h-4 text-gray-500" />
-                    <span>{{ missionStore.currentSubMission.prestataire.email }}</span>
+                </div>
+                
+                <!-- Additional Info -->
+                <div class="space-y-4">
+                  <h4 class="font-semibold text-gray-900 mb-3">Informations complémentaires</h4>
+                  <div class="space-y-3">
+                    <!-- Rating if available -->
+                    <div v-if="enhancedPrestataireInfo?.rating" class="flex items-center space-x-3">
+                      <div class="flex items-center justify-center w-8 h-8 bg-amber-50 rounded-lg">
+                        <Star class="w-4 h-4 text-amber-500 fill-current" />
+                      </div>
+                      <div>
+                        <p class="text-xs text-gray-500 uppercase tracking-wide">Note moyenne</p>
+                        <p class="font-medium text-gray-900">{{ enhancedPrestataireInfo.rating }}/5</p>
+                      </div>
+                    </div>
+                    <!-- Location if available -->
+                    <div v-if="enhancedPrestataireInfo?.address?.city" class="flex items-center space-x-3">
+                      <div class="flex items-center justify-center w-8 h-8 bg-red-50 rounded-lg">
+                        <MapPin class="w-4 h-4 text-red-600" />
+                      </div>
+                      <div>
+                        <p class="text-xs text-gray-500 uppercase tracking-wide">Localisation</p>
+                        <p class="font-medium text-gray-900">{{ enhancedPrestataireInfo.address.city }}</p>
+                      </div>
+                    </div>
+                    <!-- Availability status -->
+                    <div v-if="enhancedPrestataireInfo?.availabilityStatus" class="flex items-center space-x-3">
+                      <div class="flex items-center justify-center w-8 h-8 bg-gray-50 rounded-lg">
+                        <div :class="{
+                          'w-3 h-3 rounded-full': true,
+                          'bg-green-500': enhancedPrestataireInfo.availabilityStatus === 'AVAILABLE',
+                          'bg-yellow-500': enhancedPrestataireInfo.availabilityStatus === 'BUSY',
+                          'bg-red-500': enhancedPrestataireInfo.availabilityStatus === 'UNAVAILABLE',
+                          'bg-gray-500': !enhancedPrestataireInfo.availabilityStatus
+                        }"></div>
+                      </div>
+                      <div>
+                        <p class="text-xs text-gray-500 uppercase tracking-wide">Disponibilité</p>
+                        <p class="font-medium text-gray-900">{{ 
+                          enhancedPrestataireInfo.availabilityStatus === 'AVAILABLE' ? 'Disponible' :
+                          enhancedPrestataireInfo.availabilityStatus === 'BUSY' ? 'Occupé' :
+                          enhancedPrestataireInfo.availabilityStatus === 'UNAVAILABLE' ? 'Indisponible' : 'Statut inconnu' 
+                        }}</p>
+                      </div>
+                    </div>
+                    <!-- Fallback info -->
+                    <div v-if="!enhancedPrestataireInfo" class="flex items-center space-x-3">
+                      <div class="flex items-center justify-center w-8 h-8 bg-gray-50 rounded-lg">
+                        <Calendar class="w-4 h-4 text-gray-600" />
+                      </div>
+                      <div>
+                        <p class="text-xs text-gray-500 uppercase tracking-wide">Statut</p>
+                        <p class="font-medium text-gray-900">Assigné récemment</p>
+                      </div>
+                    </div>
                   </div>
+                </div>
+              </div>
+            
+              <!-- Specialties if available -->
+              <div v-if="enhancedPrestataireInfo?.specialties?.length" class="space-y-3">
+                <h4 class="font-semibold text-gray-900">Spécialités</h4>
+                <div class="flex flex-wrap gap-2">
+                  <Badge 
+                    v-for="specialty in enhancedPrestataireInfo.specialties.slice(0, 4)" 
+                    :key="specialty" 
+                    variant="secondary" 
+                    class="bg-blue-50 text-blue-700 border-blue-200"
+                  >
+                    {{ specialty }}
+                  </Badge>
+                  <Badge 
+                    v-if="enhancedPrestataireInfo.specialties.length > 4" 
+                    variant="outline" 
+                    class="border-gray-300 text-gray-600"
+                  >
+                    +{{ enhancedPrestataireInfo.specialties.length - 4 }} autres
+                  </Badge>
                 </div>
               </div>
               
-              <!-- Additional Info -->
-              <div>
-                <h4 class="font-semibold mb-3 text-gray-900">Informations</h4>
-                <div class="space-y-2">
-                  <!-- Rating if available -->
-                  <div v-if="enhancedPrestataireInfo?.rating" class="flex items-center space-x-2 text-gray-700">
-                    <Star class="w-4 h-4 text-yellow-500 fill-current" />
-                    <span>{{ enhancedPrestataireInfo.rating }}/5</span>
-                    <span class="text-xs text-gray-500">(Note)</span>
-                  </div>
-                  <!-- Location if available -->
-                  <div v-if="enhancedPrestataireInfo?.address?.city" class="flex items-center space-x-2 text-gray-700">
-                    <MapPin class="w-4 h-4 text-gray-500" />
-                    <span>{{ enhancedPrestataireInfo.address.city }}</span>
-                  </div>
-                  <!-- Availability status -->
-                  <div v-if="enhancedPrestataireInfo?.availabilityStatus" class="flex items-center space-x-2 text-gray-700">
-                    <div :class="{
-                      'w-3 h-3 rounded-full': true,
-                      'bg-green-500': enhancedPrestataireInfo.availabilityStatus === 'AVAILABLE',
-                      'bg-yellow-500': enhancedPrestataireInfo.availabilityStatus === 'BUSY',
-                      'bg-red-500': enhancedPrestataireInfo.availabilityStatus === 'UNAVAILABLE',
-                      'bg-gray-500': !enhancedPrestataireInfo.availabilityStatus
-                    }"></div>
-                    <span>{{ 
-                      enhancedPrestataireInfo.availabilityStatus === 'AVAILABLE' ? 'Disponible' :
-                      enhancedPrestataireInfo.availabilityStatus === 'BUSY' ? 'Occupé' :
-                      enhancedPrestataireInfo.availabilityStatus === 'UNAVAILABLE' ? 'Indisponible' : 'Statut inconnu' 
-                    }}</span>
-                  </div>
-                  <!-- Fallback info -->
-                  <div v-if="!enhancedPrestataireInfo" class="flex items-center space-x-2 text-gray-700">
-                    <Calendar class="w-4 h-4 text-gray-500" />
-                    <span>Assigné récemment</span>
-                  </div>
+              <!-- Action Buttons -->
+              <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t">
+                <Button 
+                  @click="handleContactClick({ ...missionStore.currentSubMission.prestataire, userId: missionStore.currentSubMission.prestataire.id } as Prestataire)"
+                  class="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  <MessageCircle class="w-4 h-4 mr-2" />
+                  Contacter le prestataire
+                </Button>
+                <Button 
+                  variant="outline"
+                  @click="viewPrestataireDetails({ ...missionStore.currentSubMission.prestataire, userId: missionStore.currentSubMission.prestataire.id, address: { city: '', street: '', postalCode: '', country: '' }, specialties: [], rating: null, distance: null, availabilityStatus: '' } as Prestataire)"
+                  class="flex-1 border-gray-300 hover:bg-gray-50"
+                >
+                  <Eye class="w-4 h-4 mr-2" />
+                  Voir le profil complet
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <!-- Documents Section -->
+        <SubMissionDocuments 
+          :sub-mission-id="subMissionId"
+          :can-upload="true"
+          :can-delete="isAssureur"
+          @document-added="handleDocumentAdded"
+          data-testid="sub-mission-documents"
+        />
+
+        <!-- Comments Section -->
+        <SubMissionComments 
+          :sub-mission-id="subMissionId"
+          :can-comment="true"
+          @comment-added="handleCommentAdded"
+          @refresh-requested="handleCommentsRefresh"
+          data-testid="sub-mission-comments"
+        />
+
+        <!-- History Section -->
+        <MissionHistory 
+          :history="missionStore.subMissionHistory || []"
+          data-testid="sub-mission-history"
+        />
+
+        <!-- Rating Display (if exists) -->
+        <Card v-if="canViewRating && currentRating" class="shadow-sm border-0 bg-white">
+          <CardHeader class="pb-4">
+            <CardTitle class="flex items-center space-x-3">
+              <div class="flex items-center justify-center w-8 h-8 bg-amber-50 rounded-lg">
+                <Star class="w-4 h-4 text-amber-500" />
+              </div>
+              <span class="text-lg font-semibold">Évaluation du prestataire</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent class="pt-0">
+            <div class="space-y-6">
+              <!-- Rating Stars -->
+              <div class="flex items-center space-x-6">
+                <div class="flex items-center space-x-1">
+                  <Star 
+                    v-for="star in 5" 
+                    :key="star"
+                    :class="[
+                      'w-7 h-7',
+                      star <= currentRating.rating ? 'text-amber-400 fill-current' : 'text-gray-300'
+                    ]"
+                  />
+                </div>
+                <div class="text-2xl font-bold text-gray-900">{{ currentRating.rating }}/5</div>
+              </div>
+              
+              <!-- Comment -->
+              <div v-if="currentRating.comment">
+                <h4 class="font-semibold mb-3 text-gray-900">Commentaire</h4>
+                <div class="bg-gray-50 p-4 rounded-xl">
+                  <p class="text-gray-700 leading-relaxed">{{ currentRating.comment }}</p>
                 </div>
               </div>
-            </div>
-            
-            <!-- Specialties if available -->
-            <div v-if="enhancedPrestataireInfo?.specialties?.length" class="space-y-2">
-              <h4 class="font-semibold text-gray-900">Spécialités</h4>
-              <div class="flex flex-wrap gap-1">
-                <Badge 
-                  v-for="specialty in enhancedPrestataireInfo.specialties.slice(0, 4)" 
-                  :key="specialty" 
-                  variant="secondary" 
-                  class="text-xs"
-                >
-                  {{ specialty }}
-                </Badge>
-                <Badge 
-                  v-if="enhancedPrestataireInfo.specialties.length > 4" 
-                  variant="outline" 
-                  class="text-xs"
-                >
-                  +{{ enhancedPrestataireInfo.specialties.length - 4 }}
-                </Badge>
+              
+              <!-- Date -->
+              <div class="flex items-center space-x-2 text-sm text-gray-500">
+                <Calendar class="w-4 h-4" />
+                <span>Évalué le {{ new Date(currentRating.createdAt).toLocaleDateString() }}</span>
               </div>
             </div>
-            
-            <!-- Action Buttons -->
-            <div class="flex space-x-3 pt-4 border-t">
-              <Button 
-                variant="outline" 
-                @click="handleContactClick({ ...missionStore.currentSubMission.prestataire, userId: missionStore.currentSubMission.prestataire.id } as Prestataire)"
-                class="flex-1"
-              >
-                <MessageCircle class="w-4 h-4 mr-2" />
-                Contacter le prestataire
-              </Button>
-              <Button 
-                variant="outline"
-                @click="viewPrestataireDetails({ ...missionStore.currentSubMission.prestataire, userId: missionStore.currentSubMission.prestataire.id, address: { city: '', street: '', postalCode: '', country: '' }, specialties: [], rating: null, distance: null, availabilityStatus: '' } as Prestataire)"
-                class="flex-1"
-              >
-                <Eye class="w-4 h-4 mr-2" />
-                Voir détails complets
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <!-- Documents Section -->
-      <SubMissionDocuments 
-        :sub-mission-id="subMissionId"
-        :can-upload="true"
-        :can-delete="isAssureur"
-        @document-added="handleDocumentAdded"
-        data-testid="sub-mission-documents"
-      />
-
-      <!-- Comments Section -->
-      <SubMissionComments 
-        :sub-mission-id="subMissionId"
-        :can-comment="true"
-        @comment-added="handleCommentAdded"
-        @refresh-requested="handleCommentsRefresh"
-        data-testid="sub-mission-comments"
-      />
-
-      <!-- History Section -->
-      <MissionHistory 
-        :history="missionStore.subMissionHistory || []"
-        data-testid="sub-mission-history"
-      />
-
-      <!-- Rating Display (if exists) -->
-      <Card v-if="canViewRating && currentRating">
-        <CardHeader>
-          <CardTitle class="flex items-center space-x-2">
-            <Star class="w-5 h-5 text-yellow-500" />
-            <span>Évaluation du prestataire</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div class="space-y-4">
-            <!-- Rating Stars -->
-            <div class="flex items-center space-x-4">
-              <div class="flex items-center space-x-1">
-                <Star 
-                  v-for="star in 5" 
-                  :key="star"
-                  :class="[
-                    'w-6 h-6',
-                    star <= currentRating.rating ? 'text-yellow-500 fill-current' : 'text-gray-300'
-                  ]"
-                />
-              </div>
-              <div class="text-xl font-bold">{{ currentRating.rating }}/5</div>
-            </div>
-            
-            <!-- Comment -->
-            <div v-if="currentRating.comment">
-              <h4 class="font-semibold mb-2">Commentaire:</h4>
-              <p class="text-gray-700 bg-gray-50 p-3 rounded-lg">{{ currentRating.comment }}</p>
-            </div>
-            
-            <!-- Date -->
-            <div class="text-sm text-gray-500">
-              Évalué le {{ new Date(currentRating.createdAt).toLocaleDateString() }}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <!-- Additional Requirements -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card v-if="missionStore.currentSubMission.materialsNeeded">
-          <CardHeader>
-            <CardTitle class="flex items-center space-x-2">
-              <Settings class="w-5 h-5" />
-              <span>Matériaux nécessaires</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p class="text-gray-700 whitespace-pre-wrap">{{ missionStore.currentSubMission.materialsNeeded }}</p>
           </CardContent>
         </Card>
 
-        <Card v-if="missionStore.currentSubMission.specialRequirements">
-          <CardHeader>
-            <CardTitle class="flex items-center space-x-2">
-              <AlertTriangle class="w-5 h-5" />
-              <span>Exigences spéciales</span>
+        <!-- Additional Requirements -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card v-if="missionStore.currentSubMission.materialsNeeded" class="shadow-sm border-0 bg-white">
+            <CardHeader class="pb-4">
+              <CardTitle class="flex items-center space-x-3">
+                <div class="flex items-center justify-center w-8 h-8 bg-orange-50 rounded-lg">
+                  <Settings class="w-4 h-4 text-orange-600" />
+                </div>
+                <span class="text-lg font-semibold">Matériaux nécessaires</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent class="pt-0">
+              <div class="bg-orange-50 p-4 rounded-xl">
+                <p class="text-gray-700 leading-relaxed whitespace-pre-wrap">{{ missionStore.currentSubMission.materialsNeeded }}</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card v-if="missionStore.currentSubMission.specialRequirements" class="shadow-sm border-0 bg-white">
+            <CardHeader class="pb-4">
+              <CardTitle class="flex items-center space-x-3">
+                <div class="flex items-center justify-center w-8 h-8 bg-red-50 rounded-lg">
+                  <AlertTriangle class="w-4 h-4 text-red-600" />
+                </div>
+                <span class="text-lg font-semibold">Exigences spéciales</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent class="pt-0">
+              <div class="bg-red-50 p-4 rounded-xl">
+                <p class="text-gray-700 leading-relaxed whitespace-pre-wrap">{{ missionStore.currentSubMission.specialRequirements }}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <!-- Access Requirements -->
+        <Card v-if="missionStore.currentSubMission.accessRequirements" class="shadow-sm border-0 bg-white">
+          <CardHeader class="pb-4">
+            <CardTitle class="flex items-center space-x-3">
+              <div class="flex items-center justify-center w-8 h-8 bg-purple-50 rounded-lg">
+                <MapPin class="w-4 h-4 text-purple-600" />
+              </div>
+              <span class="text-lg font-semibold">Conditions d'accès</span>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p class="text-gray-700 whitespace-pre-wrap">{{ missionStore.currentSubMission.specialRequirements }}</p>
+          <CardContent class="pt-0">
+            <div class="bg-purple-50 p-4 rounded-xl">
+              <p class="text-gray-700 leading-relaxed whitespace-pre-wrap">{{ missionStore.currentSubMission.accessRequirements }}</p>
+            </div>
           </CardContent>
         </Card>
-      </div>
 
-      <!-- Access Requirements -->
-      <Card v-if="missionStore.currentSubMission.accessRequirements">
-        <CardHeader>
-          <CardTitle class="flex items-center space-x-2">
-            <MapPin class="w-5 h-5" />
-            <span>Conditions d'accès</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p class="text-gray-700 whitespace-pre-wrap">{{ missionStore.currentSubMission.accessRequirements }}</p>
-        </CardContent>
-      </Card>
+        <!-- Parent Mission Link -->
+        <Card class="shadow-sm border-0 bg-white">
+          <CardHeader class="pb-4">
+            <CardTitle class="flex items-center space-x-3">
+              <div class="flex items-center justify-center w-8 h-8 bg-indigo-50 rounded-lg">
+                <Briefcase class="w-4 h-4 text-indigo-600" />
+              </div>
+              <span class="text-lg font-semibold">Mission principale</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent class="pt-0">
+            <Button 
+              variant="outline" 
+              @click="router.push(`/mission/${missionStore.currentSubMission.missionId}`)"
+              class="w-full border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+            >
+              <Briefcase class="w-4 h-4 mr-2" />
+              Consulter la mission principale
+            </Button>
+          </CardContent>
+        </Card>
 
-      <!-- Parent Mission Link -->
-      <Card>
-        <CardHeader>
-          <CardTitle>Mission principale</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Button 
-            variant="outline" 
-            @click="router.push(`/mission/${missionStore.currentSubMission.missionId}`)"
-            class="w-full"
-          >
-            <Briefcase class="w-4 h-4 mr-2" />
-            Voir la mission principale
-          </Button>
-        </CardContent>
-      </Card>
-
-      <!-- Prestataire Assignment Section -->
-      <div v-if="canAssign" class="space-y-6">
-        <!-- Search Filters -->
-        <Card>
+        <!-- Prestataire Assignment Section -->
+        <div v-if="canAssign" class="space-y-6">
+          <!-- Search Filters -->
+          <Card class="shadow-sm border-0 bg-white">
           <CardHeader>
             <CardTitle class="flex items-center text-lg">
               <Filter class="w-5 h-5 mr-2" />
@@ -1037,15 +1234,22 @@ const getUrgenceBadge = (urgence: string) => {
       </div>
     </div>
 
-    <!-- Error State -->
-    <div v-else class="text-center py-12">
-      <AlertTriangle class="w-12 h-12 mx-auto mb-4 text-red-500" />
-      <p class="text-gray-500">Sous-mission introuvable</p>
-      <Button variant="outline" @click="goBack" class="mt-4">
-        <ArrowLeft class="w-4 h-4 mr-2" />
-        Retour
-      </Button>
+      <!-- Error State -->
+      <div v-else class="flex items-center justify-center py-20">
+        <div class="text-center">
+          <div class="flex items-center justify-center w-16 h-16 mx-auto mb-6 bg-red-50 rounded-xl">
+            <AlertTriangle class="w-8 h-8 text-red-500" />
+          </div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Sous-mission introuvable</h3>
+          <p class="text-gray-500 mb-6">Cette sous-mission n'existe pas ou vous n'avez pas l'autorisation de la consulter.</p>
+          <Button variant="outline" @click="goBack" class="border-gray-300 hover:bg-gray-50">
+            <ArrowLeft class="w-4 h-4 mr-2" />
+            Retour à la liste
+          </Button>
+        </div>
+      </div>
     </div>
+  </div>
 
 
     <!-- Update Status Dialog -->
@@ -1063,9 +1267,9 @@ const getUrgenceBadge = (urgence: string) => {
         
         <div class="space-y-4">
           <div>
-            <Label for="status">Nouveau statut</Label>
+            <Label for="status" :class="statusError ? 'text-red-600' : ''">Nouveau statut *</Label>
             <Select v-model="newStatus">
-              <SelectTrigger>
+              <SelectTrigger :class="statusError ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -1077,6 +1281,7 @@ const getUrgenceBadge = (urgence: string) => {
                 <SelectItem value="ANNULEE">Annulée</SelectItem>
               </SelectContent>
             </Select>
+            <p v-if="statusError" class="text-sm text-red-600 mt-1">Veuillez sélectionner un statut</p>
           </div>
           
           <!-- Actions -->
@@ -1195,12 +1400,12 @@ const getUrgenceBadge = (urgence: string) => {
 
         <div class="space-y-4">
           <div>
-            <Label>Note (1-5 étoiles)</Label>
-            <div class="flex items-center space-x-2 mt-2">
+            <Label :class="ratingError ? 'text-red-600' : ''">Note (1-5 étoiles) *</Label>
+            <div class="flex items-center space-x-2 mt-2" :class="ratingError ? 'border-2 border-red-500 rounded-md p-2 bg-red-50' : 'p-2'">
               <button
                 v-for="star in 5"
                 :key="star"
-                @click="rating = star"
+                @click="selectRating(star)"
                 class="focus:outline-none"
                 :data-testid="`rating-star-${star}`"
               >
@@ -1213,6 +1418,7 @@ const getUrgenceBadge = (urgence: string) => {
               </button>
               <span class="ml-2 text-sm text-gray-600">{{ rating }}/5</span>
             </div>
+            <p v-if="ratingError" class="text-sm text-red-600 mt-1">Une note est requise pour évaluer le prestataire</p>
           </div>
 
           <div>
@@ -1240,5 +1446,4 @@ const getUrgenceBadge = (urgence: string) => {
         </div>
       </DialogContent>
     </Dialog>
-  </div>
 </template>

@@ -5,10 +5,12 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { 
   AlertTriangle, 
+  ArrowLeft,
   Briefcase, 
   Plus, 
   Eye, 
@@ -17,7 +19,9 @@ import {
   Calendar,
   MoreHorizontal,
   User,
-  FileText
+  FileText,
+  MapPin,
+  Settings
 } from 'lucide-vue-next'
 import { useQuery } from '@vue/apollo-composable'
 import { GET_MISSION_DETAILS_QUERY } from '@/graphql/queries/get-mission-details'
@@ -280,88 +284,113 @@ const availableActions = computed(() => {
 </script>
 
 <template>
-  <div class="p-6 space-y-4">
-    <!-- Header -->
-    <MissionHeader 
-      :mission="missionStore.currentMission" 
-      :mission-id="missionId" 
-      @go-back="goBack" 
-    />
-
-    <!-- Action Buttons -->
-    <MissionActionButtons
-      :available-actions="availableActions"
-      :loading="missionStore.isLoading"
-      @accept-mission="handleAcceptMission"
-      @refuse-mission="handleRefuseMission"
-      @start-mission="handleStartMission"
-      @complete-mission="handleCompleteMission"
-      @suspend-mission="handleSuspendMission"
-      @resume-mission="handleResumeMission"
-      @validate-mission="handleValidateMission"
-      @rate-mission="showRatingDialog = true"
-      @cancel-mission="handleCancelMission"
-    />
-
-    <!-- Loading State -->
-    <div v-if="missionStore.loadingStates.missionDetails" class="flex items-center justify-center py-12">
-      <div class="text-center">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-black mx-auto"></div>
-        <p class="mt-2 text-gray-600">Chargement des détails...</p>
+  <div class="min-h-screen bg-gray-100">
+    <!-- Navigation Header -->
+    <div class="bg-white border-b border-gray-200 sticky top-0 z-50">
+      <div class="p-4">
+        <div class="flex items-center justify-between h-12">
+          <!-- Left side - Back button and title -->
+          <div class="flex items-center space-x-3">
+            <Button variant="ghost" size="sm" @click="goBack" data-testid="back-button" class="hover:bg-gray-100">
+              <ArrowLeft class="w-4 h-4 mr-2" />
+              Retour
+            </Button>
+            <Separator orientation="vertical" class="h-4" />
+            <div class="flex items-center space-x-2">
+              <div class="flex items-center justify-center w-8 h-8 bg-blue-100 rounded-lg">
+                <Briefcase class="w-4 h-4 text-blue-600" />
+              </div>
+              <div>
+                <h1 class="text-lg font-semibold text-gray-900">Détails de la mission</h1>
+                <p class="text-sm text-gray-500" v-if="missionStore.currentMission">
+                  Référence: {{ missionStore.currentMission.reference }}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Right side - Action buttons -->
+          <MissionActionButtons
+            :available-actions="availableActions"
+            :loading="missionStore.isLoading"
+            @accept-mission="handleAcceptMission"
+            @refuse-mission="handleRefuseMission"
+            @start-mission="handleStartMission"
+            @complete-mission="handleCompleteMission"
+            @suspend-mission="handleSuspendMission"
+            @resume-mission="handleResumeMission"
+            @validate-mission="handleValidateMission"
+            @rate-mission="showRatingDialog = true"
+            @cancel-mission="handleCancelMission"
+            class="flex items-center space-x-2"
+          />
+        </div>
       </div>
     </div>
 
-    <!-- Mission Details -->
-    <div v-else-if="missionStore.currentMission" class="space-y-8">
-      <!-- Mission Overview Cards -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <MissionClientInfo :mission="missionStore.currentMission" />
-        <MissionWorksiteInfo :mission="missionStore.currentMission" />
+    <!-- Main Content -->
+    <div class="p-4">
+
+      <!-- Loading State -->
+      <div v-if="missionStore.loadingStates.missionDetails" class="flex items-center justify-center py-20">
+        <div class="text-center">
+          <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto"></div>
+          <p class="mt-4 text-gray-600">Chargement des détails...</p>
+        </div>
       </div>
 
-      <!-- Incident and Mission Details -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <MissionIncidentInfo :mission="missionStore.currentMission" />
-        <MissionSummary :mission="missionStore.currentMission" />
-      </div>
+      <!-- Mission Details -->
+      <div v-else-if="missionStore.currentMission" class="space-y-8">
+        <!-- Mission Overview Cards -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <MissionClientInfo :mission="missionStore.currentMission" />
+          <MissionWorksiteInfo :mission="missionStore.currentMission" />
+        </div>
 
-      <!-- Detailed Mission Information -->
-      <MissionDetailedInfo :mission="missionStore.currentMission" />
+        <!-- Incident and Mission Details -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <MissionIncidentInfo :mission="missionStore.currentMission" />
+          <MissionSummary :mission="missionStore.currentMission" />
+        </div>
 
-      <!-- Participants -->
-      <MissionParticipants 
-        v-if="missionStore.currentMission.societaire || missionStore.currentMission.prestataire" 
-        :mission="missionStore.currentMission" 
-      />
+        <!-- Detailed Mission Information -->
+        <MissionDetailedInfo :mission="missionStore.currentMission" />
 
-      <!-- Submissions Section (Assureurs only) -->
-      <div v-if="isAssureur" class="space-y-4">
-        <Card>
-          <CardHeader>
-            <div class="flex items-center justify-between">
-              <CardTitle class="flex items-center space-x-2">
-                <Briefcase class="w-5 h-5" />
-                <span>Sous-missions ({{ missionStore.subMissions.length }})</span>
-              </CardTitle>
-              <Button 
-                variant="outline" 
-                size="sm"
-                @click="openCreateSubMissionDialog"
-                data-testid="create-sub-mission-button"
-              >
-                <Plus class="w-4 h-4 mr-2" />
-                Créer une sous-mission
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <!-- Loading state for sub-missions -->
-            <div v-if="missionStore.loadingStates.fetchSubMissions" class="flex items-center justify-center py-8">
-              <div class="text-center">
-                <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-black mx-auto"></div>
-                <p class="mt-2 text-sm text-gray-600">Chargement des sous-missions...</p>
+        <!-- Participants -->
+        <MissionParticipants 
+          v-if="missionStore.currentMission.societaire || missionStore.currentMission.prestataire" 
+          :mission="missionStore.currentMission" 
+        />
+
+        <!-- Submissions Section (Assureurs only) -->
+        <div v-if="isAssureur" class="space-y-6">
+          <Card class="shadow-sm border-0 bg-white">
+            <CardHeader class="pb-4">
+              <div class="flex items-center justify-between">
+                <CardTitle class="flex items-center space-x-3">
+                  <div class="flex items-center justify-center w-8 h-8 bg-blue-50 rounded-lg">
+                    <Briefcase class="w-4 h-4 text-blue-600" />
+                  </div>
+                  <span class="text-lg font-semibold">Sous-missions ({{ missionStore.subMissions.length }})</span>
+                </CardTitle>
+                <Button 
+                  @click="openCreateSubMissionDialog"
+                  data-testid="create-sub-mission-button"
+                  class="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  <Plus class="w-4 h-4 mr-2" />
+                  Créer une sous-mission
+                </Button>
               </div>
-            </div>
+            </CardHeader>
+            <CardContent class="pt-0">
+              <!-- Loading state for sub-missions -->
+              <div v-if="missionStore.loadingStates.fetchSubMissions" class="flex items-center justify-center py-12">
+                <div class="text-center">
+                  <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                  <p class="mt-3 text-sm text-gray-600">Chargement des sous-missions...</p>
+                </div>
+              </div>
 
             <!-- Sub-missions table -->
             <div v-else-if="missionStore.subMissions.length > 0">
@@ -455,36 +484,54 @@ const availableActions = computed(() => {
               </Table>
             </div>
 
-            <!-- Empty state for sub-missions -->
-            <div v-else class="text-center py-8">
-              <Briefcase class="w-12 h-12 mx-auto mb-4 text-gray-300" />
-              <p class="text-gray-500 mb-4">Aucune sous-mission créée</p>
-              <Button variant="outline" @click="openCreateSubMissionDialog">
-                <Plus class="w-4 h-4 mr-2" />
-                Créer la première sous-mission
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+              <!-- Empty state for sub-missions -->
+              <div v-else class="text-center py-12">
+                <div class="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-gray-50 rounded-xl">
+                  <Briefcase class="w-8 h-8 text-gray-400" />
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">Aucune sous-mission</h3>
+                <p class="text-gray-500 mb-6">Créez une sous-mission pour commencer à organiser le travail.</p>
+                <Button @click="openCreateSubMissionDialog" class="bg-blue-600 hover:bg-blue-700 text-white">
+                  <Plus class="w-4 h-4 mr-2" />
+                  Créer la première sous-mission
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <!-- History Section -->
+        <MissionHistory 
+          :history="missionStore.history"
+          data-testid="mission-history"
+        />
       </div>
 
-      <!-- History Section -->
-      <MissionHistory 
-        :history="missionStore.history"
-        data-testid="mission-history"
-      />
-
+      <!-- Error State -->
+      <div v-else class="flex items-center justify-center py-20">
+        <div class="text-center">
+          <div class="flex items-center justify-center w-16 h-16 mx-auto mb-6 bg-red-50 rounded-xl">
+            <AlertTriangle class="w-8 h-8 text-red-500" />
+          </div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Mission introuvable</h3>
+          <p class="text-gray-500 mb-6">Cette mission n'existe pas ou vous n'avez pas l'autorisation de la consulter.</p>
+          <Button variant="outline" @click="goBack" class="border-gray-300 hover:bg-gray-50">
+            <ArrowLeft class="w-4 h-4 mr-2" />
+            Retour à la liste
+          </Button>
+        </div>
+      </div>
     </div>
-
-    <!-- Rating Dialog -->
-    <MissionRatingDialog
-      :is-open="showRatingDialog"
-      :rating="rating"
-      :rating-comment="ratingComment"
-      @update:open="showRatingDialog = $event"
-      @update:rating="rating = $event"
-      @update:comment="ratingComment = $event"
-      @submit="handleSubmitRating"
-    />
   </div>
+
+  <!-- Rating Dialog -->
+  <MissionRatingDialog
+    :is-open="showRatingDialog"
+    :rating="rating"
+    :rating-comment="ratingComment"
+    @update:open="showRatingDialog = $event"
+    @update:rating="rating = $event"
+    @update:comment="ratingComment = $event"
+    @submit="handleSubmitRating"
+  />
 </template>

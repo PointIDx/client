@@ -1,12 +1,14 @@
 <template>
-  <Card>
-    <CardHeader>
-      <CardTitle class="flex items-center gap-2">
-        <MapPin class="h-5 w-5" />
-        Lieu d'intervention
+  <Card class="shadow-sm border-0 bg-white">
+    <CardHeader class="pb-4">
+      <CardTitle class="flex items-center space-x-3">
+        <div class="flex items-center justify-center w-8 h-8 bg-green-50 rounded-lg">
+          <MapPin class="w-4 h-4 text-green-600" />
+        </div>
+        <span class="text-lg font-semibold">Lieu d'intervention</span>
       </CardTitle>
     </CardHeader>
-    <CardContent class="space-y-3">
+    <CardContent class="pt-0 space-y-3">
       <div v-if="mission.chantierAdresse" class="flex items-center justify-between py-2">
         <div class="text-sm font-medium text-gray-600">Adresse</div>
         <div class="text-sm text-gray-900 font-medium">{{ mission.chantierAdresse }}</div>
