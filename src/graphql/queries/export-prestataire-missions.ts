@@ -29,7 +29,7 @@ export interface PrestataireExportFilters {
 }
 
 export type ReportPeriod = 'week' | 'month' | 'quarter' | 'year'
-export type ExportFormat = 'pdf' | 'excel' | 'csv'
+export type ExportFormat = 'PDF' | 'Excel' | 'CSV'
 
 export interface ExportResponse {
   url: string

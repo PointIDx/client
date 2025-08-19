@@ -146,7 +146,7 @@ const {handleSubmit, values, setFieldValue, validate, validateField, errors} = u
 
 // Helper function to get error styling for form fields
 const getFieldErrorClass = (fieldName: string) => {
-  return errors.value[fieldName] ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+  return errors.value[fieldName as keyof typeof errors.value] ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
 }
 
 // Function to copy client address to chantier address

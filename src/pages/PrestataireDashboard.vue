@@ -46,9 +46,6 @@ import { MissionStatut } from '@/interfaces/sub-mission'
 import { getMissionStatusBadge } from '@/utils/status-badges'
 import { handleError } from '@/utils/error-handling'
 import ExportMissions from '@/components/ExportMissions.vue'
-// Temporarily commented out due to CSS loading issues causing navigation failures
-// import PrestataireStatistics from '@/components/PrestataireStatistics.vue'
-// import PrestataireProfile from '@/components/PrestataireProfile.vue'
 
 const router = useRouter()
 
@@ -58,9 +55,39 @@ const authStore = useAuthStore()
 const { client } = useApolloClient()
 
 // Ratings state
-const ratings = ref([])
+const ratings = ref<Array<{
+  id: string
+  missionId: string
+  missionTitle: string
+  missionReference: string
+  assureurCompanyName: string
+  rating: number
+  comment: string
+  createdAt: string
+}>>([])
 const loadingRatings = ref(false)
-const ratingSummary = ref(null)
+const ratingSummary = ref<{
+  prestataireId: string
+  prestataireCompanyName: string
+  totalRatings: number
+  averageRating: number
+  ratingBreakdown: {
+    fiveStars: number
+    fourStars: number
+    threeStars: number
+    twoStars: number
+    oneStar: number
+  }
+  latestRatings: Array<{
+    id: string
+    missionTitle: string
+    missionReference: string
+    assureurCompanyName: string
+    rating: number
+    comment: string
+    createdAt: string
+  }>
+} | null>(null)
 const loadingRatingSummary = ref(false)
 
 // Fetch ratings function
@@ -144,14 +171,11 @@ const nouvellesMissions = computed(() => {
   // Available sub-missions that can be accepted 
   const nouvelles = missions.value.filter((subMission) => {
     // For INVITE status, show even if prestataireId is set (prestataire invited but not accepted)
-    const isInvited = subMission.statut === 'INVITE'
+    const isInvited = subMission.statut === MissionStatut.INVITE
     
     // For other statuses, only show if no prestataire assigned
     const noPrestataire = !subMission.prestataireId
-    const isWaiting = subMission.statut === 'EN_ATTENTE' ||
-                     subMission.statut === 'EnAttente' ||   // Case variation
-                     subMission.statut === 'WAITING' ||     // Alternative naming
-                     subMission.statut === 'PENDING'       // Alternative naming
+    const isWaiting = subMission.statut === MissionStatut.EN_ATTENTE
     
     return isInvited || (isWaiting && noPrestataire)
   })
@@ -162,7 +186,7 @@ const nouvellesMissions = computed(() => {
     reference: m.reference,
     statut: m.statut,
     prestataireId: m.prestataireId,
-    isAvailable: !m.prestataireId && (m.statut === 'EN_ATTENTE' || m.statut === 'EnAttente')
+    isAvailable: !m.prestataireId && (m.statut === MissionStatut.EN_ATTENTE)
   })))
   console.log('🔍 Filtered available sub-missions:', nouvelles.map(m => ({
     id: m.id,
@@ -177,11 +201,8 @@ const missionsEnCours = computed(() => {
   // Check for various possible status values (case variations)
   const enCours = missions.value.filter((subMission) => {
     const hasPrestataire = !!subMission.prestataireId
-    const statusMatch = subMission.statut === 'EN_COURS' ||
-                       subMission.statut === 'ASSIGNEE' ||
-                       subMission.statut === 'Assignee' ||  // Case variation
-                       subMission.statut === 'EnCours' ||   // Case variation
-                       subMission.statut === 'ASSIGNED'     // Alternative naming
+    const statusMatch = subMission.statut === MissionStatut.EN_COURS ||
+                       subMission.statut === MissionStatut.ASSIGNEE
     
     console.log(`🔍 Sub-mission ${subMission.reference}: prestataireId=${subMission.prestataireId}, statut="${subMission.statut}", hasPrestataire=${hasPrestataire}, statusMatch=${statusMatch}`)
     
@@ -390,6 +411,14 @@ const userInitials = computed(() => {
                   </div>
                 </div>
                 <div class="border-t border-gray-200 my-1"></div>
+                <DropdownMenuItem class="cursor-pointer" @click="router.push('/profile')">
+                  <User class="mr-2 h-4 w-4" />
+                  <span>Profil</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem class="cursor-pointer" @click="router.push('/settings')">
+                  <Settings class="mr-2 h-4 w-4" />
+                  <span>Paramètres</span>
+                </DropdownMenuItem>
                 <DropdownMenuItem class="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer" @click="showLogoutDialog = true">
                   <LogOut class="mr-2 h-4 w-4" />
                   <span>Se déconnecter</span>

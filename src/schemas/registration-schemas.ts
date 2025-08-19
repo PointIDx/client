@@ -22,12 +22,18 @@ export const contactSchema = z.object({
   nom: z.string().min(1, "Le nom est requis"),
   email: z.string().email("Email invalide"),
   telephone: z.string().min(1, "Le numéro de téléphone est requis"), // Reduced minimum length
+  acceptEmails: z.boolean().optional(),
+  acceptSms: z.boolean().optional(),
 });
 
 export const accountSchema = z.object({
   email: z.string().email("Email invalide"),
   password: z.string().min(8, "Le mot de passe doit contenir au moins 8 caractères"),
   confirmPassword: z.string(),
+  enableTwoFactor: z.boolean().optional(),
+  acceptTerms: z.boolean().optional(),
+  acceptPrivacy: z.boolean().optional(),
+  acceptMarketing: z.boolean().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Les mots de passe ne correspondent pas",
   path: ["confirmPassword"],
@@ -40,6 +46,9 @@ export const providerInfoSchema = z.object({
     regions: z.array(z.string()).optional(), // Make regions optional for simplified flow
     codesPostaux: z.array(z.string()).optional(),
   }),
+  disponibiliteImmediate: z.boolean().optional(),
+  interventionsUrgence: z.boolean().optional(),
+  weekEnd: z.boolean().optional(),
 });
 
 export const insurerInfoSchema = z.object({
@@ -51,6 +60,11 @@ export const insurerInfoSchema = z.object({
     codesPostaux: z.array(z.string()).optional(),
   }),
   garantiesProposees: z.string().optional(), // Make optional for simplified flow
+  regionsCouvertes: z.array(z.string()).optional(),
+  specialites: z.array(z.string()).optional(),
+  couvertureNationale: z.boolean().optional(),
+  expertiseInterne: z.boolean().optional(),
+  urgences24h: z.boolean().optional(),
 });
 
 export const societaireInfoSchema = z.object({
@@ -64,4 +78,8 @@ export const societaireInfoSchema = z.object({
   typeProjet: z.string().optional(),
   numeroDossier: z.string().optional(),
   descriptionProjet: z.string().optional(),
+  pays: z.string().optional(),
+  newsletterOptIn: z.boolean().optional(),
+  offresPartenaires: z.boolean().optional(),
+  smsUrgence: z.boolean().optional(),
 });

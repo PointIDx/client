@@ -29,7 +29,7 @@ export interface ExportFilters {
   dateFin?: string
 }
 
-export type ExportFormat = 'pdf' | 'excel' | 'csv'
+export type ExportFormat = 'PDF' | 'Excel' | 'CSV'
 
 export interface ExportResponse {
   url: string

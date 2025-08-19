@@ -38,6 +38,18 @@ export const useMissionStore = defineStore('mission', () => {
   const currentMission = ref<MissionDetails | null>(null)
   // documents and comments are now managed at sub-mission level
   const history = ref<any[]>([])
+  const subMissionHistory = ref<Array<{
+    id: string
+    entityType: string
+    entityId: string
+    action: string
+    oldValue?: string
+    newValue?: string
+    userId: string
+    timestamp: string
+    ipAddress?: string
+    userName?: string
+  }>>([])
   const subMissions = ref<SubMission[]>([])
   const currentSubMission = ref<SubMissionDetails | null>(null)
 
@@ -188,7 +200,7 @@ export const useMissionStore = defineStore('mission', () => {
       console.log('✅ Prestataire sub-missions count:', prestataireSubMissions.length)
       
       // Log details about each sub-mission for debugging
-      prestataireSubMissions.forEach((sm, index) => {
+      prestataireSubMissions.forEach((sm: SubMission, index: number) => {
         console.log(`📝 Sub-mission ${index + 1}:`, {
           id: sm.id,
           reference: sm.reference,
@@ -528,7 +540,7 @@ export const useMissionStore = defineStore('mission', () => {
   // Document management has been moved to sub-mission level
 
   // Export functionality
-  const exportMissions = (filters: ExportFilters, format: ExportFormat = 'pdf') => {
+  const exportMissions = (filters: ExportFilters, format: ExportFormat = 'PDF') => {
     setLoading('exportMissions', true)
     
     const { onResult, onError } = useQuery(EXPORT_MISSIONS_QUERY, { filters, format }, { fetchPolicy: 'network-only' })
@@ -556,7 +568,7 @@ export const useMissionStore = defineStore('mission', () => {
     setTimeout(() => setLoading('exportMissions', false), 100)
   }
 
-  const exportMissionDetails = (missionId: string, format: ExportFormat = 'pdf') => {
+  const exportMissionDetails = (missionId: string, format: ExportFormat = 'PDF') => {
     setLoading('exportMissionDetails', true)
     
     const { onResult, onError } = useQuery(EXPORT_MISSION_DETAILS_QUERY, { missionId, format }, { fetchPolicy: 'network-only' })
@@ -584,7 +596,7 @@ export const useMissionStore = defineStore('mission', () => {
     setTimeout(() => setLoading('exportMissionDetails', false), 100)
   }
 
-  const exportPrestataireMissions = (filters: PrestataireExportFilters, format: ExportFormat = 'pdf') => {
+  const exportPrestataireMissions = (filters: PrestataireExportFilters, format: ExportFormat = 'PDF') => {
     setLoading('exportMissions', true)
     
     const { onResult, onError } = useQuery(EXPORT_PRESTATAIRE_MISSIONS_QUERY, { filters, format }, { fetchPolicy: 'network-only' })
@@ -609,7 +621,7 @@ export const useMissionStore = defineStore('mission', () => {
     setTimeout(() => setLoading('exportMissions', false), 100)
   }
 
-  const exportPrestataireReport = (period: ReportPeriod, format: ExportFormat = 'pdf') => {
+  const exportPrestataireReport = (period: ReportPeriod, format: ExportFormat = 'PDF') => {
     setLoading('exportPrestataireReport', true)
     
     const { onResult, onError } = useQuery(EXPORT_PRESTATAIRE_REPORT_QUERY, { period, format }, { fetchPolicy: 'network-only' })
@@ -814,6 +826,7 @@ export const useMissionStore = defineStore('mission', () => {
     missions,
     currentMission,
     history,
+    subMissionHistory,
     subMissions,
     currentSubMission,
     loadingStates,

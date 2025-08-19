@@ -20,7 +20,7 @@
         <CardContent>
           <div class="flex items-center space-x-4">
             <Label for="availability-status">Statut actuel:</Label>
-            <Select :model-value="availabilityStatus" @update:model-value="(value: string | number | bigint | null) => value && updateAvailabilityStatus(String(value) as AvailabilityStatus)">
+            <Select :model-value="availabilityStatus" @update:model-value="(value: string | number | bigint | Record<string, any> | null) => { if (typeof value === 'string') updateAvailabilityStatus(value as AvailabilityStatus) }">
               <SelectTrigger class="w-48" data-testid="availability-status-select">
                 <SelectValue placeholder="Sélectionner un statut" />
               </SelectTrigger>

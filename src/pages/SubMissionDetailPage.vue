@@ -189,7 +189,7 @@ const selectRating = (star: number) => {
 }
 
 // Clear status error when user selects a status  
-const selectStatus = (status: string) => {
+const selectStatus = (status: MissionStatut) => {
   newStatus.value = status
   statusError.value = false
 }
@@ -392,7 +392,7 @@ const updateSubMissionStatus = async () => {
   try {
     await missionStore.updateSubMissionStatus({
       subMissionId: missionStore.currentSubMission.id,
-      status: newStatus.value,
+      statut: newStatus.value,
       comment: `Status updated to ${newStatus.value}`
     })
     

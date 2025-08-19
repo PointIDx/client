@@ -216,7 +216,7 @@ export function getGeneralMissionStatusBadge(status: MissionStatut): StatusBadge
         icon: PlayCircle,
         variant: 'outline'
       }
-    case MissionStatut.COMPLETEE:
+    case MissionStatut.TERMINEE:
       return {
         text: 'Terminée',
         class: 'bg-green-100 text-green-800 border-green-300',

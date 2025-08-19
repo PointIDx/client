@@ -297,9 +297,13 @@ const viewPrestataireDetails = async (prestataire: Prestataire) => {
       console.log('❌ No rating summary found in result.data')
       console.log('❌ Result.data content:', result.data)
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('❌ Error fetching rating summary:', error)
-    console.error('❌ Error details:', error.graphQLErrors, error.networkError)
+    // Type guard to check if error is an Error object
+    if (error instanceof Error) {
+      console.error('❌ Error details:', error.message)
+    }
+    console.error('❌ Error details:', (error as any)?.graphQLErrors, (error as any)?.networkError)
   } finally {
     loadingRatingSummary.value = false
   }
@@ -379,6 +383,14 @@ watch([searchTerm, selectedSecteur, selectedRegion, selectedDepartement], () => 
                   </div>
                 </div>
                 <div class="border-t border-gray-200 my-1"></div>
+                <DropdownMenuItem class="cursor-pointer" @click="router.push('/profile')">
+                  <User class="mr-2 h-4 w-4" />
+                  <span>Profil</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem class="cursor-pointer" @click="router.push('/settings')">
+                  <Settings class="mr-2 h-4 w-4" />
+                  <span>Paramètres</span>
+                </DropdownMenuItem>
                 <DropdownMenuItem class="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer" @click="showLogoutDialog = true">
                   <LogOut class="mr-2 h-4 w-4" />
                   <span>Se déconnecter</span>
