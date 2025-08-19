@@ -43,6 +43,11 @@ export interface ChatMessage {
   sentAt: string
   editedAt?: string
   replyToId?: string
+  replyToMessage?: {
+    id: string
+    content?: string
+    senderName?: string
+  }
   fileAttachments: string[]
   isRead: boolean
   senderName?: string
@@ -149,6 +154,7 @@ export interface Chat {
   newMessageCount: number
   isMuted?: boolean
   isOnline?: boolean
+  lastSeen?: string
 }
 
 export interface Message {

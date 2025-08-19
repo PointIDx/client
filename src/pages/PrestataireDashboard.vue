@@ -36,7 +36,8 @@ import {
 import { usePrestataireStore } from '@/stores/prestataire'
 import { useMissionStore } from '@/stores/mission'
 import { useAuthStore } from '@/stores/auth'
-import { onMounted, computed, ref, watch, nextTick } from 'vue'
+import { useChatStore } from '@/stores/chat'
+import { onMounted, computed, ref, watch, nextTick, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useApolloClient } from '@vue/apollo-composable'
 import { GET_MY_RECEIVED_RATINGS, GET_PRESTATAIRE_RATING_SUMMARY } from '@/graphql/queries/get-mission-rating'
@@ -52,6 +53,7 @@ const router = useRouter()
 const prestataireStore = usePrestataireStore()
 const missionStore = useMissionStore()
 const authStore = useAuthStore()
+const chatStore = useChatStore()
 const { client } = useApolloClient()
 
 // Ratings state
@@ -162,6 +164,16 @@ onMounted(async () => {
   prestataireStore.fetchNotifications()
   fetchRatings()
   fetchRatingSummary()
+  
+  // Initialize chat store to load unread counts and enable real-time updates
+  try {
+    await chatStore.loadChatRooms()
+    // Enable subscriptions to get real-time updates for unread counts
+    chatStore.enableSubscriptions()
+    console.log('✅ Chat subscriptions enabled for real-time unread count updates')
+  } catch (error) {
+    console.error('❌ Failed to load chat rooms for unread counts:', error)
+  }
 })
 
 const missions = computed(() => missionStore.missions as unknown as SubMission[])
@@ -351,6 +363,13 @@ const userInitials = computed(() => {
   
   return 'U'
 })
+
+// Clean up when component unmounts
+onUnmounted(() => {
+  console.log('🔕 PrestataireDashboard unmounting')
+  // Note: We don't disable chat subscriptions here since other components might need them
+  // The ChatPage.vue component handles subscription lifecycle properly
+})
 </script>
 
 <template>
@@ -365,8 +384,15 @@ const userInitials = computed(() => {
           </div>
           <div class="flex items-center space-x-4">
             <ExportMissions />
-            <Button data-testid="nav_chat_button"  size="icon" class="bg-transparent shadow-none hover:shadow-none focus:shadow-none" @click="navigateToChat">
+            <Button data-testid="nav_chat_button" size="default" class="bg-transparent text-gray-700 relative shadow-none hover:shadow-none focus:shadow-none" @click="navigateToChat">
               <MessageCircle class="w-6 h-6 mr-2" />
+              Messages
+              <Badge 
+                v-if="chatStore.totalUnreadCount > 0" 
+                class="absolute -top-2 -right-2 min-w-[20px] h-5 rounded-full bg-red-500 text-white text-xs font-medium flex items-center justify-center px-1"
+              >
+                {{ chatStore.totalUnreadCount > 99 ? '99+' : chatStore.totalUnreadCount }}
+              </Badge>
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger as-child>

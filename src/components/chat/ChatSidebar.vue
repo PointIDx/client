@@ -74,11 +74,28 @@
         >
           <!-- Avatar -->
           <div class="relative flex-shrink-0 mr-3">
-            <div class="w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center font-medium text-gray-700">
+            <div 
+              v-if="chat.avatar && !chat.avatar.startsWith('initials:')"
+              class="w-12 h-12 rounded-full overflow-hidden"
+            >
+              <img 
+                :src="chat.avatar" 
+                :alt="chat.name"
+                class="w-full h-full object-cover"
+              />
+            </div>
+            <div 
+              v-else
+              class="w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center font-medium text-gray-700"
+            >
               {{ getInitials(chat.name) }}
             </div>
             <!-- Online indicator -->
-            <div class="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
+            <div 
+              v-if="chat.isOnline" 
+              class="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 border-2 border-white rounded-full"
+              title="Online"
+            ></div>
           </div>
 
           <!-- Chat Info -->

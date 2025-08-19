@@ -11,6 +11,11 @@ export const GET_CHAT_MESSAGES = gql`
       sentAt
       editedAt
       replyToId
+      replyToMessage {
+        id
+        content
+        senderName
+      }
       fileAttachments
       isRead
       senderName

@@ -33,6 +33,7 @@ import { SEARCH_CHAT_MESSAGES } from '@/graphql/queries/search-chat-messages'
 import { CREATE_CHAT_ROOM } from '@/graphql/mutations/create-chat-room'
 import { SEND_CHAT_MESSAGE } from '@/graphql/mutations/send-chat-message'
 import { EDIT_CHAT_MESSAGE } from '@/graphql/mutations/edit-chat-message'
+import { DELETE_CHAT_MESSAGE } from '@/graphql/mutations/delete-chat-message'
 import { MARK_MESSAGE_AS_READ } from '@/graphql/mutations/mark-message-as-read'
 import { MARK_ROOM_MESSAGES_AS_READ } from '@/graphql/mutations/mark-room-messages-as-read'
 import { SET_TYPING_INDICATOR } from '@/graphql/mutations/set-typing-indicator'
@@ -367,6 +368,28 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   /**
+   * Delete a message
+   */
+  const deleteMessage = async (messageId: string) => {
+    try {
+      const { mutate } = useMutation(DELETE_CHAT_MESSAGE)
+      const result = await mutate({ messageId })
+
+      if (result?.data?.deleteChatMessage) {
+        // Remove message from current messages (will be handled by subscription)
+        console.log('Message deleted successfully')
+        return true
+      }
+
+      return false
+    } catch (err: any) {
+      error.value = err.message || 'Failed to delete message'
+      console.error('Error deleting message:', err)
+      return false
+    }
+  }
+
+  /**
    * Mark a message as read
    */
   const markMessageAsRead = async (messageId: string) => {
@@ -462,7 +485,39 @@ const markRoomMessagesAsRead = async (roomId: string) => {
     await loadParticipants(roomId)
     console.log('✅ Marking messages as read for room:', roomId)
     await markRoomMessagesAsRead(roomId)
+    
+    // Update current user's lastSeenAt when entering a room
+    updateCurrentUserPresence(roomId)
+    
     console.log('🏁 Current room setup completed')
+  }
+
+  /**
+   * Update current user's presence when they interact with chat
+   */
+  const updateCurrentUserPresence = async (roomId: string) => {
+    try {
+      // This would typically call a GraphQL mutation to update user's lastSeenAt
+      // For now, we'll update it locally and let the subscription handle the broadcast
+      const { client } = useApolloClient()
+      const currentUser = await import('@/stores/auth').then(m => m.useAuthStore().user)
+      
+      if (currentUser?.id) {
+        // Find current user in participants and update their lastSeenAt
+        const participantIndex = currentParticipants.value.findIndex(p => p.userId === currentUser.id)
+        if (participantIndex !== -1) {
+          console.log('🕐 Updating current user lastSeenAt')
+          const newParticipants = [...currentParticipants.value]
+          newParticipants[participantIndex] = {
+            ...newParticipants[participantIndex],
+            lastSeenAt: new Date().toISOString()
+          }
+          currentParticipants.value = newParticipants
+        }
+      }
+    } catch (error) {
+      console.error('❌ Failed to update user presence:', error)
+    }
   }
 
   /**
@@ -718,20 +773,77 @@ const markRoomMessagesAsRead = async (roomId: string) => {
     console.log('🎯 Processing chat event:', event.eventType, 'for room:', event.roomId)
 
     switch (event.eventType) {
-      case 'NEW_MESSAGE':
-        handleNewMessageEvent(event)
+      case 'message_sent':
+        try {
+          const messageEvent = JSON.parse(event.data)
+          handleNewMessage(messageEvent.message)
+        } catch (e) {
+          console.error('Error parsing message_sent event:', e)
+        }
         break
-      case 'MESSAGE_EDITED':
-        handleMessageEditedEvent(event)
+      case 'message_edited':
+        try {
+          const messageEvent = JSON.parse(event.data)
+          handleMessageEdited(messageEvent.message)
+        } catch (e) {
+          console.error('Error parsing message_edited event:', e)
+        }
         break
-      case 'MESSAGE_DELETED':
-        handleMessageDeletedEvent(event)
+      case 'message_deleted':
+        try {
+          const deleteEvent = JSON.parse(event.data)
+          handleMessageDeleted(deleteEvent)
+        } catch (e) {
+          console.error('Error parsing message_deleted event:', e)
+        }
         break
-      case 'USER_TYPING':
-        handleUserTypingEvent(event)
+      case 'typing_started':
+        try {
+          const typingEvent = JSON.parse(event.data)
+          handleTypingIndicator(typingEvent.indicator)
+        } catch (e) {
+          console.error('Error parsing typing_started event:', e)
+        }
         break
-      case 'ROOM_UPDATED':
-        handleRoomUpdatedEvent(event)
+      case 'typing_ended':
+        try {
+          const typingEvent = JSON.parse(event.data)
+          handleTypingEnded(typingEvent)
+        } catch (e) {
+          console.error('Error parsing typing_ended event:', e)
+        }
+        break
+      case 'room_created':
+        try {
+          const roomEvent = JSON.parse(event.data)
+          handleRoomUpdate(roomEvent.room)
+        } catch (e) {
+          console.error('Error parsing room_created event:', e)
+        }
+        break
+      case 'room_updated':
+        try {
+          const roomEvent = JSON.parse(event.data)
+          handleRoomUpdate(roomEvent.room)
+        } catch (e) {
+          console.error('Error parsing room_updated event:', e)
+        }
+        break
+      case 'user_joined':
+        try {
+          const joinEvent = JSON.parse(event.data)
+          handleUserJoined(joinEvent.participant)
+        } catch (e) {
+          console.error('Error parsing user_joined event:', e)
+        }
+        break
+      case 'user_left':
+        try {
+          const leftEvent = JSON.parse(event.data)
+          handleUserLeft(leftEvent)
+        } catch (e) {
+          console.error('Error parsing user_left event:', e)
+        }
         break
       default:
         console.log('🤷 Unknown event type:', event.eventType)
@@ -742,7 +854,9 @@ const markRoomMessagesAsRead = async (roomId: string) => {
    * Handle new messages from subscription
    */
   const handleNewMessage = (message: any) => {
-    console.log('💬 New message received:', message)
+    console.log('💬 New message received from subscription:', message)
+    console.log('🔍 Message replyToId:', message.replyToId)
+    console.log('🔍 Message replyToMessage:', message.replyToMessage)
     
     // Add to current messages if it's for the current room
     if (currentRoom.value && message.roomId === currentRoom.value.id) {
@@ -753,15 +867,30 @@ const markRoomMessagesAsRead = async (roomId: string) => {
         // Create new array to trigger reactivity
         currentMessages.value = [...currentMessages.value, message]
       }
+      
+      // Update sender's lastSeenAt to current time since they just sent a message
+      if (message.senderId) {
+        const participantIndex = currentParticipants.value.findIndex(p => p.userId === message.senderId)
+        if (participantIndex !== -1) {
+          console.log('🕐 Updating sender lastSeenAt for user:', message.senderId)
+          const newParticipants = [...currentParticipants.value]
+          newParticipants[participantIndex] = {
+            ...newParticipants[participantIndex],
+            lastSeenAt: new Date().toISOString()
+          }
+          currentParticipants.value = newParticipants
+        }
+      }
     }
 
     // Update room's last message and unread count
     const roomIndex = chatRooms.value.findIndex(r => r.id === message.roomId)
     if (roomIndex !== -1) {
       const currentUnreadCount = chatRooms.value[roomIndex].unreadCount || 0
-      const newUnreadCount = currentRoom.value?.id !== message.roomId ? currentUnreadCount + 1 : currentUnreadCount
+      // Only increment unread count if message is NOT for the current room (user is in a different room)
+      const newUnreadCount = currentRoom.value?.id !== message.roomId ? currentUnreadCount + 1 : 0
       
-      console.log('🔄 Updating room last message in sidebar')
+      console.log('🔄 Updating room last message in sidebar, current room:', currentRoom.value?.id, 'message room:', message.roomId, 'newUnreadCount:', newUnreadCount)
       // Create new array to trigger reactivity
       const newChatRooms = [...chatRooms.value]
       newChatRooms[roomIndex] = {
@@ -771,6 +900,10 @@ const markRoomMessagesAsRead = async (roomId: string) => {
         unreadCount: newUnreadCount
       }
       chatRooms.value = newChatRooms
+    } else {
+      // Room doesn't exist locally, this could be a new room with first message
+      console.log('🆕 Message for unknown room, reloading chat rooms to get new room')
+      loadChatRooms()
     }
   }
 
@@ -814,10 +947,20 @@ const markRoomMessagesAsRead = async (roomId: string) => {
   const handleRoomUpdate = (room: any) => {
     console.log('🏠 Room update received:', room)
     
-    // Update room in the list
+    // Check if this is a new room (room creation)
     const roomIndex = chatRooms.value.findIndex(r => r.id === room.id)
-    if (roomIndex !== -1) {
-      // Create new array to trigger reactivity
+    if (roomIndex === -1) {
+      // This is a new room - add it to the list
+      console.log('🆕 New room created, adding to chat rooms list')
+      const newRoom = {
+        ...room,
+        lastMessage: null,
+        lastMessageAt: room.updatedAt || room.createdAt,
+        unreadCount: 0
+      }
+      chatRooms.value = [...chatRooms.value, newRoom]
+    } else {
+      // Update existing room
       const newChatRooms = [...chatRooms.value]
       newChatRooms[roomIndex] = {
         ...chatRooms.value[roomIndex],
@@ -840,19 +983,108 @@ const markRoomMessagesAsRead = async (roomId: string) => {
    */
   const handleUserPresenceUpdate = (participant: any) => {
     console.log('👤 User presence update received:', participant)
+    console.log('🕐 Participant lastSeenAt:', participant.lastSeenAt)
     
     // Update participant in current participants if it's for the current room
     if (currentRoom.value && participant.roomId === currentRoom.value.id) {
       const participantIndex = currentParticipants.value.findIndex(p => p.userId === participant.userId)
       if (participantIndex !== -1) {
+        console.log('👤 Updating existing participant at index:', participantIndex)
         // Create new array to trigger reactivity
         const newParticipants = [...currentParticipants.value]
         newParticipants[participantIndex] = participant
         currentParticipants.value = newParticipants
+        console.log('👤 Updated participants:', currentParticipants.value)
       } else {
+        console.log('👤 Adding new participant')
         // Create new array to trigger reactivity
         currentParticipants.value = [...currentParticipants.value, participant]
       }
+    } else {
+      console.log('👤 Presence update not for current room:', {
+        currentRoomId: currentRoom.value?.id,
+        participantRoomId: participant.roomId
+      })
+    }
+  }
+
+  /**
+   * Handle message edited events
+   */
+  const handleMessageEdited = (message: any) => {
+    console.log('✏️ Message edited:', message)
+    
+    // Update message in current messages if it's for the current room
+    if (currentRoom.value && message.roomId === currentRoom.value.id) {
+      const messageIndex = currentMessages.value.findIndex(m => m.id === message.id)
+      if (messageIndex !== -1) {
+        const newMessages = [...currentMessages.value]
+        newMessages[messageIndex] = message
+        currentMessages.value = newMessages
+      }
+    }
+
+    // Update last message in room if this was the last message
+    const roomIndex = chatRooms.value.findIndex(r => r.id === message.roomId)
+    if (roomIndex !== -1 && chatRooms.value[roomIndex].lastMessage?.id === message.id) {
+      const newChatRooms = [...chatRooms.value]
+      newChatRooms[roomIndex] = {
+        ...chatRooms.value[roomIndex],
+        lastMessage: message
+      }
+      chatRooms.value = newChatRooms
+    }
+  }
+
+  /**
+   * Handle message deleted events
+   */
+  const handleMessageDeleted = (messageData: any) => {
+    console.log('🗑️ Message deleted:', messageData)
+    
+    // Remove message from current messages if it's for the current room
+    if (currentRoom.value && messageData.roomId === currentRoom.value.id) {
+      currentMessages.value = currentMessages.value.filter(m => m.id !== messageData.messageId)
+    }
+  }
+
+  /**
+   * Handle typing ended events
+   */
+  const handleTypingEnded = (event: any) => {
+    console.log('⌨️ Typing ended:', event)
+    
+    if (currentRoom.value && event.roomId === currentRoom.value.id) {
+      const newTypingUsers = new Map(typingUsers.value)
+      newTypingUsers.delete(event.userId)
+      typingUsers.value = newTypingUsers
+    }
+  }
+
+  /**
+   * Handle user joined events
+   */
+  const handleUserJoined = (participant: any) => {
+    console.log('👋 User joined:', participant)
+    
+    if (currentRoom.value && participant.roomId === currentRoom.value.id) {
+      // Add participant if not already present
+      const existingIndex = currentParticipants.value.findIndex(p => p.userId === participant.userId)
+      if (existingIndex === -1) {
+        currentParticipants.value = [...currentParticipants.value, participant]
+      }
+    }
+  }
+
+  /**
+   * Handle user left events
+   */
+  const handleUserLeft = (data: any) => {
+    console.log('👋 User left:', data)
+    
+    if (currentRoom.value && data.roomId === currentRoom.value.id) {
+      // Remove participant
+      currentParticipants.value = currentParticipants.value.filter(p => p.userId !== data.userId)
     }
   }
 
@@ -1057,6 +1289,7 @@ const markRoomMessagesAsRead = async (roomId: string) => {
     createChatRoom,
     sendMessage,
     editMessage,
+    deleteMessage,
     markMessageAsRead,
     markRoomMessagesAsRead,
     setTypingIndicator,

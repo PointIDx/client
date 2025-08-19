@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -53,6 +53,7 @@ import type { Prestataire } from '@/interfaces/prestataire'
 import { useAssureurStore } from '@/stores/assureur'
 import { useMissionStore } from '@/stores/mission'
 import { useAuthStore } from '@/stores/auth'
+import { useChatStore } from '@/stores/chat'
 import { useGraphQL } from '@/composables/useGraphQL'
 import { DOWNLOAD_DOCUMENT_QUERY } from '@/graphql/queries/download-document'
 import { GET_PRESTATAIRE_RATING_SUMMARY } from '@/graphql/queries/get-mission-rating'
@@ -62,6 +63,7 @@ import { useApolloClient } from '@vue/apollo-composable'
 const assureurStore = useAssureurStore()
 const missionStore = useMissionStore()
 const authStore = useAuthStore()
+const chatStore = useChatStore()
 const { executeQuery } = useGraphQL()
 const { client } = useApolloClient()
 const router = useRouter()
@@ -132,6 +134,16 @@ onMounted(async () => {
     await missionStore.fetchMissions('ASSUREUR');
   }
   await assureurStore.fetchNotifications();
+  
+  // Load chat rooms and enable subscriptions for real-time unread count updates
+  try {
+    await chatStore.loadChatRooms();
+    // Enable subscriptions to get real-time updates for unread counts
+    chatStore.enableSubscriptions();
+    console.log('✅ Chat subscriptions enabled for real-time unread count updates');
+  } catch (error) {
+    console.error('Failed to load chat rooms for unread count:', error);
+  }
 });
 
 const resetFilters = () => {
@@ -315,6 +327,13 @@ import placeholderImage from '@/assets/placeholder.svg'
 watch([searchTerm, selectedSecteur, selectedRegion, selectedDepartement], () => {
   currentPage.value = 1
 })
+
+// Clean up when component unmounts
+onUnmounted(() => {
+  console.log('🔕 AssureurDashboard unmounting')
+  // Note: We don't disable chat subscriptions here since other components might need them
+  // The ChatPage.vue component handles subscription lifecycle properly
+})
 </script>
 
 <template>
@@ -336,8 +355,14 @@ watch([searchTerm, selectedSecteur, selectedRegion, selectedDepartement], () => 
               </Button>
             </div>
             <Button data-testid="nav_chat_button" size="icon"
-              class="bg-transparent shadow-none hover:shadow-none focus:shadow-none" @click="navigateToChat">
+              class="bg-transparent shadow-none hover:shadow-none focus:shadow-none relative" @click="navigateToChat">
               <MessageCircle class="w-6 h-6 mr-2" />
+              <Badge 
+                v-if="chatStore.totalUnreadCount > 0" 
+                class="absolute -top-2 -right-2 min-w-[20px] h-5 rounded-full bg-red-500 text-white text-xs font-medium flex items-center justify-center px-1"
+              >
+                {{ chatStore.totalUnreadCount > 99 ? '99+' : chatStore.totalUnreadCount }}
+              </Badge>
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger as-child>

@@ -73,14 +73,82 @@ const initializeChatFromRoute = async () => {
   }
 }
 
+// Helper function to get other participant info for direct chats
+const getOtherParticipant = (room: any, participants: any[]) => {
+  if (!authStore.user?.id || !room || !participants) return null
+  
+  // For direct chats, find the other participant (not the current user)
+  if (room.roomType === 'DIRECT' || room.roomType === 'direct') {
+    const otherParticipantId = room.participants?.find((id: string) => id !== authStore.user?.id)
+    if (otherParticipantId) {
+      // Look for participant info in current participants
+      const participantInfo = participants.find(p => p.userId === otherParticipantId)
+      if (participantInfo) {
+        console.log('👤 Found participant info:', {
+          userId: participantInfo.userId,
+          userName: participantInfo.userName,
+          lastSeenAt: participantInfo.lastSeenAt,
+          isOnline: isParticipantOnline(participantInfo)
+        })
+        return {
+          id: otherParticipantId,
+          name: participantInfo.userName || 'Unknown User',
+          avatar: participantInfo.userAvatar,
+          isOnline: isParticipantOnline(participantInfo),
+          lastSeen: participantInfo.lastSeenAt
+        }
+      } else {
+        console.log('👤 No participant info found for:', otherParticipantId, 'in participants:', participants.map(p => p.userId))
+      }
+    }
+  }
+  
+  // For group chats or when participant info is not available
+  return {
+    id: room.id,
+    name: room.name || 'Group Chat',
+    avatar: room.avatarUrl,
+    isOnline: false,
+    lastSeen: null
+  }
+}
+
+// Helper function to determine if participant is online
+const isParticipantOnline = (participant: any) => {
+  if (!participant?.lastSeenAt) return false
+  const lastSeen = new Date(participant.lastSeenAt)
+  const now = new Date()
+  const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
+  return diffMinutes < 5 // Consider online if seen within 5 minutes
+}
+
 // Computed properties for chat data
 const recentChats = computed(() => {
   console.log('🔄 Computing recentChats, chatStore.chatRooms:', chatStore.chatRooms)
   const result = chatStore.chatRooms.map(room => {
-    // Use sender name from last message if available, otherwise fallback to room name or default
-    const displayName = (room.lastMessage?.senderName && room.lastMessage.senderName.trim() !== '') 
-      ? room.lastMessage.senderName 
-      : (room.name && room.name.trim() !== '' ? room.name : 'Chat');
+    // For direct chats, try to get the other participant's name
+    let displayName = 'Chat'
+    
+    if (room.roomType === 'DIRECT' || room.roomType === 'direct') {
+      // For direct chats, find the other participant
+      const otherParticipantId = room.participants?.find((id: string) => id !== authStore.user?.id)
+      
+      // If this is the current room, we have participant info
+      if (room.id === chatStore.currentRoom?.id && otherParticipantId) {
+        const participantInfo = chatStore.currentParticipants.find(p => p.userId === otherParticipantId)
+        if (participantInfo?.userName) {
+          displayName = participantInfo.userName
+        }
+      }
+      
+      // Fallback: use last message sender name if it's not the current user
+      if (displayName === 'Chat' && room.lastMessage?.senderName && room.lastMessage.senderId !== authStore.user?.id) {
+        displayName = room.lastMessage.senderName
+      }
+    } else {
+      // For group chats, use room name
+      displayName = room.name || 'Group Chat'
+    }
     
     // Generate avatar based on initials of the display name
     const getInitials = (name: string) => {
@@ -92,6 +160,20 @@ const recentChats = computed(() => {
       return (words[0].charAt(0) + words[words.length - 1].charAt(0)).toUpperCase();
     };
     
+    // Get online status if this is the current room
+    let isOnline = false
+    let lastSeen = null
+    if (room.id === chatStore.currentRoom?.id) {
+      const otherParticipantId = room.participants?.find((id: string) => id !== authStore.user?.id)
+      if (otherParticipantId) {
+        const participantInfo = chatStore.currentParticipants.find(p => p.userId === otherParticipantId)
+        if (participantInfo) {
+          isOnline = isParticipantOnline(participantInfo)
+          lastSeen = participantInfo.lastSeenAt
+        }
+      }
+    }
+    
     const chatItem = {
       id: room.id, // Keep as string to match backend
       name: displayName,
@@ -100,6 +182,8 @@ const recentChats = computed(() => {
       time: room.lastMessageAt ? new Date(room.lastMessageAt).toLocaleString() : '',
       hasNewMessage: (room.unreadCount || 0) > 0,
       newMessageCount: room.unreadCount || 0,
+      isOnline,
+      lastSeen
     }
     
     console.log('📝 Chat item processed:', chatItem)
@@ -111,28 +195,70 @@ const recentChats = computed(() => {
 })
 
 const chatMessages = computed(() => {
-  return chatStore.currentMessages.map(msg => ({
-    id: msg.id, // Keep as string to match backend
-    sender: msg.senderName || 'Unknown',
-    message: msg.content || '',
-    time: new Date(msg.sentAt).toLocaleTimeString('en-US', { 
-      hour: 'numeric', 
-      minute: '2-digit', 
-      hour12: true 
-    }),
-    isOwn: msg.senderId === authStore.user?.id,
-  }))
+  console.log('🔄 Computing chatMessages, current messages count:', chatStore.currentMessages.length)
+  
+  const messages = chatStore.currentMessages.map(msg => {
+    let replyTo = undefined
+
+    // First try to use server-provided reply data
+    if (msg.replyToMessage) {
+      replyTo = {
+        id: msg.replyToMessage.id,
+        sender: msg.replyToMessage.senderName || 'Unknown',
+        content: msg.replyToMessage.content || ''
+      }
+      console.log('✅ Using server-provided reply data for message:', msg.id)
+    } 
+    // Fallback to client-side resolution if server doesn't provide it
+    else if (msg.replyToId) {
+      const repliedToMessage = chatStore.currentMessages.find(m => m.id === msg.replyToId)
+      if (repliedToMessage) {
+        replyTo = {
+          id: repliedToMessage.id,
+          sender: repliedToMessage.senderName || 'Unknown',
+          content: repliedToMessage.content || ''
+        }
+        console.log('✅ Using client-side resolved reply data for message:', msg.id)
+      } else {
+        // If replied-to message not found in current messages, show placeholder
+        replyTo = {
+          id: msg.replyToId,
+          sender: 'Unknown',
+          content: '[Message not loaded]'
+        }
+        console.log('⚠️ Could not resolve reply relationship for message:', msg.id, 'replyToId:', msg.replyToId, '- showing placeholder')
+      }
+    }
+
+    const transformedMessage = {
+      id: msg.id, // Keep as string to match backend
+      sender: msg.senderName || 'Unknown',
+      message: msg.content || '',
+      time: new Date(msg.sentAt).toLocaleTimeString('en-US', { 
+        hour: 'numeric', 
+        minute: '2-digit', 
+        hour12: true 
+      }),
+      isOwn: msg.senderId === authStore.user?.id,
+      replyTo
+    }
+
+    return transformedMessage
+  })
+
+  console.log('✅ Computed chatMessages complete, messages with replies:', 
+    messages.filter(m => m.replyTo).length, '/', messages.length)
+  
+  return messages
 })
 
 const selectedChat = computed(() => {
   if (!chatStore.currentRoom) return null
   
-  // Use last message sender name if available, otherwise fallback to room name or default
-  const displayName = ((chatStore.currentRoom as any).lastMessage?.senderName && (chatStore.currentRoom as any).lastMessage?.senderName.trim() !== '') 
-    ? (chatStore.currentRoom as any).lastMessage?.senderName 
-    : (chatStore.currentRoom.name && chatStore.currentRoom.name.trim() !== '' ? chatStore.currentRoom.name : 'Chat');
+  // Get other participant info for direct chats
+  const otherParticipant = getOtherParticipant(chatStore.currentRoom, chatStore.currentParticipants)
   
-  // Generate avatar based on initials of the display name
+  // Generate avatar based on initials if no avatar available
   const getInitials = (name: string) => {
     if (!name) return '?';
     const words = name.trim().split(' ');
@@ -142,21 +268,71 @@ const selectedChat = computed(() => {
     return (words[0].charAt(0) + words[words.length - 1].charAt(0)).toUpperCase();
   };
   
+  const displayName = otherParticipant?.name || 'Chat'
+  const avatarUrl = otherParticipant?.avatar || `initials:${getInitials(displayName)}`
+  
   return {
-    id: chatStore.currentRoom.id, // Keep as string to match backend
+    id: chatStore.currentRoom.id,
     name: displayName,
-    avatar: chatStore.currentRoom.avatarUrl || `initials:${getInitials(displayName)}`, // Prefix to indicate initials
+    avatar: avatarUrl,
     lastMessage: 'No messages yet',
     time: chatStore.currentRoom.lastMessageAt ? new Date(chatStore.currentRoom.lastMessageAt).toLocaleString() : '',
     hasNewMessage: (chatStore.currentRoom.unreadCount || 0) > 0,
     newMessageCount: chatStore.currentRoom.unreadCount || 0,
+    isOnline: otherParticipant?.isOnline || false,
+    lastSeen: otherParticipant?.lastSeen || null
   }
+})
+
+// Reactive time reference that updates every minute
+const currentTime = ref(new Date())
+
+// Update current time every minute to refresh "last seen" calculations
+const timeInterval = setInterval(() => {
+  currentTime.value = new Date()
+}, 60000) // Update every minute
+
+// Computed property for chat status
+const chatStatus = computed(() => {
+  if (!selectedChat.value) return 'Offline'
+  
+  // Force reactivity by referencing currentTime
+  const now = currentTime.value
+  
+  if (selectedChat.value.isOnline) {
+    return 'Online'
+  } else if (selectedChat.value.lastSeen) {
+    const lastSeen = new Date(selectedChat.value.lastSeen)
+    const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
+    
+    console.log('🕐 Computing last seen status:', {
+      lastSeen: selectedChat.value.lastSeen,
+      diffMinutes,
+      now: now.toISOString()
+    })
+    
+    if (diffMinutes < 1) {
+      return 'Just now'
+    } else if (diffMinutes < 60) {
+      return `Last seen ${Math.floor(diffMinutes)} minute${Math.floor(diffMinutes) === 1 ? '' : 's'} ago`
+    } else if (diffMinutes < 1440) {
+      const hours = Math.floor(diffMinutes / 60)
+      return `Last seen ${hours} hour${hours === 1 ? '' : 's'} ago`
+    } else {
+      const days = Math.floor(diffMinutes / 1440)
+      return `Last seen ${days} day${days === 1 ? '' : 's'} ago`
+    }
+  }
+  
+  return 'Offline'
 })
 
 // State
 const message = ref("")
 const attachedFiles = ref<File[]>([])
 const replyToMessage = ref<Message | null>(null)
+const messagesContainer = ref<HTMLElement | null>(null)
+const scrollAnchor = ref<HTMLElement | null>(null)
 
 // Computed properties for real-time state
 const isTyping = computed(() => {
@@ -175,6 +351,93 @@ const typingUserNames = computed(() => {
   })
 })
 
+// Scroll to bottom utility
+const scrollToBottom = async (force = false) => {
+  await nextTick()
+  
+  // Try multiple times with delays to ensure DOM is ready
+  for (let i = 0; i < 3; i++) {
+    if (messagesContainer.value) {
+      const container = messagesContainer.value
+      const shouldScroll = force || 
+        (container.scrollTop + container.clientHeight >= container.scrollHeight - 100)
+      
+      if (shouldScroll) {
+        // Always use scrollTo with smooth behavior for consistency
+        const targetScroll = container.scrollHeight
+        console.log('📜 Scrolling to:', targetScroll, 'from current:', container.scrollTop)
+        
+        container.scrollTo({
+          top: targetScroll,
+          behavior: 'smooth'
+        })
+        console.log('📜 Smooth scrolled to bottom, attempt:', i + 1)
+        break
+      } else if (!force) {
+        console.log('📜 Skip scroll - user not at bottom (scrollTop:', container.scrollTop, 'clientHeight:', container.clientHeight, 'scrollHeight:', container.scrollHeight, ')')
+      }
+    }
+    
+    if (i < 2) {
+      await new Promise(resolve => setTimeout(resolve, 100))
+    }
+  }
+}
+
+// Watch for new messages and scroll to bottom
+watch(() => chatStore.currentMessages.length, async (newLength, oldLength) => {
+  if (newLength > oldLength) {
+    console.log('📨 New message detected, scrolling to bottom')
+    
+    // Use the same approach as sent messages with a slight delay
+    setTimeout(async () => {
+      if (messagesContainer.value) {
+        const container = messagesContainer.value
+        const scrollTop = container.scrollTop
+        const clientHeight = container.clientHeight
+        const scrollHeight = container.scrollHeight
+        const isNearBottom = scrollTop + clientHeight >= scrollHeight - 150
+        
+        console.log('📜 Received message scroll check:', {
+          scrollTop,
+          clientHeight, 
+          scrollHeight,
+          isNearBottom,
+          threshold: scrollHeight - 150,
+          currentPosition: scrollTop + clientHeight
+        })
+        
+        if (isNearBottom) {
+          // User is near bottom, smooth scroll to show new message
+          console.log('📜 User is near bottom, smooth scrolling to show new message')
+          await scrollToBottom(false)
+        } else {
+          console.log('📜 User scrolled up, not auto-scrolling for new message')
+        }
+      }
+    }, 100)
+  }
+})
+
+// Watch for current room changes and scroll to bottom
+watch(() => chatStore.currentRoom?.id, async (newRoomId, oldRoomId) => {
+  if (newRoomId && newRoomId !== oldRoomId) {
+    console.log('🏠 Room changed, scrolling to bottom after delay')
+    // Wait a bit longer for messages to load when changing rooms
+    setTimeout(async () => {
+      await scrollToBottom(true) // Force scroll when changing rooms
+    }, 300)
+  }
+})
+
+// Watch for messages content changes (in case messages are replaced)
+watch(() => chatStore.currentMessages, async () => {
+  // Small delay to ensure DOM updates
+  setTimeout(async () => {
+    await scrollToBottom(true)
+  }, 100)
+}, { deep: true, flush: 'post' })
+
 // Methods
 const handleSelectChat = async (chat: Chat) => {
   const room = chatStore.chatRooms.find(r => r.id === chat.id)
@@ -188,6 +451,12 @@ const handleSelectChat = async (chat: Chat) => {
     
     // Subscribe to new room events
     chatStore.subscribeToRoomEvents(room.id)
+    
+    // Ensure scroll to bottom after room is set and messages loaded
+    setTimeout(async () => {
+      await scrollToBottom(true)
+      console.log('🎯 Manual scroll after room selection')
+    }, 500)
   }
 }
 
@@ -220,6 +489,12 @@ const handleSendMessage = async (messageText: string, files: File[], replyTo?: M
       message.value = ""
       attachedFiles.value = []
       replyToMessage.value = null
+      
+      // Scroll to bottom after sending - smooth scroll
+      setTimeout(async () => {
+        await scrollToBottom(false)
+        console.log('📤 Smooth scroll after sending message')
+      }, 100)
     } catch (error) {
       console.error('Failed to send message:', error)
     }
@@ -319,6 +594,12 @@ onMounted(async () => {
       // Subscribe to the selected room events
       chatStore.subscribeToRoomEvents(chatStore.chatRooms[0].id)
     }
+    
+    // Ensure scroll to bottom after initial load
+    setTimeout(async () => {
+      await scrollToBottom(true)
+      console.log('🎯 Initial scroll after mount')
+    }, 800)
   } catch (error) {
     console.error('Failed to initialize chat:', error)
   }
@@ -327,6 +608,10 @@ onMounted(async () => {
 // Clean up subscriptions when component unmounts
 onUnmounted(() => {
   chatStore.disableSubscriptions()
+  // Clear the time interval
+  if (timeInterval) {
+    clearInterval(timeInterval)
+  }
 })
 </script>
 
@@ -365,6 +650,7 @@ onUnmounted(() => {
           <!-- Chat Header -->
           <ChatHeader
             :chat="selectedChat"
+            :status="chatStatus"
             :user-type="(authStore.user?.accountType?.toLowerCase() as 'prestataire' | 'assureur' | undefined)"
             @create-mission="handleCreateMission"
             @search="handleSearch"
@@ -372,7 +658,7 @@ onUnmounted(() => {
           />
 
           <!-- Chat Messages -->
-          <div class="flex-1 overflow-auto bg-gray-50">
+          <div ref="messagesContainer" class="flex-1 overflow-auto bg-gray-50 scroll-smooth">
             <div class="p-4">
               <ChatMessage
                 v-for="msg in chatMessages"
@@ -388,6 +674,9 @@ onUnmounted(() => {
                 :userNames="typingUserNames"
                 :isOnline="isOnline"
               />
+              
+              <!-- Scroll anchor -->
+              <div ref="scrollAnchor" class="h-1"></div>
             </div>
           </div>
 
